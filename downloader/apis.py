@@ -315,8 +315,8 @@ def order(request):
         user = User.objects.get(email=email)
 
         # 创建订单
-        Order(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount, comment=comment, pay_url=pay_url).save()
-        return JsonResponse(dict(code=200, msg='订单创建成功', pay_url=pay_url))
+        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount, comment=comment, pay_url=pay_url)
+        return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
     elif request.method == 'GET':
         email = request.session.get('email')
         try:
@@ -330,41 +330,31 @@ def order(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-def notify(request):
+def alipay_notify(request):
     if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-        except Exception as e:
-            logging.error(e)
-            return HttpResponse('fail')
 
-        out_trade_no = data.get('out_trade_no', None)
+        data = request.POST.dict()
+        logging.info(data)
 
-        try:
-            o = Order.objects.get(out_trade_no=out_trade_no, paid_time=None)
+        ali_pay = get_alipay()
+        signature = data.pop("sign")
+        # verification
+        success = ali_pay.verify(data, signature)
+        if success and data["trade_status"] in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+            app_id = data.get('app_id')
+            if app_id != settings.ALIPAY_APP_ID:
+                return HttpResponse('failure')
 
-            ali_pay = get_alipay()
-            # check order status
-            # 调用alipay工具查询支付结果
-            result = ali_pay.api_alipay_trade_query(out_trade_no)  # response是一个字典
-            logging.info(result)
-
-            # 判断支付结果
-            code = result.get("code")  # 支付宝接口调用成功或者错误的标志
-            trade_status = result.get("trade_status")  # 用户支付的情况
-
-            if code == "10000" and trade_status == "TRADE_SUCCESS":
+            out_trade_no = data.get('out_trade_no')
+            total_amount = data.get('total_amount')
+            try:
+                o = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
                 o.paid_time = timezone.now()
                 o.save()
-                return HttpResponse('success')
-
-            else:
-                return HttpResponse('fail')
-
-        except Order.DoesNotExist:
-            return HttpResponse('fail')
-    else:
-        return HttpResponse('fail')
+            except Order.DoesNotExist:
+                return HttpResponse('failure')
+            return HttpResponse('success')
+        return HttpResponse('failure')
 
 
 def reset_password(request):
