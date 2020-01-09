@@ -58,7 +58,7 @@ def login(request):
             user = User.objects.get(email=email, is_active=True)
             if check_password(password, user.password):
                 # 设置token过期时间: 1day
-                exp = timezone.now() + datetime.timedelta(days=1)
+                exp = timezone.now() + datetime.timedelta(hours=1)
                 payload = {
                     'exp': exp,
                     'sub': email
