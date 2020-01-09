@@ -290,11 +290,12 @@ def order(request):
             logging.error(e)
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        subject = data.get('subject', None)
         total_amount = data.get('total_amount', None)
-        comment = data.get('comment', None)
-        if subject is None or total_amount is None or comment is None:
+        purchase_count = data.get('purchase_count', None)
+        if total_amount is None or purchase_count is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        subject = '购买CSDNBot服务'
 
         ali_pay = get_alipay()
         # 生成唯一订单号
@@ -315,7 +316,7 @@ def order(request):
         user = User.objects.get(email=email)
 
         # 创建订单
-        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount, comment=comment, pay_url=pay_url)
+        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount, pay_url=pay_url, purchase_count=purchase_count)
         return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
     elif request.method == 'GET':
         email = request.session.get('email')
@@ -351,6 +352,10 @@ def alipay_notify(request):
                 o = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
                 o.paid_time = timezone.now()
                 o.save()
+
+                user = User.objects.get(id=o.user_id)
+                user.valid_count += o.purchase_count
+                user.save()
             except Order.DoesNotExist:
                 return HttpResponse('failure')
             return HttpResponse('success')

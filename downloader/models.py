@@ -39,9 +39,9 @@ class Order(Base):
     total_amount = models.FloatField()
     # 支付时间
     paid_time = models.DateTimeField(null=True)
-    # 订单备注
-    comment = models.CharField(max_length=100)
     pay_url = models.TextField()
+    # 购买次数
+    purchase_count = models.IntegerField()
 
     class Meta:
         db_table = 'order'

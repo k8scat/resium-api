@@ -25,4 +25,4 @@ class DownloadRecordSerializers(ModelSerializer):
 class OrderSerializers(ModelSerializer):
     class Meta:
         model = Order
-        fields = ['create_time', 'total_amount', 'comment', 'pay_url', 'paid_time']
+        fields = ['create_time', 'total_amount', 'pay_url', 'paid_time', 'purchase_count']
