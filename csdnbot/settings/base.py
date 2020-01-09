@@ -148,7 +148,8 @@ AUTH_PATHS = [
     '/user/',
     '/reset_password/',
     '/download_record/',
-    '/order/'
+    '/order/',
+    '/service/'
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '

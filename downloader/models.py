@@ -54,3 +54,11 @@ class DownloadRecord(Base):
 
     class Meta:
         db_table = 'download_record'
+
+
+class Service(Base):
+    total_amount = models.FloatField()
+    purchase_count = models.IntegerField()
+
+    class Meta:
+        db_table = 'service'

@@ -30,8 +30,8 @@ from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from urllib import parse
 
-from downloader.models import User, DownloadRecord, Order
-from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers
+from downloader.models import User, DownloadRecord, Order, Service
+from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
 
 test_url = 'https://download.csdn.net/download/m0_37829784/11088464'
 
@@ -405,3 +405,10 @@ def download_record(request):
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
+
+def service(request):
+    if request.method == 'GET':
+        services = Service.objects.all()
+        return JsonResponse(dict(code=200, msg='获取服务成功', services=ServiceSerializers(services, many=True).data))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
