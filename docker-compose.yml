@@ -6,7 +6,7 @@ services:
     ports:
       - 8055:8000
     networks:
-      - selenium_net_net
+      - selenium_net
       - mysql_net
     container_name: csdnbot
 
