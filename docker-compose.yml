@@ -18,6 +18,7 @@ services:
     networks:
       - mysql_net
     restart: always
+    user: root
     container_name: csdnbot-selenium
 
 networks:
