@@ -9,6 +9,9 @@ import datetime
 import json
 import logging
 import string
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import quote
 
 import alipay
@@ -22,13 +25,15 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.mail import send_mail
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from urllib import parse
+
+from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import User, DownloadRecord, Order, Service
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
@@ -160,11 +165,16 @@ def activate(request):
 def download(request):
     if request.method == 'GET':
         resource_url = request.GET.get('resource_url', None)
-        if resource_url is None:
+        token = request.GET.get('token', None)
+        if resource_url is None or token is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
+        if payload.get('exp') < time.time():
+            return JsonResponse(dict(code=401, msg='未认证'))
+
         # 更新用户的可用下载数和已用下载数
-        email = request.session.get('email')
+        email = payload.get('sub', None)
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
@@ -227,27 +237,36 @@ def download(request):
             logging.info(filename)
 
             driver.get(resource_url)
-            time.sleep(1)
-            driver.find_element_by_link_text("VIP下载").click()
-            time.sleep(1)
-            driver.find_element_by_xpath(
-                "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]").click()
+
+            el = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
+            )
+            el.click()
+
+            el = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+            )
+            el.click()
 
             file = os.path.join(sub_dir, filename)
-            while True:
-                try:
-                    with open(file, 'rb') as f:
-                        logging.info('Download ok')
-                        response = HttpResponse(f)
-                        response['Content-Type'] = 'application/octet-stream'
-                        quote_filename = parse.quote(filename, safe=string.printable)
-                        response['Content-Disposition'] = 'attachment;filename="' + quote_filename + '"'
-                        return response
 
-                except FileNotFoundError:
+            while True:
+
+                files = os.listdir(sub_dir)
+                if len(files) == 0 or files[0].endswith('.crdownload'):
                     logging.info('Downloading')
-                    time.sleep(1)
+                    time.sleep(0.2)
                     continue
+                else:
+                    time.sleep(0.2)
+
+                    logging.info('Download ok')
+                    f = open(file, 'rb')
+                    response = FileResponse(f)
+                    response['Content-Type'] = 'application/octet-stream'
+                    encoded_filename = parse.quote(filename, safe=string.printable)
+                    response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
+                    return response
 
         except Exception as e:
             logging.error(e)
@@ -278,7 +297,7 @@ def get_alipay():
         # alipay public key, do not use your own public key!
         alipay_public_key_string=alipay_public_key_string,
         sign_type="RSA2",  # RSA or RSA2
-        debug=True  # False by default
+        debug=False  # False by default
     )
 
 
@@ -412,3 +431,13 @@ def service(request):
         return JsonResponse(dict(code=200, msg='获取服务成功', services=ServiceSerializers(services, many=True).data))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+def test(request):
+    file = '/Users/mac/workspace/CSDNBot/download/7e08b4e8-32e0-11ea-9039-a0999b0715d5/Travel.rar'
+    f = open(file, 'rb')
+    response = FileResponse(f)
+    response['Content-Type'] = 'application/octet-stream'
+    encoded_filename = parse.quote('Travel.rar', safe=string.printable)
+    response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
+    return response

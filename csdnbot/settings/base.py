@@ -143,7 +143,6 @@ COOKIES_FILE = os.path.join(BASE_DIR, 'cookies.json')
 
 # 需要认证的路径
 AUTH_PATHS = [
-    '/download/',
     '/purchase/',
     '/user/',
     '/reset_password/',
