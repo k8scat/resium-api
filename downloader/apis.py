@@ -224,7 +224,7 @@ def download(request):
             # response-content-disposition
             rcd = params['response-content-disposition'][0]
             filename = parse.unquote(rcd[rcd.index('"') + 1:rcd.rindex('"')])
-            print(filename)
+            logging.info(filename)
 
             driver.get(resource_url)
             time.sleep(1)
