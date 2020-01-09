@@ -2,16 +2,22 @@ version: '3.7'
 services:
   csdnbot:
     build: .
-    image: csdnbot:latest
+    image: csdnbot
     ports:
       - 8055:8000
     networks:
-      - selenium_net
       - mysql_net
+    volumes:
+      - /srv/csdnbot/download:/csdnbot/download
     container_name: csdnbot
+  selenium:
+    image: selenium/standalone-chrome
+    volumes:
+      - /dev/shm:/dev/shm
+      - /srv/csdnbot/download:/download
+    restart: always
+    container_name: csdnbot-selenium
 
 networks:
-  selenium_net:
-    external: true
   mysql_net:
     external: true
