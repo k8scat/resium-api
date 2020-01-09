@@ -1,0 +1,17 @@
+version: '3.7'
+services:
+  csdnbot:
+    build: .
+    image: csdnbot:latest
+    ports:
+      - 8055:8000
+    networks:
+      - selenium_net_net
+      - mysql_net
+    container_name: csdnbot
+
+networks:
+  selenium_net:
+    external: true
+  mysql_net:
+    external: true
