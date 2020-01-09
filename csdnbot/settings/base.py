@@ -139,9 +139,6 @@ CORS_EXPOSE_HEADERS = [
     'Content-Disposition'
 ]
 
-FASTDFS_AUTH_TOKEN = 'c29342945dab58091d40a5a01043b98cba932973b83b3'
-FASTDFS_URL = 'https://dfs.ncucoder.com/group/upload'
-
 COOKIES_FILE = os.path.join(BASE_DIR, 'cookies.json')
 
 # 需要认证的路径

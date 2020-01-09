@@ -237,7 +237,7 @@ def download(request):
             while True:
                 try:
                     with open(file, 'rb') as f:
-                        print('Download ok')
+                        logging.info('Download ok')
                         response = HttpResponse(f)
                         response['Content-Type'] = 'application/octet-stream'
                         quote_filename = parse.quote(filename, safe=string.printable)
@@ -245,7 +245,7 @@ def download(request):
                         return response
 
                 except FileNotFoundError:
-                    print('Downloading')
+                    logging.info('Downloading')
                     time.sleep(1)
                     continue
 
