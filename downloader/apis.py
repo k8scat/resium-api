@@ -153,6 +153,8 @@ def activate(request):
             user = User.objects.get(email=email, code=code, is_active=False)
             user.is_active = True
             user.save()
+
+            User.objects.filter(email=email, is_active=False).delete()
             return JsonResponse(dict(code=200, msg='激活成功'))
 
         except User.DoesNotExist:
