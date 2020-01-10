@@ -132,7 +132,7 @@ def register(request):
                       recipient_list=[email],
                       html_message=html_message,
                       fail_silently=False)
-            return JsonResponse(dict(code=200, msg='注册成功'))
+            return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
         except Exception as e:
             logging.error(e)
             user.delete()
