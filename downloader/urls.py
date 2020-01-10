@@ -7,7 +7,7 @@
 """
 from django.urls import path, re_path
 from downloader.apis import login, register, activate, order, alipay_notify, download, get_user, reset_password, \
-    download_record, service, test
+    download_record, service, test, get_today_download_count, get_user_count
 
 urlpatterns = [
     path('login/', login),
@@ -20,5 +20,7 @@ urlpatterns = [
     path('reset_password/', reset_password),
     path('download_record/',  download_record),
     path('service/', service),
-    path('test/', test)
+    path('test/', test),
+    path('today_download_count/', get_today_download_count),
+    path('user_count/', get_user_count)
 ]

@@ -169,18 +169,22 @@ def download(request):
         resource_url = request.GET.get('resource_url', None)
         token = request.GET.get('token', None)
         if resource_url is None or token is None:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return HttpResponse('错误的请求')
 
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
         if payload.get('exp') < time.time():
-            return JsonResponse(dict(code=401, msg='未认证'))
+            return HttpResponse('未认证')
 
         # 更新用户的可用下载数和已用下载数
         email = payload.get('sub', None)
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='用户不存在'))
+            return HttpResponse('用户不存在')
+
+        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).all().count()
+        if today_download_count == 20:
+            return HttpResponse('本站今日下载总数已达上限，请明日再来下载')
 
         # 判断用户是否有可用下载数
         print(user.valid_count)
@@ -189,7 +193,7 @@ def download(request):
             user.used_count += 1
             user.save()
         else:
-            return JsonResponse(dict(code=400, msg='下载数已用完'))
+            return HttpResponse('下载数已用完')
 
         # 保存下载记录
         DownloadRecord(user=user, resource_url=resource_url).save()
@@ -272,12 +276,12 @@ def download(request):
 
         except Exception as e:
             logging.error(e)
-            return JsonResponse(dict(code=500, msg='下载失败'))
+            return HttpResponse('下载失败')
 
         finally:
             driver.close()
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return HttpResponse('错误的请求')
 
 
 def get_alipay():
@@ -443,3 +447,17 @@ def test(request):
     encoded_filename = parse.quote('Travel.rar', safe=string.printable)
     response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
     return response
+
+
+def get_today_download_count(request):
+    if request.method == 'GET':
+        # 基础下载数上乘 3
+        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).all().count() * 3
+        return JsonResponse(dict(code=200, msg='成功获取今日下载总数', today_download_count=today_download_count))
+
+
+def get_user_count(request):
+    if request.method == 'GET':
+        # 基础用户数上加 30
+        user_count = User.objects.filter(is_active=True).all().count() + 15
+        return JsonResponse(dict(code=200, msg='成功获取注册用户总数', user_count=user_count))
