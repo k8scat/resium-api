@@ -3,7 +3,7 @@ from downloader.models import *
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'valid_count', 'used_count', 'create_time', 'update_time')
+    list_display = ('id', 'is_active', 'email', 'valid_count', 'used_count', 'create_time', 'update_time')
     list_filter = ('create_time', 'email', 'valid_count', 'used_count')
 
 
