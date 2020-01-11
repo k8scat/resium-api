@@ -406,6 +406,8 @@ def alipay_notify(request):
                 user = User.objects.get(id=o.user_id)
                 user.valid_count += o.purchase_count
                 user.save()
+
+                ding('收入+' + str(total_amount))
             except Order.DoesNotExist:
                 return HttpResponse('failure')
             return HttpResponse('success')
@@ -462,16 +464,6 @@ def service(request):
         return JsonResponse(dict(code=200, msg='获取服务成功', services=ServiceSerializers(services, many=True).data))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-
-
-def test(request):
-    file = '/Users/mac/workspace/CSDNBot/download/7e08b4e8-32e0-11ea-9039-a0999b0715d5/Travel.rar'
-    f = open(file, 'rb')
-    response = FileResponse(f)
-    response['Content-Type'] = 'application/octet-stream'
-    encoded_filename = parse.quote('Travel.rar', safe=string.printable)
-    response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
-    return response
 
 
 def get_today_download_count(request):
