@@ -24,9 +24,7 @@ class AuthMiddleware(MiddlewareMixin):
     """
     def process_request(self, request):
         if settings.AUTH_PATHS.count(request.path) == 1:
-
             logging.info(f'Auth: {request.path}')
-
             token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
             logging.info(token)
 

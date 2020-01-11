@@ -17,9 +17,8 @@ urlpatterns = [
     path('download/', download),
     path('user/', get_user),
     path('reset_password/', reset_password),
-    path('download_record/',  download_record),
+    path('download_record/', download_record),
     path('service/', service),
-    path('today_download_count/', get_today_download_count),
-    path('user_count/', get_user_count),
-    path('status/', get_status)
+    path('status/', get_status),
+    path('test/', test)
 ]

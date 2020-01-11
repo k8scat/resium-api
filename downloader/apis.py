@@ -103,9 +103,9 @@ def register(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         # 检查邮箱是否已注册以及邀请码是否有效
-        if User.objects.filter(email=email, is_active=True).all().count() != 0:
+        if User.objects.filter(email=email, is_active=True).count() != 0:
             return JsonResponse(dict(code=400, msg='邮箱已注册'))
-        if User.objects.filter(invite_code=invited_code, is_active=True).all().count() != 1:
+        if User.objects.filter(invite_code=invited_code, is_active=True).count() != 1:
             return JsonResponse(dict(code=400, msg='邀请码无效'))
 
         encrypted_password = make_password(password)
@@ -114,7 +114,7 @@ def register(request):
         # 结合uuid和数据库生成唯一邀请码
         invite_code = ''.join(random.sample(string.digits, 6))
         while True:
-            if User.objects.filter(invite_code=invite_code).all().count():
+            if User.objects.filter(invite_code=invite_code).count():
                 invite_code = ''.join(random.sample(string.digits, 6))
                 continue
             else:
@@ -176,31 +176,36 @@ def download(request):
         if payload.get('exp') < time.time():
             return HttpResponse('未认证')
 
-        # 更新用户的可用下载数和已用下载数
         email = payload.get('sub', None)
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
             return HttpResponse('用户不存在')
 
-        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).all().count()
+        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).count()
         if today_download_count == 20:
             return HttpResponse('本站今日下载总数已达上限，请明日再来下载')
 
-        if Csdnbot.objects.get(id=1).status is False:
+        if not Csdnbot.objects.get(id=1).status:
             ding('还是不能下载？')
             return HttpResponse('本站下载服务正在维护中，将尽快恢复服务')
 
-        # 判断用户是否有可用下载数
-        if user.valid_count > 0:
-            user.valid_count -= 1
-            user.used_count += 1
-            user.save()
-        else:
-            return HttpResponse('下载数已用完')
+        try:
+            dr = DownloadRecord.objects.get(user=user, resource_url=resource_url)
+            dr.update_time = timezone.now()
+            dr.save()
+        except DownloadRecord.DoesNotExist:
+            # 判断用户是否有可用下载数
+            # 更新用户的可用下载数和已用下载数
+            if user.valid_count > 0:
+                user.valid_count -= 1
+                user.used_count += 1
+                user.save()
+            else:
+                return HttpResponse('下载数已用完')
 
-        # 保存下载记录
-        DownloadRecord(user=user, resource_url=resource_url).save()
+            # 保存下载记录
+            DownloadRecord(user=user, resource_url=resource_url).save()
 
         # 生成资源存放的唯一子目录
         uuid_str = str(uuid.uuid1())
@@ -466,21 +471,11 @@ def service(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-def get_today_download_count(request):
-    if request.method == 'GET':
-        # 基础下载数上乘 3
-        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).all().count() * 3
-        return JsonResponse(dict(code=200, msg='成功获取今日下载总数', today_download_count=today_download_count))
-
-
-def get_user_count(request):
-    if request.method == 'GET':
-        # 基础用户数上加 30
-        user_count = User.objects.filter(is_active=True).all().count() + 67
-        return JsonResponse(dict(code=200, msg='成功获取注册用户总数', user_count=user_count))
-
-
 def get_status(request):
     if request.method == 'GET':
         status = Csdnbot.objects.get(id=1).status
         return JsonResponse(dict(code=200, status=status))
+
+
+def test(request):
+    return HttpResponse('test')

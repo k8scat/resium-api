@@ -149,9 +149,7 @@ AUTH_PATHS = [
     '/download_record/',
     '/order/',
     '/service/',
-    '/user_count/',
-    'today_download_count/',
-    '/status/'
+    '/status/',
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
