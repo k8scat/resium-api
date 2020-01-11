@@ -35,8 +35,9 @@ from urllib import parse
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import User, DownloadRecord, Order, Service
+from downloader.models import User, DownloadRecord, Order, Service, Csdnbot
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
+from downloader.utils import ding
 
 test_url = 'https://download.csdn.net/download/m0_37829784/11088464'
 
@@ -186,8 +187,11 @@ def download(request):
         if today_download_count == 20:
             return HttpResponse('本站今日下载总数已达上限，请明日再来下载')
 
+        if Csdnbot.objects.get(id=1).status is False:
+            ding('还是不能下载？')
+            return HttpResponse('本站下载服务正在维护中，将尽快恢复服务')
+
         # 判断用户是否有可用下载数
-        print(user.valid_count)
         if user.valid_count > 0:
             user.valid_count -= 1
             user.used_count += 1
@@ -233,7 +237,28 @@ def download(request):
                                                                                  resource_url.rindex('/') + 1:]
             driver.get(parse_url)
             html = driver.page_source
-            data = json.loads(html[html.index('{'):html.index('}') + 1])
+
+            def recover():
+                """
+                更新站点服务的状态，恢复用户的可用下载数、已使用下载数、以及删除相应的下载记录，并及时通知管理员
+                """
+                Csdnbot.objects.filter(id=1).update(status=False)
+                user.valid_count += 1
+                user.used_count -= 1
+                user.save()
+                DownloadRecord.objects.filter(user=user, resource_url=resource_url).delete()
+                ding(html)
+
+            try:
+                data = json.loads(html[html.index('{'):html.index('}') + 1])
+                if data.get('code') != 200:
+                    recover()
+                    return HttpResponse('本站下载服务正在维护中，将尽快恢复服务，且您本次的下载不会消耗可用下载数')
+            except Exception as e:
+                logging.error(e)
+                recover()
+                return HttpResponse('本站下载服务正在维护中，将尽快恢复服务，且您本次的下载不会消耗可用下载数')
+
             # 解析得到的url
             parsed_url = data.get('data')
             params = parse.parse_qs(parse.urlparse(parsed_url).query)
@@ -459,5 +484,11 @@ def get_today_download_count(request):
 def get_user_count(request):
     if request.method == 'GET':
         # 基础用户数上加 30
-        user_count = User.objects.filter(is_active=True).all().count() + 15
+        user_count = User.objects.filter(is_active=True).all().count() + 67
         return JsonResponse(dict(code=200, msg='成功获取注册用户总数', user_count=user_count))
+
+
+def get_status(request):
+    if request.method == 'GET':
+        status = Csdnbot.objects.get(id=1).status
+        return JsonResponse(dict(code=200, status=status))

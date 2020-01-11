@@ -150,7 +150,8 @@ AUTH_PATHS = [
     '/order/',
     '/service/',
     '/user_count/',
-    'today_download_count/'
+    'today_download_count/',
+    '/status/'
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
@@ -220,3 +221,5 @@ LOGGING = {
         },
     },
 }
+
+DINGTALK_API = 'https://oapi.dingtalk.com/robot/send?access_token=6ad09bf6cf5cfa0a1502317243e5bdb75f8a9a0f0b27a84b19af6ff71a83275d'

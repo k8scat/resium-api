@@ -62,3 +62,10 @@ class Service(Base):
 
     class Meta:
         db_table = 'service'
+
+
+class Csdnbot(Base):
+    status = models.BooleanField()
+
+    class Meta:
+        db_table = 'csdnbot'
