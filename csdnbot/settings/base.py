@@ -110,8 +110,8 @@ STATIC_URL = '/static/'
 
 EMAIL_HOST = 'smtp.qq.com'
 EMAIL_PORT = '465'
-EMAIL_HOST_USER = 'admin@csdnbot.com'
-EMAIL_HOST_PASSWORD = 'tavdwvdcuknxfffh'
+EMAIL_HOST_USER = 'admin@ncucoder.com'
+EMAIL_HOST_PASSWORD = 'budnubzbonsmbaga'
 EMAIL_USE_SSL = True
 
 # https://github.com/adamchainz/django-cors-headers

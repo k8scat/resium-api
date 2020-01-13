@@ -125,7 +125,7 @@ def register(request):
         subject = '[CSDNBot] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
         plain_message = strip_tags(html_message)
-        from_email = 'CSDNBot <admin@csdnbot.com>'
+        from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
         try:
             send_mail(subject=subject,
                       message=plain_message,
