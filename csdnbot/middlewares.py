@@ -27,7 +27,6 @@ class AuthMiddleware(MiddlewareMixin):
             logging.info(f'Auth: {request.path}')
             token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
             logging.info(token)
-
             if token is None:
                 return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -35,10 +34,8 @@ class AuthMiddleware(MiddlewareMixin):
                 token = token[len(settings.REQUEST_TOKEN_PREFIX):]
                 # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html
                 payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
-                if payload.get('exp') < time.time():
-                    return JsonResponse(dict(code=401, msg='未认证'))
-
-            except jwt.InvalidTokenError:
+            except Exception as e:
+                logging.info(e)
                 return JsonResponse(dict(code=401, msg='未认证'))
 
             email = payload.get('sub', None)

@@ -20,5 +20,5 @@ urlpatterns = [
     path('download_record/', download_record),
     path('service/', service),
     path('status/', get_status),
-    path('test/', test)
+    path('test/', test),
 ]

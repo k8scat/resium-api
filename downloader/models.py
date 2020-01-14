@@ -69,3 +69,23 @@ class Csdnbot(Base):
 
     class Meta:
         db_table = 'csdnbot'
+
+
+class Resource(Base):
+    csdn_url = models.CharField(max_length=200, null=True, default=None)
+    title = models.CharField(max_length=100)
+    filename = models.CharField(max_length=100)
+    desc = models.CharField(max_length=200)
+    size = models.IntegerField()
+    category = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'resource'
+
+
+class ResourceTag(Base):
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    tag = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = 'resource_tag'

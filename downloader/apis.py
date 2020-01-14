@@ -9,7 +9,10 @@ import datetime
 import json
 import logging
 import string
+from threading import Thread
 
+import requests
+from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import quote
@@ -35,9 +38,9 @@ from urllib import parse
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import User, DownloadRecord, Order, Service, Csdnbot
+from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, ResourceTag
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
-from downloader.utils import ding
+from downloader.utils import ding, qiniu_upload
 
 test_url = 'https://download.csdn.net/download/m0_37829784/11088464'
 
@@ -58,8 +61,8 @@ def login(request):
         try:
             user = User.objects.get(email=email, is_active=True)
             if check_password(password, user.password):
-                # 设置token过期时间: 1day
-                exp = timezone.now() + datetime.timedelta(hours=1)
+                # 设置token过期时间
+                exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
                 payload = {
                     'exp': exp,
                     'sub': email
@@ -172,8 +175,10 @@ def download(request):
         if resource_url is None or token is None:
             return HttpResponse('错误的请求')
 
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
-        if payload.get('exp') < time.time():
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
+        except Exception as e:
+            logging.info(e)
             return HttpResponse('未认证')
 
         email = payload.get('sub', None)
@@ -205,113 +210,170 @@ def download(request):
                 return HttpResponse('下载数已用完')
 
             # 保存下载记录
-            DownloadRecord(user=user, resource_url=resource_url).save()
-
-        # 生成资源存放的唯一子目录
-        uuid_str = str(uuid.uuid1())
-        sub_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
-        os.mkdir(sub_dir)
-
-        options = webdriver.ChromeOptions()
-        prefs = {
-            "download.prompt_for_download": False,
-            'download.default_directory': '/download/' + uuid_str,  # 下载目录
-            "plugins.always_open_pdf_externally": True,
-            'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
-            'profile.default_content_setting_values.images': 2,  # 禁止图片加载
-        }
-        options.add_experimental_option('prefs', prefs)
-
-        caps = DesiredCapabilities.CHROME
-        driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps, options=options)
-        # driver = webdriver.Chrome(options=options, desired_capabilities=caps)
+            dr = DownloadRecord.objects.create(user=user, resource_url=resource_url)
 
         try:
-            # 先请求，再添加cookies
-            # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
-            driver.get('https://download.csdn.net')
-            # 从文件中获取到cookies
-            with open(settings.COOKIES_FILE, 'r', encoding='utf-8') as f:
-                cookies = json.loads(f.read())
-            for c in cookies:
-                driver.add_cookie({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
-                                   'secure': c['secure']})
+            resource = Resource.objects.get(csdn_url=resource_url)
+            r = requests.get('http://' + settings.QINIU_DOMAIN + '/' + resource.filename)
+            response = HttpResponse(r.content)
+            response['Content-Type'] = 'application/octet-stream'
+            encoded_filename = parse.quote(resource.filename, safe=string.printable)
+            response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
+            return response
 
-            # 解析文件名
-            parse_url = 'https://download.csdn.net/source/download?source_id=' + resource_url[
-                                                                                 resource_url.rindex('/') + 1:]
-            driver.get(parse_url)
-            html = driver.page_source
+        except Resource.DoesNotExist:
+            # 生成资源存放的唯一子目录
+            uuid_str = str(uuid.uuid1())
+            sub_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+            os.mkdir(sub_dir)
 
-            def recover():
-                """
-                更新站点服务的状态，恢复用户的可用下载数、已使用下载数、以及删除相应的下载记录，并及时通知管理员
-                """
-                Csdnbot.objects.filter(id=1).update(status=False)
-                user.valid_count += 1
-                user.used_count -= 1
-                user.save()
-                DownloadRecord.objects.filter(user=user, resource_url=resource_url).delete()
-                ding(html)
+            options = webdriver.ChromeOptions()
+            prefs = {
+                "download.prompt_for_download": False,
+                'download.default_directory': '/download/' + uuid_str,  # 下载目录
+                "plugins.always_open_pdf_externally": True,
+                'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
+                'profile.default_content_setting_values.images': 2,  # 禁止图片加载
+            }
+            options.add_experimental_option('prefs', prefs)
+
+            caps = DesiredCapabilities.CHROME
+            driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps, options=options)
+            # driver = webdriver.Chrome(options=options, desired_capabilities=caps)
 
             try:
-                data = json.loads(html[html.index('{'):html.index('}') + 1])
-                if data.get('code') != 200:
+                # 先请求，再添加cookies
+                # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
+                driver.get('https://download.csdn.net')
+                # 从文件中获取到cookies
+                with open(settings.COOKIES_FILE, 'r', encoding='utf-8') as f:
+                    cookies = json.loads(f.read())
+                for c in cookies:
+                    driver.add_cookie({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
+                                       'secure': c['secure']})
+
+                # 解析文件名
+                parse_url = 'https://download.csdn.net/source/download?source_id=' + resource_url[
+                                                                                     resource_url.rindex('/') + 1:]
+                driver.get(parse_url)
+                html = driver.page_source
+
+                def recover():
+                    """
+                    更新站点服务的状态，恢复用户的可用下载数、已使用下载数、以及删除相应的下载记录，并及时通知管理员
+                    """
+                    Csdnbot.objects.filter(id=1).update(status=False)
+                    user.valid_count += 1
+                    user.used_count -= 1
+                    user.save()
+                    DownloadRecord.objects.filter(user=user, resource_url=resource_url).delete()
+                    ding(html)
+
+                try:
+                    data = json.loads(html[html.index('{'):html.index('}') + 1])
+                    if data.get('code') != 200:
+                        recover()
+                        return HttpResponse('本站下载服务正在维护中，将尽快恢复服务，且您本次的下载不会消耗可用下载数')
+                except Exception as e:
+                    logging.error(e)
                     recover()
                     return HttpResponse('本站下载服务正在维护中，将尽快恢复服务，且您本次的下载不会消耗可用下载数')
+
+                # 解析得到的url
+                parsed_url = data.get('data')
+                params = parse.parse_qs(parse.urlparse(parsed_url).query)
+                # response-content-disposition
+                rcd = params['response-content-disposition'][0]
+                filename = parse.unquote(rcd[rcd.index('"') + 1:rcd.rindex('"')])
+                logging.info(filename)
+
+                driver.get(resource_url)
+
+                el = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
+                )
+                el.click()
+
+                el = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+                )
+                el.click()
+
+                file = os.path.join(sub_dir, filename)
+
+                while True:
+
+                    files = os.listdir(sub_dir)
+                    if len(files) == 0 or files[0].endswith('.crdownload'):
+                        logging.info('Downloading')
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        time.sleep(0.1)
+
+                        logging.info('Download ok')
+                        f = open(file, 'rb')
+                        response = FileResponse(f)
+                        response['Content-Type'] = 'application/octet-stream'
+                        encoded_filename = parse.quote(filename, safe=string.printable)
+                        response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
+
+                        # 保存资源
+                        t = Thread(target=save_resource, args=(resource_url, filename, file))
+                        t.start()
+
+                        return response
+
             except Exception as e:
                 logging.error(e)
-                recover()
-                return HttpResponse('本站下载服务正在维护中，将尽快恢复服务，且您本次的下载不会消耗可用下载数')
+                return HttpResponse('下载失败')
 
-            # 解析得到的url
-            parsed_url = data.get('data')
-            params = parse.parse_qs(parse.urlparse(parsed_url).query)
-            # response-content-disposition
-            rcd = params['response-content-disposition'][0]
-            filename = parse.unquote(rcd[rcd.index('"') + 1:rcd.rindex('"')])
-            logging.info(filename)
-
-            driver.get(resource_url)
-
-            el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
-            )
-            el.click()
-
-            el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
-            )
-            el.click()
-
-            file = os.path.join(sub_dir, filename)
-
-            while True:
-
-                files = os.listdir(sub_dir)
-                if len(files) == 0 or files[0].endswith('.crdownload'):
-                    logging.info('Downloading')
-                    time.sleep(0.2)
-                    continue
-                else:
-                    time.sleep(0.2)
-
-                    logging.info('Download ok')
-                    f = open(file, 'rb')
-                    response = FileResponse(f)
-                    response['Content-Type'] = 'application/octet-stream'
-                    encoded_filename = parse.quote(filename, safe=string.printable)
-                    response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
-                    return response
-
-        except Exception as e:
-            logging.error(e)
-            return HttpResponse('下载失败')
-
-        finally:
-            driver.close()
+            finally:
+                driver.close()
     else:
         return HttpResponse('错误的请求')
+
+
+def save_resource(resource_url: str, filename: str, file: str) -> None:
+    """
+    保存资源到七牛云，以及资源的标签、文件名、文件大小
+
+    :param resource_url:
+    :param filename:
+    :param file:
+    :param dr:
+    :return:
+    """
+    if Resource.objects.filter(csdn_url=resource_url).count():
+        return
+
+    upload_success = qiniu_upload(open(file, 'rb').read(), filename)
+    if not upload_success:
+        ding('七牛云存储资源失败')
+    else:
+        r = requests.get(resource_url)
+        if r.status_code == 200:
+            resource = None
+            try:
+                soup = BeautifulSoup(r.text, 'lxml')
+                title = soup.select('dl.resource_box_dl span.resource_title')[0].string
+                desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
+                size = os.path.getsize(file)
+                category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
+
+                resource = Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
+                                                   csdn_url=resource_url, category=category)
+                tags = soup.select('div.resource_box_b label.resource_tags a')
+                resource_tags = []
+                for tag in tags:
+                    resource_tags.append(ResourceTag(resource=resource, tag=tag.string))
+                ResourceTag.objects.bulk_create(resource_tags)
+
+            except Exception as e:
+                if resource:
+                    resource.delete()
+                logging.error(e)
+                ding('七牛云存储资源失败')
 
 
 def get_alipay():
@@ -477,5 +539,12 @@ def get_status(request):
         return JsonResponse(dict(code=200, status=status))
 
 
+def upload(request):
+    if request.method == 'POST':
+        pass
+
+
 def test(request):
     return HttpResponse('test')
+
+
