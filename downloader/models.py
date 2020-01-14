@@ -78,6 +78,7 @@ class Resource(Base):
     desc = models.TextField()
     size = models.IntegerField()
     category = models.CharField(max_length=100)
+    # 存储在oss中的key
     key = models.CharField(max_length=200)
 
     class Meta:

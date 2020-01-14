@@ -115,3 +115,16 @@ def aliyun_oss_get_file(key):
 
     bucket = get_aliyun_oss_bucket()
     return bucket.get_object(key)
+
+
+def aliyun_oss_check_file(key):
+    """
+    判断文件是否存在
+
+    参考: https://help.aliyun.com/document_detail/88454.html?spm=a2c4g.11186623.6.861.321b3557YkGK3S
+
+    :param key:
+    :return:
+    """
+    bucket = get_aliyun_oss_bucket()
+    return bucket.object_exists(key)
