@@ -319,7 +319,7 @@ def download(request):
                         response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
 
                         # 保存资源
-                        t = Thread(target=save_resource, args=(resource_url, filename, file))
+                        t = Thread(target=save_resource, args=(resource_url, filename, file), daemon=True)
                         t.start()
 
                         return response
@@ -345,6 +345,8 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
     """
     if Resource.objects.filter(csdn_url=resource_url).count():
         return
+
+    time.sleep(60 * 5)
 
     upload_success = qiniu_upload(open(file, 'rb').read(), filename)
     if not upload_success:
