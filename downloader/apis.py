@@ -341,15 +341,14 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
     :param resource_url:
     :param filename:
     :param file:
-    :param dr:
     :return:
     """
     if Resource.objects.filter(csdn_url=resource_url).count():
         return
 
-    upload_success = qiniu_upload(open(file, 'rb').read(), filename)
+    upload_success = qiniu_upload(file, filename)
     if not upload_success:
-        ding('七牛云存储资源失败')
+        ding('七牛云上传资源失败')
     else:
         r = requests.get(resource_url)
         if r.status_code == 200:
@@ -373,7 +372,7 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
                 if resource:
                     resource.delete()
                 logging.error(e)
-                ding('七牛云存储资源失败')
+                ding('资源信息保存失败')
 
 
 def get_alipay():

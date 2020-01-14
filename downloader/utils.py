@@ -36,7 +36,7 @@ def ding(content, at_mobiles=None, is_at_all=False):
 def qiniu_upload(file, key):
     """七牛云上传文件
 
-    :param file: 上传二进制流
+    :param file: 文件路径（绝对路径或者相对路径）
     :param key: 上传文件名
     :return bool: 是否上传成功
     """
