@@ -222,7 +222,9 @@ LOGGING = {
 
 DINGTALK_API = 'https://oapi.dingtalk.com/robot/send?access_token=6ad09bf6cf5cfa0a1502317243e5bdb75f8a9a0f0b27a84b19af6ff71a83275d'
 
-QINIU_AK = 'Adx9fTjienPcF8duV2nQQxZUUt33P4aHPAMbO8a2'
-QINIU_SK = 'orLcntGa69dqdrgo8HCsnjR_YjGgpSchVsIV3v7g'
-QINIU_BUCKET = 'csdnbot'
-QINIU_DOMAIN = 'cdn.csdnbot.ncucoder.com'
+ALIYUN_ACCESS_KEY_ID = 'LTAIcgObSb2Q8y1y'
+ALIYUN_ACCESS_KEY_SECRET = 'JpncsRuQgykFJqN79EDwX23vIhKtOW'
+ALIYUN_OSS_END_POINT = 'http://oss-cn-hangzhou.aliyuncs.com'
+ALIYUN_OSS_BUCKET_NAME = 'ncucoder'
+ALIYUN_OSS_USER_DOMAIN = 'http://cdn.ncucoder.com/'
+ALIYUN_OSS_DOMAIN = 'http://ncucoder.oss-cn-hangzhou.aliyuncs.com'

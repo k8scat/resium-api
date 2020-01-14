@@ -28,7 +28,7 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.mail import send_mail
-from django.http import JsonResponse, HttpResponse, FileResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, StreamingHttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -40,9 +40,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, ResourceTag
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
-from downloader.utils import ding, qiniu_upload
-
-test_url = 'https://download.csdn.net/download/m0_37829784/11088464'
+from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_get_file
 
 
 def login(request):
@@ -210,12 +208,21 @@ def download(request):
                 return HttpResponse('下载数已用完')
 
             # 保存下载记录
-            dr = DownloadRecord.objects.create(user=user, resource_url=resource_url)
+            DownloadRecord.objects.create(user=user, resource_url=resource_url)
 
         try:
             resource = Resource.objects.get(csdn_url=resource_url)
-            r = requests.get('http://' + settings.QINIU_DOMAIN + '/' + resource.filename)
-            response = HttpResponse(r.content)
+
+            # https://www.jianshu.com/p/2ce715671340
+            def file_iterator(f, chunk_size=512):
+                while True:
+                    c = f.read(chunk_size)
+                    if c:
+                        yield c
+                    else:
+                        break
+
+            response = StreamingHttpResponse(file_iterator(aliyun_oss_get_file(resource.key)))
             response['Content-Type'] = 'application/octet-stream'
             encoded_filename = parse.quote(resource.filename, safe=string.printable)
             response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
@@ -319,7 +326,7 @@ def download(request):
                         response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
 
                         # 保存资源
-                        t = Thread(target=save_resource, args=(resource_url, filename, file), daemon=True)
+                        t = Thread(target=save_resource, args=(resource_url, filename, file))
                         t.start()
 
                         return response
@@ -336,7 +343,7 @@ def download(request):
 
 def save_resource(resource_url: str, filename: str, file: str) -> None:
     """
-    保存资源到七牛云，以及资源的标签、文件名、文件大小
+    保存资源，以及资源的标签、资源文件名、资源大小、资源链接、资源标题、资源描述、资源分类
 
     :param resource_url:
     :param filename:
@@ -346,11 +353,10 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
     if Resource.objects.filter(csdn_url=resource_url).count():
         return
 
-    time.sleep(60 * 5)
-
-    upload_success = qiniu_upload(open(file, 'rb').read(), filename)
+    key = str(uuid.uuid1()) + '-' + filename
+    upload_success = aliyun_oss_upload(file, key)
     if not upload_success:
-        ding('七牛云上传资源失败')
+        ding('阿里云OSS上传资源失败')
     else:
         r = requests.get(resource_url)
         if r.status_code == 200:
@@ -363,7 +369,7 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
                 category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
 
                 resource = Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
-                                                   csdn_url=resource_url, category=category)
+                                                   csdn_url=resource_url, category=category, key=key)
                 tags = soup.select('div.resource_box_b label.resource_tags a')
                 resource_tags = []
                 for tag in tags:
@@ -546,6 +552,7 @@ def upload(request):
 
 
 def test(request):
+    aliyun_oss_upload('/Users/mac/workspace/CSDNBot/download/2d1fcd72-36c9-11ea-9742-a0999b0715d5/[www.java17.com]蓝桥杯java历年真题及答案整理(共129道题目及答案).doc', '[www.java17.com]蓝桥杯java历年真题及答案整理(共129道题目及答案).doc')
     return HttpResponse('test')
 
 

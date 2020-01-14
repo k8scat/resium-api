@@ -75,9 +75,10 @@ class Resource(Base):
     csdn_url = models.CharField(max_length=200, null=True, default=None)
     title = models.CharField(max_length=100)
     filename = models.CharField(max_length=100)
-    desc = models.CharField(max_length=200)
+    desc = models.TextField()
     size = models.IntegerField()
     category = models.CharField(max_length=100)
+    key = models.CharField(max_length=200)
 
     class Meta:
         db_table = 'resource'
