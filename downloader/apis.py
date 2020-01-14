@@ -346,7 +346,7 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
     if Resource.objects.filter(csdn_url=resource_url).count():
         return
 
-    upload_success = qiniu_upload(file, filename)
+    upload_success = qiniu_upload(open(file, 'rb').read(), filename)
     if not upload_success:
         ding('七牛云上传资源失败')
     else:
