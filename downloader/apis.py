@@ -13,6 +13,7 @@ from threading import Thread
 
 import requests
 from bs4 import BeautifulSoup
+from django.shortcuts import redirect
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import quote
@@ -122,7 +123,7 @@ def register(request):
                 break
         user = User.objects.create(email=email, password=encrypted_password, invited_code=invited_code, code=code, invite_code=invite_code)
 
-        activate_url = quote(settings.CSDNBOT_UI + '/activate/?email=' + email + '&code=' + code, encoding='utf-8')
+        activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8')
         subject = '[CSDNBot] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
         plain_message = strip_tags(html_message)
@@ -149,7 +150,10 @@ def activate(request):
         email = request.GET.get('email', None)
         code = request.GET.get('code', None)
         if email is None or code is None:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+
+        if User.objects.filter(email=email, is_active=True).count():
+            return redirect(settings.CSDNBOT_UI + '/login?msg=账号已激活')
 
         try:
             user = User.objects.get(email=email, code=code, is_active=False)
@@ -157,13 +161,13 @@ def activate(request):
             user.save()
 
             User.objects.filter(email=email, is_active=False).delete()
-            return JsonResponse(dict(code=200, msg='激活成功'))
+            return redirect(settings.CSDNBOT_UI + '/login?msg=激活成功')
 
         except User.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='无效的请求'))
+            return redirect(settings.CSDNBOT_UI + '/login?msg=账号不存在')
 
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
 
 
 def download(request):
@@ -185,7 +189,7 @@ def download(request):
         except User.DoesNotExist:
             return HttpResponse('用户不存在')
 
-        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day).count()
+        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day, is_deleted=False).count()
         if today_download_count == 20:
             return HttpResponse('本站今日下载总数已达上限，请明日再来下载')
 
@@ -194,7 +198,7 @@ def download(request):
             return HttpResponse('本站下载服务正在维护中，将尽快恢复服务')
 
         try:
-            dr = DownloadRecord.objects.get(user=user, resource_url=resource_url)
+            dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
             dr.update_time = timezone.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
@@ -279,7 +283,7 @@ def download(request):
                 user.valid_count += 1
                 user.used_count -= 1
                 user.save()
-                DownloadRecord.objects.filter(user=user, resource_url=resource_url).delete()
+                DownloadRecord.objects.filter(user=user, resource_url=resource_url, is_deleted=False).update(is_deleted=True)
                 ding(html)
 
             try:
@@ -533,7 +537,7 @@ def download_record(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
-        download_records = DownloadRecord.objects.filter(user=user).all()
+        download_records = DownloadRecord.objects.filter(user=user, is_deleted=False).all()
         return JsonResponse(dict(code=200, msg='获取下载记录成功', download_records=DownloadRecordSerializers(download_records, many=True).data))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))

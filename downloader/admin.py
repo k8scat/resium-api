@@ -8,8 +8,8 @@ class UserAdmin(admin.ModelAdmin):
 
 
 class DownloadRecordAdmin(admin.ModelAdmin):
-    list_display = ('user', 'resource_url', 'create_time')
-    list_filter = ('create_time', 'user', 'resource_url')
+    list_display = ('is_deleted', 'user', 'resource_url', 'create_time')
+    list_filter = ('create_time', 'user', 'resource_url', 'is_deleted')
 
 
 class OrderAdmin(admin.ModelAdmin):
@@ -22,7 +22,13 @@ class ServiceAdmin(admin.ModelAdmin):
     list_filter = ('create_time', 'update_time', 'total_amount', 'purchase_count')
 
 
+class ResourceAdmin(admin.ModelAdmin):
+    list_display = ('title', 'key', 'create_time')
+    list_filter = ('title', 'create_time')
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(DownloadRecord, DownloadRecordAdmin)
 admin.site.register(Service, ServiceAdmin)
+admin.site.register(Resource, ResourceAdmin)

@@ -51,6 +51,7 @@ class DownloadRecord(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     # 资源地址
     resource_url = models.CharField(max_length=200)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'download_record'
