@@ -62,7 +62,7 @@ def aliyun_oss_upload(file, key):
 
         total_size = os.path.getsize(file)
         # determine_part_size方法用来确定分片大小。100KB
-        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
+        part_size = determine_part_size(total_size, preferred_size=1024 * 1024)
 
         # 初始化分片。
         # 如果需要在初始化分片时设置文件存储类型，请在init_multipart_upload中设置相关headers，参考如下。
@@ -77,6 +77,7 @@ def aliyun_oss_upload(file, key):
             part_number = 1
             offset = 0
             while offset < total_size:
+                logging.info('Uploading')
                 num_to_upload = min(part_size, total_size - offset)
                 # SizedFileAdapter(fileobj, size)方法会生成一个新的文件对象，重新计算起始追加位置。
                 result = bucket.upload_part(key, upload_id, part_number,
@@ -85,6 +86,8 @@ def aliyun_oss_upload(file, key):
 
                 offset += num_to_upload
                 part_number += 1
+
+        logging.info('Upload ok')
 
         # 完成分片上传。
         # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
@@ -128,3 +131,17 @@ def aliyun_oss_check_file(key):
     """
     bucket = get_aliyun_oss_bucket()
     return bucket.object_exists(key)
+
+
+def aliyun_oss_sign_url(key):
+    """
+    获取文件临时下载链接，使用签名URL进行临时授权
+
+    参考: https://help.aliyun.com/document_detail/32033.html?spm=a2c4g.11186623.6.881.603f16950kd10U
+
+    :param key:
+    :return:
+    """
+
+    bucket = get_aliyun_oss_bucket()
+    return bucket.sign_url('GET', key, 60 * 60)

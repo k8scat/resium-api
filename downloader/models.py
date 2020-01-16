@@ -2,28 +2,28 @@ from django.db import models
 
 
 class Base(models.Model):
-    create_time = models.DateTimeField(auto_now_add=True)
-    update_time = models.DateTimeField(auto_now=True)
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    update_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
         abstract = True
 
 
 class User(Base):
-    email = models.EmailField()
-    password = models.CharField(max_length=100)
+    email = models.EmailField(verbose_name='邮箱')
+    password = models.CharField(max_length=100, verbose_name='密码')
     # 邀请码
-    invite_code = models.CharField(max_length=6)
+    invite_code = models.CharField(max_length=6, verbose_name='邀请码')
     # 受邀请码
-    invited_code = models.CharField(max_length=6)
+    invited_code = models.CharField(max_length=6, verbose_name='受邀请码')
     # 是否激活
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False, verbose_name='是否激活')
     # 验证码
-    code = models.CharField(max_length=6)
+    code = models.CharField(max_length=6, verbose_name='验证码')
     # 可用总数
-    valid_count = models.IntegerField(default=0)
+    valid_count = models.IntegerField(default=0, verbose_name='可用下载数')
     # 已用总数
-    used_count = models.IntegerField(default=0)
+    used_count = models.IntegerField(default=0, verbose_name='已用下载数')
 
     class Meta:
         db_table = 'user'
