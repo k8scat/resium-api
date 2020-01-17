@@ -61,8 +61,8 @@ def aliyun_oss_upload(file, key):
         bucket = get_aliyun_oss_bucket()
 
         total_size = os.path.getsize(file)
-        # determine_part_size方法用来确定分片大小。默认10MB, preferred_size=5 * 1024 * 1024
-        part_size = determine_part_size(total_size)
+        # determine_part_size方法用来确定分片大小。100KB
+        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
 
         # 初始化分片。
         # 如果需要在初始化分片时设置文件存储类型，请在init_multipart_upload中设置相关headers，参考如下。

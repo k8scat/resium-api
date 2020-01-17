@@ -150,7 +150,6 @@ AUTH_PATHS = [
     '/order/',
     '/service/',
     '/status/',
-    '/download/'
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '

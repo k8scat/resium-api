@@ -92,3 +92,7 @@ class ResourceTag(Base):
 
     class Meta:
         db_table = 'resource_tag'
+
+
+# class Coupon(Base):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
