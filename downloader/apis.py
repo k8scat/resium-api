@@ -138,7 +138,8 @@ def register(request):
         except Exception as e:
             logging.error(e)
             user.delete()
-            return JsonResponse(dict(code=500, msg='注册失败，请重新注册'))
+            ding('注册激活邮件发送失败')
+            return JsonResponse(dict(code=500, msg='注册失败'))
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -210,7 +211,22 @@ def download(request):
         if resources.count() and aliyun_oss_check_file(resources[0].key):
             download_url = aliyun_oss_sign_url(resources[0].key)
             logging.info(download_url)
-            return JsonResponse(dict(code=200, download_url=download_url))
+            subject = '[CSDNBot] 资源下载'
+            html_message = render_to_string('downloader/resource.html', {'download_url': download_url})
+            plain_message = strip_tags(html_message)
+            from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
+            try:
+                send_mail(subject=subject,
+                          message=plain_message,
+                          from_email=from_email,
+                          recipient_list=[email],
+                          html_message=html_message,
+                          fail_silently=False)
+                return JsonResponse(dict(code=200, msg='下载成功，资源链接已发送至您的注册邮箱！'))
+            except Exception as e:
+                logging.error(e)
+                ding('资源链接邮件发送失败')
+                return JsonResponse(dict(code=500, msg='下载失败'))
 
         # 生成资源存放的唯一子目录
         uuid_str = str(uuid.uuid1())
@@ -323,7 +339,22 @@ def download(request):
 
                     download_url = aliyun_oss_sign_url(key)
                     logging.info(download_url)
-                    return JsonResponse(dict(code=200, download_url=download_url))
+                    subject = '[CSDNBot] 资源下载'
+                    html_message = render_to_string('downloader/resource.html', {'download_url': download_url})
+                    plain_message = strip_tags(html_message)
+                    from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
+                    try:
+                        send_mail(subject=subject,
+                                  message=plain_message,
+                                  from_email=from_email,
+                                  recipient_list=[email],
+                                  html_message=html_message,
+                                  fail_silently=False)
+                        return JsonResponse(dict(code=200, msg='下载成功，资源链接已发送至您的注册邮箱！'))
+                    except Exception as e:
+                        logging.error(e)
+                        ding('资源链接邮件发送失败')
+                        return JsonResponse(dict(code=500, msg='下载失败'))
 
                 except Exception as e:
                     if resource:
