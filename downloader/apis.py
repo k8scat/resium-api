@@ -175,6 +175,7 @@ def download(request):
         if resource_url is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
+        # 获取用户邮箱
         email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
@@ -183,7 +184,9 @@ def download(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
+        # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
         today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day, is_deleted=False).values('resource_url').distinct().count()
+        logging.info(today_download_count)
         if today_download_count == 20:
             return JsonResponse(dict(code=403, msg='本站今日下载总数已达上限，请明日再来下载'))
 
@@ -225,6 +228,7 @@ def download(request):
             except Exception as e:
                 logging.error(e)
                 ding('资源链接邮件发送失败')
+                Csdnbot.objects.filter(id=1).update(status=False)
                 return JsonResponse(dict(code=500, msg='下载失败'))
 
         # 生成资源存放的唯一子目录
@@ -250,33 +254,15 @@ def download(request):
         # driver = webdriver.Chrome(options=options, desired_capabilities=caps)
 
         try:
-            # 先登录GitHub，因为直接访问CSDN 的 GitHub OAuth可能会出现 需要GitHub同意OAuth的页面（是可能会出现）
-            # 访问GitHub登录页面
-            driver.get("https://github.com/login")
-            # 输入GitHub用户名
-            el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "login_field"))
-            )
-            # 这里不需要click，因为进入这个页面时，用户名的输入框已经是focus的状态
-            el.clear()
-            el.send_keys(settings.GITHUB_USERNAME)
-            # 输入GitHub密码
-            el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "password"))
-            )
-            el.click()
-            el.clear()
-            el.send_keys(settings.GITHUB_PASSWORD)
-            # 点击登录
-            el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.NAME, "commit"))
-            )
-            el.click()
-            # 经测试发现无需等待登录成功，点击登录后即可访问其他页面，因为点击登录后会 等待登录跳转 才会执行下一步
-
-            # 再使用GitHub登录CSDN
-            driver.get(settings.CSDN_GITHUB_OAUTH_URL)
-            time.sleep(10)
+            # 先请求，再添加cookies
+            # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
+            driver.get('https://download.csdn.net')
+            # 从文件中获取到cookies
+            with open(settings.COOKIES_FILE, 'r', encoding='utf-8') as f:
+                cookies = json.loads(f.read())
+            for c in cookies:
+                driver.add_cookie({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
+                                   'secure': c['secure']})
 
             # 访问资源地址
             driver.get(resource_url)
@@ -353,6 +339,7 @@ def download(request):
                     except Exception as e:
                         logging.error(e)
                         ding('资源链接邮件发送失败')
+                        Csdnbot.objects.filter(id=1).update(status=False)
                         return JsonResponse(dict(code=500, msg='下载失败'))
 
                 except Exception as e:
