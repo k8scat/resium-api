@@ -73,14 +73,14 @@ class Csdnbot(Base):
 
 
 class Resource(Base):
-    csdn_url = models.CharField(max_length=200, null=True, default=None)
-    title = models.CharField(max_length=100)
-    filename = models.CharField(max_length=100)
-    desc = models.TextField()
-    size = models.IntegerField()
-    category = models.CharField(max_length=100)
+    csdn_url = models.CharField(max_length=200, null=True, default=None, verbose_name='CSDN资源地址')
+    title = models.CharField(max_length=100, verbose_name='资源标题')
+    filename = models.CharField(max_length=100, verbose_name='资源文件名')
+    desc = models.TextField(verbose_name='资源描述')
+    size = models.IntegerField(verbose_name='资源文件大小')
+    category = models.CharField(max_length=100, verbose_name='资源分类')
     # 存储在oss中的key
-    key = models.CharField(max_length=200)
+    key = models.CharField(max_length=200, verbose_name='资源存储文件')
 
     class Meta:
         db_table = 'resource'
@@ -94,5 +94,3 @@ class ResourceTag(Base):
         db_table = 'resource_tag'
 
 
-# class Coupon(Base):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)

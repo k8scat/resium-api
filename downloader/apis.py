@@ -41,7 +41,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, ResourceTag
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
-from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_sign_url, aliyun_oss_get_file
+from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file
 
 
 def login(request):
