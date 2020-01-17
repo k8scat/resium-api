@@ -323,7 +323,7 @@ def download(request):
 
                     download_url = aliyun_oss_sign_url(key)
                     logging.info(download_url)
-                    return JsonResponse(dict(code=200, msg='下载成功', download_url=download_url))
+                    return JsonResponse(dict(code=200, download_url=download_url))
 
                 except Exception as e:
                     if resource:
