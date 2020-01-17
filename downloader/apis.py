@@ -34,13 +34,12 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
-from urllib import parse
 
 from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, ResourceTag
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
-from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_get_file, aliyun_oss_check_file, aliyun_oss_sign_url
+from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_sign_url
 
 
 def login(request):
@@ -60,7 +59,7 @@ def login(request):
             user = User.objects.get(email=email, is_active=True)
             if check_password(password, user.password):
                 # 设置token过期时间
-                exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
                 payload = {
                     'exp': exp,
                     'sub': email
