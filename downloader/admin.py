@@ -14,8 +14,9 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(DownloadRecord)
 class DownloadRecordAdmin(admin.ModelAdmin):
-    list_display = ('is_deleted', 'user', 'resource_url', 'create_time')
+    list_display = ('title', 'user', 'create_time', 'is_deleted')
     list_filter = ('is_deleted',)
+    search_fields = ['title']
     list_per_page = 50
 
 
