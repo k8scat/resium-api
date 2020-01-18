@@ -202,6 +202,15 @@ def download(request):
             ding('系统还未恢复')
             return HttpResponse('本站下载服务正在维护中，将尽快恢复服务')
 
+        def recover(u_: User, dr_: DownloadRecord = None):
+            Csdnbot.objects.filter(id=1).update(status=False)
+            u_.valid_count += 1
+            u_.used_count -= 1
+            u_.save()
+            if dr_:
+                dr_.is_deleted = True
+                dr_.save()
+
         try:
             dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
             dr.update_time = timezone.now()
@@ -211,8 +220,19 @@ def download(request):
             user.valid_count -= 1
             user.used_count += 1
             user.save()
+            r = requests.get(resource_url)
+            title = '未命名的资源'
+            if r.status_code == 200:
+                try:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    title = soup.select('dl.resource_box_dl span.resource_title')[0].string
+                except Exception as e:
+                    recover(user)
+                    logging.error(e)
+                    ding('资源名称获取失败 ' + str(e))
+                    return HttpResponse('下载失败，平台进入维护状态')
             # 保存下载记录
-            DownloadRecord.objects.create(user=user, resource_url=resource_url)
+            dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
         try:
             resource = Resource.objects.get(csdn_url=resource_url)
@@ -316,14 +336,10 @@ def download(request):
 
         except Exception as e:
             # 恢复用户可用下载数和已用下载数
-            user.valid_count += 1
-            user.used_count -= 1
-            user.save()
-
+            recover(user, dr)
             logging.error(e)
-            ding('下载失败 ' + str(e))
-            Csdnbot.objects.filter(id=1).update(status=False)
-            return HttpResponse('下载失败')
+            ding('下载出现未知错误 ' + str(e))
+            return HttpResponse('下载失败，平台进入维护状态')
 
         finally:
             driver.close()

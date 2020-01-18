@@ -19,7 +19,7 @@ class UserSerializers(ModelSerializer):
 class DownloadRecordSerializers(ModelSerializer):
     class Meta:
         model = DownloadRecord
-        fields = ['update_time', 'resource_url']
+        fields = ['update_time', 'resource_url', 'title']
 
 
 class OrderSerializers(ModelSerializer):

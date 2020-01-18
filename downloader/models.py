@@ -52,6 +52,7 @@ class DownloadRecord(Base):
     # 资源地址
     resource_url = models.CharField(max_length=200)
     is_deleted = models.BooleanField(default=False)
+    title = models.CharField(max_length=100)
 
     class Meta:
         db_table = 'download_record'
@@ -94,3 +95,14 @@ class ResourceTag(Base):
         db_table = 'resource_tag'
 
 
+class Coupon(Base):
+    """
+    优惠券
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    total_amount = models.FloatField()
+    purchase_count = models.IntegerField()
+    is_used = models.BooleanField(default=False)
+    expiration = models.DateTimeField()
+    comment = models.CharField(max_length=100, null=True)
