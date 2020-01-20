@@ -558,8 +558,12 @@ def upload(request):
         pass
 
 
+def coupon(request):
+    if request.method == 'GET':
+        pass
+
+
 def test(request):
-    aliyun_oss_upload('/Users/mac/workspace/CSDNBot/download/2d1fcd72-36c9-11ea-9742-a0999b0715d5/[www.java17.com]蓝桥杯java历年真题及答案整理(共129道题目及答案).doc', '[www.java17.com]蓝桥杯java历年真题及答案整理(共129道题目及答案).doc')
     return HttpResponse('test')
 
 

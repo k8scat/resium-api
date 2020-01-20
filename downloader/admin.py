@@ -14,7 +14,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(DownloadRecord)
 class DownloadRecordAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'create_time', 'is_deleted')
+    list_display = ('id', 'title', 'user', 'create_time', 'is_deleted')
     list_filter = ('is_deleted',)
     search_fields = ['title']
     list_per_page = 50
@@ -22,27 +22,27 @@ class DownloadRecordAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('user', 'subject', 'purchase_count', 'total_amount', 'paid_time', 'create_time')
+    list_display = ('id', 'user', 'subject', 'purchase_count', 'total_amount', 'paid_time', 'create_time')
     list_filter = ('purchase_count',)
     list_per_page = 50
 
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('total_amount', 'purchase_count', 'create_time', 'update_time')
+    list_display = ('id', 'total_amount', 'purchase_count', 'create_time', 'update_time')
     list_filter = ('create_time', 'update_time', 'total_amount', 'purchase_count')
 
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('title', 'key', 'create_time')
+    list_display = ('id', 'title', 'key', 'create_time')
     list_per_page = 50
     search_fields = ['title']
 
 
 @admin.register(Csdnbot)
 class CsdnbotAdmin(admin.ModelAdmin):
-    list_display = ('status', 'update_time')
+    list_display = ('id', 'status', 'update_time')
 
 
 admin.site.site_header = 'CSDNBot Admin'
