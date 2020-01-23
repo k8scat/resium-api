@@ -150,6 +150,8 @@ AUTH_PATHS = [
     '/order/',
     '/service/',
     '/status/',
+    '/resource/',
+    '/resource_count/',
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
@@ -232,3 +234,5 @@ ALIYUN_OSS_DOMAIN = 'http://ncucoder.oss-cn-hangzhou.aliyuncs.com'
 CSDN_GITHUB_OAUTH_URL = 'https://passport.csdn.net/v1/register/authorization?authType=github'
 GITHUB_USERNAME = 'hsowan-me'
 GITHUB_PASSWORD = 'holdon7868'
+
+TAG_SEP = '!sep!'

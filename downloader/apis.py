@@ -14,6 +14,7 @@ from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
+from django.db.models import Q
 from django.shortcuts import redirect
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -39,8 +40,9 @@ from selenium.webdriver import DesiredCapabilities
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, ResourceTag
-from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers
+from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource
+from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
+    ResourceSerializers
 from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file
 
 
@@ -121,9 +123,11 @@ def register(request):
                 continue
             else:
                 break
-        user = User.objects.create(email=email, password=encrypted_password, invited_code=invited_code, code=code, invite_code=invite_code)
+        user = User.objects.create(email=email, password=encrypted_password, invited_code=invited_code, code=code,
+                                   invite_code=invite_code)
 
-        activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8', safe=':/?=&')
+        activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
+                             safe=':/?=&')
         subject = '[CSDNBot] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
         plain_message = strip_tags(html_message)
@@ -187,13 +191,12 @@ def download(request):
         email = payload.get('sub', None)
         try:
             user = User.objects.get(email=email, is_active=True)
-            if user.valid_count <= 0:
-                return HttpResponse('下载数已用完')
         except User.DoesNotExist:
             return HttpResponse('未认证')
 
         # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
-        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day, is_deleted=False).values('resource_url').distinct().count()
+        today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
+                                                             is_deleted=False).values('resource_url').distinct().count()
         logging.info(today_download_count)
         if today_download_count == 20:
             return JsonResponse(dict(code=403, msg='本站今日下载总数已达上限，请明日再来下载'))
@@ -216,6 +219,9 @@ def download(request):
             dr.update_time = timezone.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
+            if user.valid_count <= 0:
+                return HttpResponse('下载数已用完')
+
             # 更新用户的可用下载数和已用下载数
             user.valid_count -= 1
             user.used_count += 1
@@ -235,26 +241,18 @@ def download(request):
             dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
         try:
-            resource = Resource.objects.get(csdn_url=resource_url)
+            resource_ = Resource.objects.get(csdn_url=resource_url)
             # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
-            if not aliyun_oss_check_file(resource.key):
-                resource = None
+            if not aliyun_oss_check_file(resource_.key):
+                resource_.delete()
+                resource_ = None
         except Resource.DoesNotExist:
-            resource = None
+            resource_ = None
 
-        if resource:
-            # https://www.jianshu.com/p/2ce715671340
-            def file_iterator(f_, chunk_size=512):
-                while True:
-                    c_ = f_.read(chunk_size)
-                    if c_:
-                        yield c_
-                    else:
-                        break
-
-            response = StreamingHttpResponse(file_iterator(aliyun_oss_get_file(resource.key)))
+        if resource_:
+            response = StreamingHttpResponse(file_iterator(aliyun_oss_get_file(resource_.key)))
             response['Content-Type'] = 'application/octet-stream'
-            encoded_filename = parse.quote(resource.filename, safe=string.printable)
+            encoded_filename = parse.quote(resource_.filename, safe=string.printable)
             response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
             return response
 
@@ -302,7 +300,8 @@ def download(request):
 
             # 点击弹框中的VIP下载
             el = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+                EC.presence_of_element_located((By.XPATH,
+                                                "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
             )
             el.click()
 
@@ -361,31 +360,26 @@ def save_resource(resource_url: str, filename: str, file: str) -> None:
 
     r = requests.get(resource_url)
     if r.status_code == 200:
-        resource = None
         try:
+            # 存储在oss中的key
+            key = str(uuid.uuid1()) + '-' + filename
+            upload_success = aliyun_oss_upload(file, key)
+            if not upload_success:
+                ding('阿里云OSS上传资源失败')
+                return
+
             soup = BeautifulSoup(r.text, 'lxml')
             title = soup.select('dl.resource_box_dl span.resource_title')[0].string
             desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
             size = os.path.getsize(file)
             category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
-            # 存储在oss中的key
-            key = str(uuid.uuid1()) + '-' + filename
-            resource = Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
-                                               csdn_url=resource_url, category=category, key=key)
-            tags = soup.select('div.resource_box_b label.resource_tags a')
-            resource_tags = []
-            for tag in tags:
-                resource_tags.append(ResourceTag(resource=resource, tag=tag.string))
-            ResourceTag.objects.bulk_create(resource_tags)
 
-            upload_success = aliyun_oss_upload(file, key)
-            if not upload_success:
-                resource.delete()
-                ding('阿里云OSS上传资源失败')
+            tags = settings.TAG_SEP.join(
+                [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
+            Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
+                                    csdn_url=resource_url, category=category, key=key, tags=tags)
 
         except Exception as e:
-            if resource:
-                resource.delete()
             logging.error(e)
             ding('资源信息保存失败')
 
@@ -447,7 +441,8 @@ def order(request):
         user = User.objects.get(email=email)
 
         # 创建订单
-        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount, pay_url=pay_url, purchase_count=purchase_count)
+        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount,
+                                 pay_url=pay_url, purchase_count=purchase_count)
         return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
     elif request.method == 'GET':
         email = request.session.get('email')
@@ -534,7 +529,8 @@ def download_record(request):
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
         download_records = DownloadRecord.objects.filter(user=user, is_deleted=False).all()
-        return JsonResponse(dict(code=200, msg='获取下载记录成功', download_records=DownloadRecordSerializers(download_records, many=True).data))
+        return JsonResponse(dict(code=200, msg='获取下载记录成功',
+                                 download_records=DownloadRecordSerializers(download_records, many=True).data))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -563,7 +559,80 @@ def coupon(request):
         pass
 
 
+def resource(request):
+    if request.method == 'GET':
+        page = int(request.GET.get('page', 1))
+        key = request.GET.get('key', '')
+        if page < 1:
+            page = 1
+
+        start = 5 * (page - 1)
+        end = start + 5
+        resources = Resource.objects.order_by('create_time').filter(Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).all()[start:end]
+        return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
+
+
+def resource_count(request):
+    if request.method == 'GET':
+        key = request.GET.get('key', '')
+        return JsonResponse(dict(code=200, count=Resource.objects.filter(Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).count()))
+
+
+def resource_download(request):
+    if request.method == 'GET':
+        key = request.GET.get('key', None)
+        token = request.GET.get('token', None)
+        if token is None or key is None:
+            return HttpResponse('错误的请求')
+
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
+        except Exception as e:
+            logging.info(e)
+            return HttpResponse('未认证')
+
+        email = payload.get('sub', None)
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return HttpResponse('未认证')
+
+        try:
+            resource_ = Resource.objects.get(key=key)
+            if not aliyun_oss_check_file(resource_.key):
+                resource_.delete()
+                return JsonResponse(dict(code=400, msg='资源已被删除'))
+        except Resource.DoesNotExist:
+            return JsonResponse(dict(code=400, msg='资源不存在'))
+
+        try:
+            DownloadRecord.objects.filter(user=user, resource_url=resource_.csdn_url, is_deleted=False).update(update_time=timezone.now())
+        except DownloadRecord.DoesNotExist:
+            if user.valid_count <= 0:
+                return HttpResponse('下载数已用完')
+
+            # 更新用户的可用下载数和已用下载数
+            user.valid_count -= 1
+            user.used_count += 1
+            user.save()
+            DownloadRecord.objects.create(user=user, resource_url=resource_.csdn_url, title=resource_.title)
+
+        response = StreamingHttpResponse(file_iterator(aliyun_oss_get_file(resource_.key)))
+        response['Content-Type'] = 'application/octet-stream'
+        encoded_filename = parse.quote(resource_.filename, safe=string.printable)
+        response['Content-Disposition'] = 'attachment;filename="' + encoded_filename + '"'
+        return response
+
+
+# https://www.jianshu.com/p/2ce715671340
+def file_iterator(f, chunk_size=512):
+    while True:
+        c = f.read(chunk_size)
+        if c:
+            yield c
+        else:
+            break
+
+
 def test(request):
     return HttpResponse('test')
-
-

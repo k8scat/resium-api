@@ -21,4 +21,7 @@ urlpatterns = [
     path('service/', service),
     path('status/', get_status),
     path('test/', test),
+    re_path(r'^resource/?$', resource),
+    path('resource_count/', resource_count),
+    path('resource_download/', resource_download)
 ]

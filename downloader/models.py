@@ -82,17 +82,11 @@ class Resource(Base):
     category = models.CharField(max_length=100, verbose_name='资源分类')
     # 存储在oss中的key
     key = models.CharField(max_length=200, verbose_name='资源存储文件')
+    # 以 !sep! 分离
+    tags = models.CharField(max_length=240, verbose_name='资源标签')
 
     class Meta:
         db_table = 'resource'
-
-
-class ResourceTag(Base):
-    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
-    tag = models.CharField(max_length=50)
-
-    class Meta:
-        db_table = 'resource_tag'
 
 
 class Coupon(Base):
