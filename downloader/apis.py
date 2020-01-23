@@ -606,7 +606,9 @@ def resource_download(request):
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         try:
-            DownloadRecord.objects.filter(user=user, resource_url=resource_.csdn_url, is_deleted=False).update(update_time=timezone.now())
+            dr = DownloadRecord.objects.get(user=user, resource_url=resource_.csdn_url, is_deleted=False)
+            dr.update_time = timezone.now()
+            dr.save()
         except DownloadRecord.DoesNotExist:
             if user.valid_count <= 0:
                 return HttpResponse('下载数已用完')
