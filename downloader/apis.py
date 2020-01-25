@@ -197,7 +197,6 @@ def download(request):
         # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
         today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
                                                              is_deleted=False).values('resource_url').distinct().count()
-        logging.info(today_download_count)
         if today_download_count == 20:
             return JsonResponse(dict(code=403, msg='本站今日下载总数已达上限，请明日再来下载'))
 
@@ -231,6 +230,9 @@ def download(request):
             if r.status_code == 200:
                 try:
                     soup = BeautifulSoup(r.text, 'lxml')
+                    cannot_download = soup.select('div.resource_box a.copty-btn')[0].string == '版权受限，无法下载'
+                    if cannot_download:
+                        return HttpResponse('版权受限，无法下载')
                     title = soup.select('dl.resource_box_dl span.resource_title')[0].string
                 except Exception as e:
                     recover(user)
