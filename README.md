@@ -6,5 +6,4 @@ AliyunOSS: https://help.aliyun.com/document_detail/85288.html?spm=a2c4g.11186623
 
 ## Todo
 
-* [ ] promotion
 * [ ] 站内资源

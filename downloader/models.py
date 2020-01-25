@@ -16,6 +16,8 @@ class User(Base):
     invite_code = models.CharField(max_length=6, verbose_name='邀请码')
     # 受邀请码
     invited_code = models.CharField(max_length=6, verbose_name='受邀请码')
+    # 是否给过邀请人优惠券
+    return_invitor = models.BooleanField(default=False)
     # 是否激活
     is_active = models.BooleanField(default=False, verbose_name='是否激活')
     # 验证码
@@ -27,24 +29,6 @@ class User(Base):
 
     class Meta:
         db_table = 'user'
-
-
-class Order(Base):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # 订单名称
-    subject = models.CharField(max_length=50)
-    # 唯一订单号
-    out_trade_no = models.CharField(max_length=50, unique=True)
-    # 总金额
-    total_amount = models.FloatField()
-    # 支付时间
-    paid_time = models.DateTimeField(null=True)
-    pay_url = models.TextField()
-    # 购买次数
-    purchase_count = models.IntegerField()
-
-    class Meta:
-        db_table = 'order'
 
 
 class DownloadRecord(Base):
@@ -98,5 +82,29 @@ class Coupon(Base):
     total_amount = models.FloatField()
     purchase_count = models.IntegerField()
     is_used = models.BooleanField(default=False)
-    expiration = models.DateTimeField()
+    expire_time = models.DateTimeField()
+    code = models.CharField(max_length=50)
     comment = models.CharField(max_length=100, null=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'coupon'
+
+class Order(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # 订单名称
+    subject = models.CharField(max_length=50)
+    # 唯一订单号
+    out_trade_no = models.CharField(max_length=50, unique=True)
+    # 总金额
+    total_amount = models.FloatField()
+    # 支付时间
+    paid_time = models.DateTimeField(null=True)
+    pay_url = models.TextField()
+    # 购买次数
+    purchase_count = models.IntegerField()
+    is_deleted = models.BooleanField(default=False)
+    coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True)
+
+    class Meta:
+        db_table = 'order'

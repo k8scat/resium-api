@@ -7,7 +7,7 @@
 """
 from rest_framework.serializers import ModelSerializer
 
-from downloader.models import User, DownloadRecord, Order, Service, Resource
+from downloader.models import User, DownloadRecord, Order, Service, Resource, Coupon
 
 
 class UserSerializers(ModelSerializer):
@@ -37,4 +37,10 @@ class ServiceSerializers(ModelSerializer):
 class ResourceSerializers(ModelSerializer):
     class Meta:
         model = Resource
+        fields = '__all__'
+
+
+class CouponSerializers(ModelSerializer):
+    class Meta:
+        model = Coupon
         fields = '__all__'

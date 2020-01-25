@@ -40,9 +40,9 @@ from selenium.webdriver import DesiredCapabilities
 
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource
+from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
-    ResourceSerializers
+    ResourceSerializers, CouponSerializers
 from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file
 
 
@@ -164,6 +164,12 @@ def activate(request):
             user = User.objects.get(email=email, code=code, is_active=False)
             user.is_active = True
             user.save()
+
+            # 优惠券
+            expire_time = timezone.now() + datetime.timedelta(days=7)
+            comment = '新用户注册'
+            code = str(uuid.uuid1()).replace('-', '')
+            Coupon(user=user, total_amount=0.6, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
 
             User.objects.filter(email=email, is_active=False).delete()
             return redirect(settings.CSDNBOT_UI + '/login?msg=激活成功')
@@ -339,7 +345,7 @@ def download(request):
             # 恢复用户可用下载数和已用下载数
             recover(user, dr)
             logging.error(e)
-            ding('下载出现未知错误 ' + str(e))
+            ding(f'下载出现未知错误（{resource_url}） ' + str(e))
             return HttpResponse('下载失败，平台进入维护状态')
 
         finally:
@@ -419,10 +425,24 @@ def order(request):
 
         total_amount = data.get('total_amount', None)
         purchase_count = data.get('purchase_count', None)
+        code = data.get('code', None)
+
+        c = None
+        if code:
+            try:
+                c = Coupon.objects.get(code=code, total_amount=total_amount, purchase_count=purchase_count, is_used=False)
+                c.is_used = True
+                c.save()
+            except Coupon.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='优惠券不存在'))
+        else:
+            if Service.objects.filter(total_amount=total_amount, purchase_count=purchase_count).count() == 0:
+                return JsonResponse(dict(code=404, msg='服务不存在'))
+
         if total_amount is None or purchase_count is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        subject = '购买CSDNBot服务'
+        subject = '购买CSDNBot下载服务'
 
         ali_pay = get_alipay()
         # 生成唯一订单号
@@ -443,9 +463,14 @@ def order(request):
         user = User.objects.get(email=email)
 
         # 创建订单
-        o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount,
-                                 pay_url=pay_url, purchase_count=purchase_count)
-        return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
+        try:
+            o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount,
+                                     pay_url=pay_url, purchase_count=purchase_count, coupon=c)
+            return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
+        except Exception as e:
+            logging.info(e)
+            return JsonResponse(dict(code=400, msg='订单创建失败'))
+
     elif request.method == 'GET':
         email = request.session.get('email')
         try:
@@ -463,7 +488,6 @@ def alipay_notify(request):
     if request.method == 'POST':
 
         data = request.POST.dict()
-        logging.info(data)
 
         ali_pay = get_alipay()
         signature = data.pop("sign")
@@ -483,6 +507,15 @@ def alipay_notify(request):
 
                 user = User.objects.get(id=o.user_id)
                 user.valid_count += o.purchase_count
+
+                if not user.return_invitor:
+                    user.return_invitor = True
+                    # 优惠券
+                    expire_time = timezone.now() + datetime.timedelta(days=7)
+                    comment = '邀请新用户'
+                    code = str(uuid.uuid1()).replace('-', '')
+                    Coupon(user=user, total_amount=0.6, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
+
                 user.save()
 
                 ding('收入+' + str(total_amount))
@@ -558,7 +591,13 @@ def upload(request):
 
 def coupon(request):
     if request.method == 'GET':
-        pass
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=404, msg='用户不存在'))
+        coupons = Coupon.objects.filter(user=user).all()
+        return JsonResponse(dict(code=200, coupons=CouponSerializers(coupons, many=True).data))
 
 
 def resource(request):

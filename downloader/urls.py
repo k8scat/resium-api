@@ -23,5 +23,6 @@ urlpatterns = [
     path('test/', test),
     re_path(r'^resource/?$', resource),
     path('resource_count/', resource_count),
-    path('resource_download/', resource_download)
+    path('resource_download/', resource_download),
+    path('coupon/', coupon),
 ]

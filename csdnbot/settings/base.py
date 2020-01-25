@@ -152,6 +152,7 @@ AUTH_PATHS = [
     '/status/',
     '/resource/',
     '/resource_count/',
+    '/coupon/',
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
