@@ -83,12 +83,14 @@ class Coupon(Base):
     purchase_count = models.IntegerField()
     is_used = models.BooleanField(default=False)
     expire_time = models.DateTimeField()
+    # 优惠券唯一编码
     code = models.CharField(max_length=50)
     comment = models.CharField(max_length=100, null=True)
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'coupon'
+
 
 class Order(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
