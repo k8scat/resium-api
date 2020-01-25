@@ -169,7 +169,7 @@ def activate(request):
             expire_time = timezone.now() + datetime.timedelta(days=7)
             comment = '新用户注册'
             code = str(uuid.uuid1()).replace('-', '')
-            Coupon(user=user, total_amount=0.6, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
+            Coupon(user=user, total_amount=0.8, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
 
             User.objects.filter(email=email, is_active=False).delete()
             return redirect(settings.CSDNBOT_UI + '/login?msg=激活成功')
@@ -516,7 +516,7 @@ def alipay_notify(request):
                     code = str(uuid.uuid1()).replace('-', '')
                     # 获取邀请人
                     u = User.objects.get(invite_code=user.invited_code)
-                    Coupon(user=u, total_amount=0.6, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
+                    Coupon(user=u, total_amount=0.8, purchase_count=1, expire_time=expire_time, comment=comment, code=code).save()
 
                 user.save()
 
