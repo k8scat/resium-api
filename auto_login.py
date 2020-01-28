@@ -6,13 +6,14 @@
 
 """
 from selenium import webdriver
-
+from selenium.webdriver import DesiredCapabilities
 
 if __name__ == '__main__':
     # driver = webdriver.Chrome()
 
     selenium_server = 'http://selenium:4444/wd/hub'
-    driver = webdriver.Remote(command_executor=selenium_server)
+    caps = DesiredCapabilities.CHROME
+    driver = webdriver.Remote(command_executor=selenium_server, desired_capabilities=caps)
     try:
         linkedin_login_url = 'https://www.linkedin.com/login'
         driver.get(linkedin_login_url)
