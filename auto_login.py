@@ -5,26 +5,102 @@
 @date: 2020/1/17
 
 """
+import hashlib
+import json
+import os
+import time
+
+import requests
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 
-if __name__ == '__main__':
+
+def csdn_auto_login():
+    github_username = 'hsowan-me'
+    github_password = 'holdon7868'
+    csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
+
     # driver = webdriver.Chrome()
 
-    selenium_server = 'http://selenium:4444/wd/hub'
+    selenium_server = 'http://49.235.161.70:6666/wd/hub'
     caps = DesiredCapabilities.CHROME
     driver = webdriver.Remote(command_executor=selenium_server, desired_capabilities=caps)
     try:
-        linkedin_login_url = 'https://www.linkedin.com/login'
-        driver.get(linkedin_login_url)
-        driver.find_element_by_id("username").clear()
-        driver.find_element_by_id("username").send_keys("hsowan.me@gmail.com")
-        driver.find_element_by_id("password").clear()
-        driver.find_element_by_id("password").send_keys("holdon7868")
-        driver.find_element_by_xpath("//button[@type='submit']").click()
+        # 登录GitHub
+        driver.get("https://github.com/login")
 
-        print(driver.page_source)
-        print(type(driver.page_source))
-        print(driver.page_source.count('万华松'))
+        login_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, 'login_field'))
+        )
+        login_field.send_keys(github_username)
+
+        password = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, 'password'))
+        )
+        password.send_keys(github_password)
+
+        password.send_keys(Keys.ENTER)
+
+        # GitHub登录设备验证
+        # device_verification_code_input = WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.ID, 'otp'))
+        # )
+        # dv_code = input('Device verification code: ')
+        # device_verification_code_input.send_keys(dv_code)
+        # device_verification_code_input.send_keys(Keys.ENTER)
+
+        driver.get(csdn_github_oauth_url)
+
+        def csdn_login_verify():
+            """
+            CSDN异地登录验证
+
+            :return:
+            """
+            # 手机号输入框
+            phone = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'phone'))
+            )
+            phone.send_keys('17770040362')
+
+            # 发送验证码按钮
+            send_code_button = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'button.btn-confirm'))
+            )
+            send_code_button.click()
+
+            # 验证码输入框
+            code_input = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'code'))
+            )
+            code = input('CSDN手机验证码: ')
+            code_input.send_keys(code)
+
+            submit_button = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.form-submit > button'))
+            )
+            submit_button.click()
+
+        # csdn_login_verify()
+
+        return driver.get_cookies()
+
     finally:
         driver.close()
+
+
+if __name__ == '__main__':
+    cookies = csdn_auto_login()
+    cookies_str = json.dumps(cookies)
+    cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.json')
+    # 判断是否登录成功
+    for c in cookies:
+        if c['value'] == 'ken1583096683':
+            # 登录成功则保存cookies
+            cookies_str = json.dumps(cookies)
+            with open(cookies_file, 'w') as f:
+                f.write(cookies_str)

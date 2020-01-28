@@ -25,4 +25,5 @@ urlpatterns = [
     path('resource_count/', resource_count),
     path('resource_download/', resource_download),
     path('coupon/', coupon),
+    re_path(r'^refresh_cookies/?$', refresh_cookies)
 ]

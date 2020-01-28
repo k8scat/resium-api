@@ -16,6 +16,12 @@ import os
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
 import oss2
+from selenium import webdriver
+from selenium.webdriver import DesiredCapabilities
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -145,3 +151,50 @@ def aliyun_oss_sign_url(key):
 
     bucket = get_aliyun_oss_bucket()
     return bucket.sign_url('GET', key, 60 * 60)
+
+
+def csdn_auto_login():
+    csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
+    github_login_url = 'https://github.com/login'
+
+    caps = DesiredCapabilities.CHROME
+    driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
+    try:
+        # 登录GitHub
+        driver.get(github_login_url)
+
+        login_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, 'login_field'))
+        )
+        login_field.send_keys(settings.GITHUB_USERNAME)
+
+        password = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, 'password'))
+        )
+        password.send_keys(settings.GITHUB_PASSWORD)
+
+        password.send_keys(Keys.ENTER)
+
+        driver.get(csdn_github_oauth_url)
+
+        cookies = driver.get_cookies()
+
+        for c in cookies:
+            if c['value'] == 'ken1583096683':
+                # 登录成功则保存cookies
+                cookies_str = json.dumps(cookies)
+                with open(settings.COOKIES_FILE, 'w') as f:
+                    f.write(cookies_str)
+                ding('cookies更新成功')
+                return True
+
+        ding('cookies更新失败，请检查CSDN自动登录脚本')
+        return False
+
+    except Exception as e:
+        logging.error(e)
+        ding('CSDN自动登录出现异常 ' + str(e))
+        return False
+
+    finally:
+        driver.close()

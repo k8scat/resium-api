@@ -237,3 +237,5 @@ GITHUB_USERNAME = 'hsowan-me'
 GITHUB_PASSWORD = 'holdon7868'
 
 TAG_SEP = '!sep!'
+
+RC_TOKEN = 'Holdon@7868'

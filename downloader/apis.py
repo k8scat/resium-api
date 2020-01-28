@@ -43,7 +43,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
     ResourceSerializers, CouponSerializers
-from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file
+from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file, csdn_auto_login
 
 
 def login(request):
@@ -677,6 +677,21 @@ def file_iterator(f, chunk_size=512):
             yield c
         else:
             break
+
+
+def refresh_cookies(request):
+    if request.method == 'GET':
+
+        token = request.GET.get('rc_token', None)
+        if token == settings.RC_TOKEN:
+            if csdn_auto_login():
+                return JsonResponse(dict(code=200, msg='cookies更新成功'))
+
+            return JsonResponse(dict(code=500, msg='cookies更新失败'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 def test(request):

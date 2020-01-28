@@ -27,10 +27,10 @@ if __name__ == '__main__':
         cookies = driver.get_cookies()
         # 判断是否登录成功
         for c in cookies:
-            if c['name'] == 'UserName':
+            if c['value'] == 'ken1583096683':
                 # 登录成功则保存cookies
-                json_cookies = json.dumps(cookies)
+                cookies_str = json.dumps(cookies)
                 with open(cookies_file, 'w') as f:
-                    f.write(json_cookies)
+                    f.write(cookies_str)
     finally:
         driver.close()
