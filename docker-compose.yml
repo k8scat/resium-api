@@ -18,7 +18,7 @@ services:
     networks:
       - mysql_net
     ports:
-      - 4444:4444
+      - 6666:4444
     restart: always
     user: root
     container_name: csdnbot-selenium
