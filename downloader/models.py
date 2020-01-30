@@ -58,10 +58,11 @@ class Csdnbot(Base):
 
 
 class Resource(Base):
-    csdn_url = models.CharField(max_length=200, null=True, default=None, verbose_name='CSDN资源地址')
+    # 资源地址，如果是上传资源，则留空
+    url = models.CharField(max_length=200, null=True, default=None, verbose_name='资源地址')
     title = models.CharField(max_length=100, verbose_name='资源标题')
     filename = models.CharField(max_length=100, verbose_name='资源文件名')
-    desc = models.TextField(verbose_name='资源描述')
+    desc = models.TextField(null=True, default=None, verbose_name='资源描述')
     size = models.IntegerField(verbose_name='资源文件大小')
     category = models.CharField(max_length=100, verbose_name='资源分类')
     # 存储在oss中的key

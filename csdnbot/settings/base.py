@@ -139,7 +139,8 @@ CORS_EXPOSE_HEADERS = [
     'Content-Disposition'
 ]
 
-COOKIES_FILE = os.path.join(BASE_DIR, 'cookies.json')
+CSDN_COOKIES_FILE = os.path.join(BASE_DIR, 'csdn_cookies.json')
+WENKU_COOKIES_FILE = os.path.join(BASE_DIR, 'wenku_cookies.json')
 
 # 需要认证的路径
 AUTH_PATHS = [
@@ -189,7 +190,7 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR + '/csdnbot.log',
             'formatter': 'verbose'
@@ -199,10 +200,6 @@ LOGGING = {
             'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler'
         }
     },
     'loggers': {
@@ -216,7 +213,7 @@ LOGGING = {
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'file', 'mail_admins'],
+            'handlers': ['console', 'file'],
             'level': 'ERROR',
             'propagate': False,
         },

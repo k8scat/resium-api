@@ -10,7 +10,6 @@ import logging
 
 import requests
 from django.conf import settings
-from django.utils import timezone
 
 import os
 from oss2 import SizedFileAdapter, determine_part_size
@@ -33,7 +32,7 @@ def ding(content, at_mobiles=None, is_at_all=False):
     data = {
         'msgtype': 'text',
         'text': {
-            'content': 'CSDNBot: ' + content + ' at ' + str(timezone.now())
+            'content': 'CSDNBot: ' + content
         },
         'at': {
             'atMobiles': at_mobiles,
@@ -183,7 +182,7 @@ def csdn_auto_login():
             if c['value'] == 'ken1583096683':
                 # 登录成功则保存cookies
                 cookies_str = json.dumps(cookies)
-                with open(settings.COOKIES_FILE, 'w') as f:
+                with open(settings.CSDN_COOKIES_FILE, 'w') as f:
                     f.write(cookies_str)
                 ding('cookies更新成功')
                 return True

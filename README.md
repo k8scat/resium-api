@@ -6,4 +6,9 @@ AliyunOSS: https://help.aliyun.com/document_detail/85288.html?spm=a2c4g.11186623
 
 ## Todo
 
-* [ ] 站内资源
+* [ ] 上传资源
+* [ ] 百度文库
+
+## References
+
+* [百度文库VIP](https://wenku.baidu.com/ndvipmember/browse/vipprivilege)

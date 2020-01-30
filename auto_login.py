@@ -5,12 +5,8 @@
 @date: 2020/1/17
 
 """
-import hashlib
 import json
 import os
-import time
-
-import requests
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.by import By
@@ -96,7 +92,7 @@ def csdn_auto_login():
 if __name__ == '__main__':
     cookies = csdn_auto_login()
     cookies_str = json.dumps(cookies)
-    cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.json')
+    cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csdn_cookies.json')
     # 判断是否登录成功
     for c in cookies:
         if c['value'] == 'ken1583096683':

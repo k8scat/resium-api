@@ -10,7 +10,7 @@ import time
 
 from selenium import webdriver
 
-cookies_file = 'cookies.json'
+cookies_file = 'csdn_cookies.json'
 
 if __name__ == '__main__':
     # 扫码登录
