@@ -348,10 +348,7 @@ def download(request):
                 try:
                     soup = BeautifulSoup(r.text, 'lxml')
 
-                    logging.info(soup.select('div.resource_box a.copty-btn'))
-                    logging.info(len(soup.select('div.resource_box a.copty-btn')))
-
-                    cannot_download = soup.select('div.resource_box a.copty-btn')[0].string == '版权受限，无法下载'
+                    cannot_download = len(soup.select('div.resource_box a.copty-btn'))
                     if cannot_download:
                         return HttpResponse('版权受限，无法下载')
                     title = soup.select('dl.resource_box_dl span.resource_title')[0].string
