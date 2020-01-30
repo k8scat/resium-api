@@ -525,12 +525,10 @@ def save_csdn_resource(resource_url: str, filename: str, file: str, title: str) 
 
     r = requests.get(resource_url)
     if r.status_code == 200:
-
-        # 资源文件大小
-        size = os.path.getsize(file)
-
-        soup = BeautifulSoup(r.text, 'lxml')
         try:
+            # 资源文件大小
+            size = os.path.getsize(file)
+            soup = BeautifulSoup(r.text, 'lxml')
             desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
             category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
             tags = settings.TAG_SEP.join([tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
@@ -539,7 +537,9 @@ def save_csdn_resource(resource_url: str, filename: str, file: str, title: str) 
                                     url=resource_url, category=category, key=key, tags=tags)
         except Exception as e:
             logging.error(e)
-            ding('资源信息保存失败')
+            ding('资源信息保存失败 ' + str(e))
+    else:
+        ding('资源信息保存失败 - 资源请求失败')
 
 
 def save_wenku_resource(resource_url: str, filename: str, file: str, title: str, tags: str, category: str) -> None:
@@ -566,11 +566,14 @@ def save_wenku_resource(resource_url: str, filename: str, file: str, title: str,
         ding('阿里云OSS上传资源失败')
         return
 
-    # 资源文件大小
-    size = os.path.getsize(file)
-
-    Resource.objects.create(title=title, filename=filename, size=size,
-                            url=resource_url, category=category, key=key, tags=tags)
+    try:
+        # 资源文件大小
+        size = os.path.getsize(file)
+        Resource.objects.create(title=title, filename=filename, size=size,
+                                url=resource_url, category=category, key=key, tags=tags)
+    except Exception as e:
+        logging.error(e)
+        ding('资源信息保存失败 ' + str(e))
 
 
 def get_alipay():
