@@ -797,7 +797,7 @@ def resource(request):
 
         start = 5 * (page - 1)
         end = start + 5
-        resources = Resource.objects.order_by('create_time').filter(
+        resources = Resource.objects.order_by('-create_time').filter(
             Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).all()[start:end]
         return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
 
