@@ -976,7 +976,9 @@ def wx(request):
         reply.content = 'CSDNBot reply'
         # 转换成 XML
         ret_xml = reply.render()
-        return HttpResponse(ret_xml, content_type="text/xml")
+        # 加密
+        encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
+        return HttpResponse(encrypted_xml, content_type="text/xml")
 
 
 def test(request):
