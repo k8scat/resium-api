@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7b54d0f10aebde07205116601f7616066d8e73650489e5048c8c506e7dd688fc"
+            "sha256": "609db1ac6117b2d46586aa26d020ddf8617af15b4de32db60c0821de453db111"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -130,6 +130,7 @@
                 "sha256:ecadccc7ba52193963c0475ac9f6fa28ac01e01349a2ca48509667ef41ffd2cf",
                 "sha256:fb81c17e0ebe3358486cd8cc3ad78adbae58af12fc2bf2bc0bb84e8090fa5ce8"
             ],
+            "index": "pypi",
             "version": "==2.8"
         },
         "django": {
@@ -212,6 +213,14 @@
             ],
             "index": "pypi",
             "version": "==1.4.6"
+        },
+        "optionaldict": {
+            "hashes": [
+                "sha256:0bcf077ca329ae337995fc8fe847b580eadbd7f39b3483b274425874a9407768",
+                "sha256:0bfb42d10f0a79b062ec2bdfa010f8346005ec21afdb73d541d13723b128b121",
+                "sha256:2e02e35d80177457f241d841be9f8b3bf1847d72f81be1aab7814885b43b4320"
+            ],
+            "version": "==0.1.1"
         },
         "oss2": {
             "hashes": [
@@ -322,6 +331,13 @@
             "index": "pypi",
             "version": "==2.0.1"
         },
+        "python-dateutil": {
+            "hashes": [
+                "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c",
+                "sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a"
+            ],
+            "version": "==2.8.1"
+        },
         "pytz": {
             "hashes": [
                 "sha256:1c557d7d0e871de1f5ccd5833f60fb2550652da6be2693c1e02300743d21500d",
@@ -379,6 +395,14 @@
                 "sha256:87716c2d2a7121198ebcb7ce7cccf6ce5e9ba539041cfbaeecfb641dc0bf6acc"
             ],
             "version": "==1.25.8"
+        },
+        "wechatpy": {
+            "hashes": [
+                "sha256:2370fbb35f893436f7e587451cd03f2dd955ac1a66e17bbb8275c29e8b004def",
+                "sha256:db91aa4391e5cd3f9f11432af6f244931cfac89e6aa35e683d8d0ee98392d222"
+            ],
+            "index": "pypi",
+            "version": "==1.8.6"
         },
         "xmltodict": {
             "hashes": [

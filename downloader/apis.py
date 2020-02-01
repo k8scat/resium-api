@@ -40,6 +40,10 @@ from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 
 from selenium.webdriver.support.wait import WebDriverWait
+from wechatpy import parse_message
+from wechatpy.crypto import WeChatCrypto
+from wechatpy.exceptions import InvalidAppIdException, InvalidSignatureException
+from wechatpy.replies import TextReply
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
@@ -923,6 +927,9 @@ def wx(request):
           <Content><![CDATA[this is a test]]></Content>
           <MsgId>1234567890123456</MsgId>
         </xml>
+        
+        加密消息
+        OrderedDict([('ToUserName', 'gh_7ad5c6e34b81'), ('Encrypt', 'pQraYejvwwXDtHrz4oQ5VImK9HL2Ry8wRv5Hs0JRJ0VNs1P2yAZD9fKbYHmwuKpZPV77EmvmbyZPaBw0g8/Bge+S6B152MMZPQ47PD3/fHoi9pfhWQSqRHI+q5BW7AKN+RZ2QeV++0kN+BOE9NjPUuee0YCklcHdS2i7tulb6JFiOGi9ZoMQbmVlnRQuz2qc8Y0qYMPVirddHUYsA5JooVEkzS4LLuUY3vizr5uDSHs/Q6PIkvHhZY/BwOUTqsjkmQ38sEkR265sKauisKATNDRwlUcRWlZMn+RMByOCRyncYFPkWEABONe/Z/IegkzUR0ghUtyt3Th7cyvSMjcjgOYWZVLJN2Vg2VZm8tiT/vzb09S0500zlC3pJjmHr2LL8HmYVyiZbqX9+Iq/cPQQqU2o+k7BH3SJWFEILhsHkTE=')])
 
         回复文本消息
         <xml>
@@ -934,22 +941,37 @@ def wx(request):
         </xml>
 
         最终返回 xml
+        
+        示例请求
+        POST /wx/?signature=78b016334f993e6701897e0dec278ea731af7d72&timestamp=1580552507&nonce=1302514634&openid=oc5rb00oVXaRUTRvvbIpCvDNSoFA&encrypt_type=aes&msg_signature=73ef0f95249e268641de2dc87761f234ca9d6db0
         """
+        msg_signature = request.GET.get('signature', '')
+        timestamp = request.GET.get('timestamp', '')
+        nonce = request.GET.get('nonce', '')
+
         # request.body 是xml请求数据
         # 使用 xmltodict.parse() 转换成 OrderedDict
-        data = xmltodict.parse(request.body).get('xml')
-        logging.info(data)
+        xml_data = request.body
+        logging.info(xml_data)
 
-        ret_data = {
-            'xml': {
-                'ToUserName': data.get('FromUserName'),
-                'FromUserName': data.get('ToUserName'),
-                'CreateTime': int(datetime.datetime.now().timestamp()),
-                'MsgType': 'text',
-                'Content': 'test'
-            }
-        }
-        ret_xml = xmltodict.unparse(ret_data)
+        crypto = WeChatCrypto(settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
+        try:
+            decrypted_xml = crypto.decrypt_message(
+                xml_data,
+                msg_signature,
+                timestamp,
+                nonce
+            )
+        except (InvalidAppIdException, InvalidSignatureException):
+            logging.info('解密失败')
+            return HttpResponse('')
+
+        msg = parse_message(decrypted_xml)
+
+        reply = TextReply(message=msg)
+        reply.content = 'text reply'
+        # 转换成 XML
+        ret_xml = reply.render()
         return HttpResponse(ret_xml, content_type="text/xml")
 
 
