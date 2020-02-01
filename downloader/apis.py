@@ -43,7 +43,7 @@ from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.support.wait import WebDriverWait
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
-from wechatpy.events import SubscribeEvent
+from wechatpy.events import SubscribeEvent, UnsubscribeEvent
 from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
@@ -981,21 +981,21 @@ def wx(request):
         msg = parse_message(decrypted_xml)
         reply = EmptyReply()
 
-        # 关注/取消关注事件
+        # 关注事件
         if isinstance(msg, SubscribeEvent):
-            logging.info(msg.event)
-            if msg.event == 'subscribe':
-                ding('公众号关注 +1')
-                content = '欢迎关注公众号！\nCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\nCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\nCSDNBot注册地址：https://csdnbot.com/register?code=200109'
-                reply = TextReply(content=content, message=msg)
-            elif msg.event == 'unsubscribe':
-                ding('公众号关注 -1')
-                try:
-                    user = User.objects.get(wx_openid=msg.source)
-                    user.has_subscribed = False
-                    user.save()
-                except User.DoesNotExist:
-                    pass
+            ding('公众号关注 +1')
+            content = '欢迎关注公众号！\n/:liCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            reply = TextReply(content=content, message=msg)
+
+        # 取消关注事件
+        elif isinstance(msg, UnsubscribeEvent):
+            ding('公众号关注 -1')
+            try:
+                user = User.objects.get(wx_openid=msg.source)
+                user.has_subscribed = False
+                user.save()
+            except User.DoesNotExist:
+                pass
 
         # 文本消息
         elif isinstance(msg, TextMessage):
