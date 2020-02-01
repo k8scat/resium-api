@@ -43,7 +43,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
 from wechatpy.exceptions import InvalidAppIdException, InvalidSignatureException
-from wechatpy.replies import TextReply
+from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
@@ -952,7 +952,7 @@ def wx(request):
         encrypt_type
         msg_signature
         """
-        msg_signature = request.GET.get('msg_signature', '')
+        msg_signature = request.GET.get('signature', '')
         timestamp = request.GET.get('timestamp', '')
         nonce = request.GET.get('nonce', '')
 
@@ -968,7 +968,12 @@ def wx(request):
             )
         except Exception as e:
             logging.info(e)
-            return HttpResponse('')
+            reply = EmptyReply()
+            # 转换成 XML
+            ret_xml = reply.render()
+            # 加密
+            encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
+            return HttpResponse(encrypted_xml, content_type="text/xml")
 
         msg = parse_message(decrypted_xml)
 
