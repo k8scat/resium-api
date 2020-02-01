@@ -869,7 +869,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '欢迎关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            content = '感谢关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
@@ -890,7 +890,7 @@ def wx(request):
                 try:
                     try:
                         user = User.objects.get(wx_openid=msg.source, has_subscribed=True)
-                        content = f'该微信账号已绑定邮箱{user.email}'
+                        content = f'该微信账号已绑定邮箱{user.email}，如需解绑只需要重新关注公众号即可！'
                         reply = TextReply(content=content, message=msg)
                     except User.DoesNotExist:
                         user = User.objects.get(email=msg.content, is_active=True)
@@ -902,7 +902,7 @@ def wx(request):
                             content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
                             reply = TextReply(content=content, message=msg)
                         else:
-                            content = '该账号已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
+                            content = f'账号{msg.content}已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
                             reply = TextReply(content=content, message=msg)
                 except User.DoesNotExist:
                     content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
