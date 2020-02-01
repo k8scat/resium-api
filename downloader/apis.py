@@ -1000,13 +1000,14 @@ def wx(request):
         # 文本消息
         elif msg.type == 'text':
             email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
-            if email_pattern.match(msg.content):
+            if email_pattern.match(msg.content.strip()):
                 try:
                     user = User.objects.get(email=msg.content, is_active=True)
                     # 保存用户openid
                     user.wx_openid = msg.source
                     user.has_subscribed = True
                     user.save()
+                    reply.content = f'{msg.content.strip()}成功获取百度文库VIP免费文档下载特权（每天三次）！'
                 except User.DoesNotExist:
                     reply.content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
 
