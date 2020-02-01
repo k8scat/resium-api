@@ -999,6 +999,7 @@ def wx(request):
 
         # 文本消息
         elif msg.type == 'text':
+            logging.info(msg.content)
             email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
             if email_pattern.match(msg.content.strip()):
                 try:
