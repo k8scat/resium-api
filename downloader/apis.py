@@ -878,6 +878,7 @@ def wx(request):
             try:
                 user = User.objects.get(wx_openid=msg.source)
                 user.has_subscribed = False
+                user.wx_openid = None
                 user.save()
             except User.DoesNotExist:
                 pass
@@ -888,9 +889,9 @@ def wx(request):
             if email_pattern.match(msg.content.strip()):
                 try:
                     try:
-                        user = User.objects.get(wx_openid=msg.source)
+                        user = User.objects.get(wx_openid=msg.source, has_subscribed=True)
                         content = f'该微信账号已绑定邮箱{user.email}'
-                        reply = TextReply(content, message=msg)
+                        reply = TextReply(content=content, message=msg)
                     except User.DoesNotExist:
                         user = User.objects.get(email=msg.content, is_active=True)
                         if not user.has_subscribed:

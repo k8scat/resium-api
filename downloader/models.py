@@ -27,7 +27,7 @@ class User(Base):
     # 已用总数
     used_count = models.IntegerField(default=0, verbose_name='已用下载数')
     # 微信用户唯一标识
-    wx_openid = models.CharField(max_length=200)
+    wx_openid = models.CharField(max_length=200, null=True, default=None)
     # 是否关注微信公众号
     has_subscribed = models.BooleanField(default=False)
 
