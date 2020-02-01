@@ -5,8 +5,10 @@
 @date: 2020/1/7
 
 """
+import datetime
 import json
 import logging
+import time
 
 import alipay
 import requests
@@ -22,6 +24,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+
+from downloader.models import Resource, DownloadRecord
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -221,3 +225,134 @@ def get_alipay():
         sign_type="RSA2",  # RSA or RSA2
         debug=False  # False by default
     )
+
+
+def check_oss(resource_url):
+    """
+    检查oss是否已存储资源
+
+    :return: Resource
+    """
+
+    try:
+        resource = Resource.objects.get(url=resource_url)
+        # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
+        # 如果oss上没有存储资源，则将resource删除
+        if not aliyun_oss_check_file(resource.key):
+            resource.delete()
+            resource = None
+        return resource
+    except Resource.DoesNotExist:
+        return None
+
+
+def check_download(save_dir):
+    """
+    判断文件是否下载完成
+
+    :param save_dir:
+    :return:
+    """
+    while True:
+        files = os.listdir(save_dir)
+        if len(files) == 0 or files[0].endswith('.crdownload'):
+            logging.info('Downloading')
+            time.sleep(0.1)
+            continue
+        else:
+            time.sleep(0.1)
+            logging.info('Download ok')
+            break
+
+    # 下载完成后，文件夹下存在唯一的文件
+    filename = files[0]
+    # 生成文件的绝对路径
+    filepath = os.path.join(save_dir, filename)
+
+    return filepath, filename
+
+
+def add_cookie(driver, cookies_file):
+    """
+    给driver添加cookies
+
+    :param driver:
+    :param cookies_file:
+    :return:
+    """
+
+    # 从文件中获取到cookies
+    with open(cookies_file, 'r', encoding='utf-8') as f:
+        cookies = json.loads(f.read())
+    for cookie in cookies:
+        if 'expiry' in cookie:
+            del cookie['expiry']
+        driver.add_cookie(cookie)
+
+
+def get_driver(unique_folder):
+    """
+    获取driver
+
+    :param unique_folder: 唯一文件夹
+    :return: WebDriver
+    """
+    options = webdriver.ChromeOptions()
+    prefs = {
+        "download.prompt_for_download": False,
+        'download.default_directory': '/download/' + unique_folder,  # 下载目录
+        "plugins.always_open_pdf_externally": True,
+        'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
+        'profile.default_content_setting_values.images': 2,  # 禁止图片加载
+    }
+    options.add_experimental_option('prefs', prefs)
+
+    caps = DesiredCapabilities.CHROME
+    # 线上使用selenium server
+    driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps,
+                              options=options)
+
+    # 本地图形界面自动化测试
+    # driver = webdriver.Chrome(options=options)
+    return driver
+
+
+def check_csdn():
+    """
+    检查csdn 当天是否可下载
+
+    上传下载相关问题
+    https://blog.csdn.net/blogdevteam/article/details/103487272
+
+    Q：重复下载资源扣下载积分吗？
+    A：第一次下载资源扣下载积分，以后此资源下载30日内都为免费，如果发现扣分现象，请及时联系客服。30日后再次下载需要扣除相应的积分。
+
+    :return: bool
+    """
+
+    # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
+    today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
+                                                         is_deleted=False, resource_url__startswith='https://download.csdn.net/download/').values('resource_url').distinct().count()
+    if today_download_count == 20:
+        return False
+    return True
+
+
+def recover(user, download_record=None, is_healthy=False):
+    """
+    恢复用户可用下载数并将平台状态改为维护中
+
+    :param user:
+    :param download_record: 如果download_record不为空，会将下载记录的is_deleted改为True
+    :param is_healthy: 一般是在下载出现问题的时候调用该方法，也可以在正常的时候调用该方法，但是要传参数 is_healthy=True
+    :return:
+    """
+
+    user.valid_count += 1
+    user.used_count -= 1
+    user.save()
+
+    if download_record:
+        download_record.is_deleted = True
+        download_record.save()
+

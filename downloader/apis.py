@@ -15,7 +15,6 @@ from threading import Thread
 from urllib import parse
 
 import requests
-import xmltodict
 from bs4 import BeautifulSoup
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -28,7 +27,6 @@ import random
 
 import jwt
 import os
-import time
 import uuid
 
 from django.conf import settings
@@ -37,8 +35,6 @@ from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from selenium import webdriver
-from selenium.webdriver import DesiredCapabilities
 
 from selenium.webdriver.support.wait import WebDriverWait
 from wechatpy import parse_message
@@ -47,11 +43,11 @@ from wechatpy.events import SubscribeEvent, UnsubscribeEvent
 from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
-from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
+from downloader.models import User, DownloadRecord, Order, Service, Resource, Coupon
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
     ResourceSerializers, CouponSerializers
 from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file, csdn_auto_login, \
-    get_alipay
+    get_alipay, check_oss, get_driver, add_cookie, check_download, recover, check_csdn
 
 
 def login(request):
@@ -192,140 +188,35 @@ def activate(request):
 
 def download(request):
     if request.method == 'GET':
-        resource_url = request.GET.get('resource_url', None)
-        token = request.GET.get('token', None)
-        if not resource_url or not token:
-            return HttpResponse('错误的请求')
-
-        try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
-        except Exception as e:
-            logging.info(e)
-            return HttpResponse('未认证')
-
-        email = payload.get('sub', None)
+        email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return HttpResponse('未认证')
+            return JsonResponse(dict(code=401, msg='未认证'))
 
-        if not Csdnbot.objects.get(id=1).status:
-            ding('系统还未恢复')
-            return HttpResponse('本站下载服务正在维护中，将尽快恢复服务')
+        resource_url = request.GET.get('resource_url', '')
+        if resource_url == '':
+            return JsonResponse(dict(code=400, msg='资源地址不能为空'))
+        # 去除资源地址参数
+        resource_url = resource_url.split('?')[0]
 
-        def recover(u_: User, dr_: DownloadRecord = None):
-            Csdnbot.objects.filter(id=1).update(status=False)
-            u_.valid_count += 1
-            u_.used_count -= 1
-            u_.save()
-            if dr_:
-                dr_.is_deleted = True
-                dr_.save()
-
-        def get_driver():
-            """
-            获取driver
-
-            :return: WebDriver
-            """
-            options = webdriver.ChromeOptions()
-            prefs = {
-                "download.prompt_for_download": False,
-                'download.default_directory': '/download/' + uuid_str,  # 下载目录
-                "plugins.always_open_pdf_externally": True,
-                'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
-                'profile.default_content_setting_values.images': 2,  # 禁止图片加载
-            }
-            options.add_experimental_option('prefs', prefs)
-
-            caps = DesiredCapabilities.CHROME
-            # 线上使用selenium server
-            driver_ = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps,
-                                       options=options)
-
-            # 本地图形界面自动化测试
-            # driver_ = webdriver.Chrome(options=options)
-            return driver_
-
-        def add_cookie(driver_, cookies_file):
-            """
-            给driver添加cookies
-
-            :param driver_:
-            :param cookies_file:
-            :return:
-            """
-
-            # 从文件中获取到cookies
-            with open(cookies_file, 'r', encoding='utf-8') as f_:
-                cookies_ = json.loads(f_.read())
-            for cookie_ in cookies_:
-                if 'expiry' in cookie_:
-                    del cookie_['expiry']
-                driver_.add_cookie(cookie_)
-
-        def check_download(dir_):
-            """
-            判断文件是否下载完成
-
-            :param dir_:
-            :return:
-            """
-            while True:
-                files = os.listdir(dir_)
-                if len(files) == 0 or files[0].endswith('.crdownload'):
-                    logging.info('Downloading')
-                    time.sleep(0.1)
-                    continue
-                else:
-                    time.sleep(0.1)
-                    logging.info('Download ok')
-                    break
-
-            # 下载完成后，文件夹下存在唯一的文件
-            filename_ = files[0]
-            # 生成文件的绝对路径
-            filepath_ = os.path.join(sub_dir, filename_)
-
-            return filepath_, filename_
-
-        def check_oss(resource_url_):
-            """
-            检查oss是否已存储资源
-
-            :return: Resource
-            """
-
-            try:
-                r_ = Resource.objects.get(url=resource_url_)
-                # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
-                # 如果oss上没有存储资源，则将resource删除
-                if not aliyun_oss_check_file(r_.key):
-                    r_.delete()
-                    r_ = None
-                return r_
-            except Resource.DoesNotExist:
-                return None
-
-        dr = None
         try:
             # 判断用户是否存在下载记录，如果存在，则直接下载
             dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
             dr.update_time = datetime.datetime.now()
             dr.save()
 
-            resource_ = check_oss(resource_url)
+            oss_resource = check_oss(resource_url)
 
-            if resource_:
-                file = aliyun_oss_get_file(resource_.key)
+            if oss_resource:
+                file = aliyun_oss_get_file(oss_resource.key)
                 response = FileResponse(file)
                 response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(resource_.filename,
-                                                                                        safe=string.printable) + '"'
+                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename, safe=string.printable) + '"'
                 return response
         except DownloadRecord.DoesNotExist:
             if user.valid_count <= 0:
-                return HttpResponse('下载数已用完')
+                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
 
             # 更新用户的可用下载数和已用下载数
             user.valid_count -= 1
@@ -334,41 +225,40 @@ def download(request):
 
         # 生成资源存放的唯一子目录
         uuid_str = str(uuid.uuid1())
-        sub_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
-        os.mkdir(sub_dir)
-
-        # 去除资源地址参数
-        resource_url = resource_url.split('?')[0]
+        save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+        while True:
+            if os.path.exists(save_dir):
+                uuid_str = str(uuid.uuid1())
+                save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+            else:
+                os.mkdir(save_dir)
+                break
 
         if resource_url.startswith('https://download.csdn.net/download/'):
-            logging.info('csdn resource download')
+            logging.info(f'csdn资源下载: {resource_url}')
 
-            # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
-            today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
-                                                                 is_deleted=False).values('resource_url').distinct().count()
-            if today_download_count == 20:
-                recover(user)
-                return JsonResponse(dict(code=403, msg='本站今日CSDN资源下载总数已达上限，请明日再来下载'))
+            if not check_csdn():
+                return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
 
             r = requests.get(resource_url)
             title = None
             if r.status_code == 200:
                 try:
                     soup = BeautifulSoup(r.text, 'lxml')
-
+                    # 版权受限
                     cannot_download = len(soup.select('div.resource_box a.copty-btn'))
                     if cannot_download:
-                        return HttpResponse('版权受限，无法下载')
+                        return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
                     title = soup.select('dl.resource_box_dl span.resource_title')[0].string
                 except Exception as e:
                     recover(user)
                     logging.error(e)
                     ding('资源名称获取失败 ' + str(e))
-                    return HttpResponse('下载失败，平台进入维护状态')
+                    return JsonResponse(dict(code=500, msg='下载失败'))
             # 保存下载记录
             dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
-            driver = get_driver()
+            driver = get_driver(uuid_str)
             try:
                 # 先请求，再添加cookies
                 # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
@@ -386,11 +276,12 @@ def download(request):
 
                 # 点击弹框中的VIP下载
                 el = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+                    EC.presence_of_element_located((By.XPATH,
+                                                    "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
                 )
                 el.click()
 
-                filepath, filename = check_download(sub_dir)
+                filepath, filename = check_download(save_dir)
                 # 保存资源
                 t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title))
                 t.start()
@@ -398,7 +289,8 @@ def download(request):
                 f = open(filepath, 'rb')
                 response = FileResponse(f)
                 response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
+                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
+                                                                                        safe=string.printable) + '"'
                 return response
 
             except Exception as e:
@@ -406,15 +298,16 @@ def download(request):
                 recover(user, dr)
                 logging.error(e)
                 ding(f'下载出现未知错误（{resource_url}） ' + str(e))
-                return HttpResponse('下载失败，平台进入维护状态')
+                return JsonResponse(dict(code=500, msg='下载失败'))
 
             finally:
                 driver.quit()
 
         elif resource_url.startswith('https://wenku.baidu.com/view/'):
-            logging.info('百度文库资源下载')
+            logging.info(f'百度文库资源下载: {resource_url}')
 
-            driver = get_driver()
+            dr = None
+            driver = get_driver(uuid_str)
             try:
                 driver.get('https://www.baidu.com/')
                 add_cookie(driver, settings.WENKU_COOKIES_FILE)
@@ -423,16 +316,20 @@ def download(request):
 
                 # VIP免费文档 共享文档 VIP专享文档 付费文档 VIP尊享8折文档
                 doc_tag = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'bd doc-reader')]/div/div[contains(@style, 'display: block;')]/span"))
+                    EC.presence_of_element_located((By.XPATH,
+                                                    "//div[contains(@class, 'bd doc-reader')]/div/div[contains(@style, 'display: block;')]/span"))
                 ).text
-                if doc_tag not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
-                    return HttpResponse('此类资源无法下载: ' + doc_tag)
+                # ['VIP免费文档', '共享文档', 'VIP专享文档']
+                if doc_tag not in ['VIP免费文档']:
+                    return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
 
                 # 文档标题
                 title = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
                 ).text
-                logging.info(title)
+                # 保存下载记录
+                dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
                 # 文档标签，可能不存在
                 # find_elements_by_xpath 返回的是一个List
@@ -441,7 +338,6 @@ def download(request):
                 for tag_el in tag_els:
                     tags.append(tag_el.text)
                 tags = settings.TAG_SEP.join(tags)
-                logging.info(tags)
 
                 # 文档分类
                 cat_els = WebDriverWait(driver, 10).until(
@@ -451,10 +347,6 @@ def download(request):
                 for cat_el in cat_els:
                     cats.append(cat_el.text)
                 cats = '-'.join(cats)
-                logging.info(cats)
-
-                # 保存下载记录
-                dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
                 # 显示下载对话框的按钮
                 show_download_modal_button = WebDriverWait(driver, 10).until(
@@ -466,7 +358,8 @@ def download(request):
                 try:
                     # 首次下载
                     download_button = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
                     )
                     # 取消转存网盘
                     cancel_wp_upload_check = WebDriverWait(driver, 5).until(
@@ -482,7 +375,7 @@ def download(request):
                         )
                         download_button.click()
 
-                filepath, filename = check_download(sub_dir)
+                filepath, filename = check_download(save_dir)
                 # 保存资源
                 t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats))
                 t.start()
@@ -490,7 +383,12 @@ def download(request):
                 f = open(filepath, 'rb')
                 response = FileResponse(f)
                 response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
+                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
+                                                                                        safe=string.printable) + '"'
+
+                if doc_tag == 'VIP免费文档' and user.has_subscribed:
+                    recover(user)
+
                 return response
 
             except Exception as e:
@@ -498,16 +396,16 @@ def download(request):
                 recover(user, dr)
                 logging.error(e)
                 ding(f'下载出现未知错误（{resource_url}） ' + str(e))
-                return HttpResponse('下载失败，平台进入维护状态')
+                return JsonResponse(dict(code=500, msg='下载失败'))
 
             finally:
                 driver.quit()
 
         else:
-            return HttpResponse('错误的请求')
+            return JsonResponse(dict(code=400, msg='错误的请求'))
 
     else:
-        return HttpResponse('错误的请求')
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 def save_csdn_resource(resource_url: str, filename: str, file: str, title: str) -> None:
@@ -539,7 +437,8 @@ def save_csdn_resource(resource_url: str, filename: str, file: str, title: str) 
             soup = BeautifulSoup(r.text, 'lxml')
             desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
             category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
-            tags = settings.TAG_SEP.join([tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
+            tags = settings.TAG_SEP.join(
+                [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
 
             Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
                                     url=resource_url, category=category, key=key, tags=tags)
@@ -612,7 +511,7 @@ def order(request):
         if total_amount is None or purchase_count is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        subject = '购买CSDNBot下载服务'
+        subject = '购买资源下载服务'
 
         ali_pay = get_alipay()
         # 生成唯一订单号
@@ -751,12 +650,6 @@ def service(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-def health_check(request):
-    if request.method == 'GET':
-        is_healthy = Csdnbot.objects.get(id=1).is_healthy
-        return JsonResponse(dict(code=200, is_healthy=is_healthy))
-
-
 def upload(request):
     if request.method == 'POST':
         pass
@@ -803,49 +696,43 @@ def resource_download(request):
     """
 
     if request.method == 'GET':
-        key = request.GET.get('key', None)
-        token = request.GET.get('token', None)
-        if token is None or key is None:
-            return HttpResponse('错误的请求')
-
-        try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
-        except Exception as e:
-            logging.info(e)
-            return HttpResponse('未认证')
-
-        email = payload.get('sub', None)
+        email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return HttpResponse('未认证')
+            return JsonResponse(dict(code=401, msg='未认证'))
+
+        key = request.GET.get('key', None)
+        if key is None:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
 
         try:
-            resource_ = Resource.objects.get(key=key)
-            if not aliyun_oss_check_file(resource_.key):
-                resource_.delete()
+            oss_resource = Resource.objects.get(key=key)
+            if not aliyun_oss_check_file(oss_resource.key):
+                oss_resource.delete()
                 return JsonResponse(dict(code=400, msg='资源已被删除'))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         try:
-            dr = DownloadRecord.objects.get(user=user, resource_url=resource_.url, is_deleted=False)
+            dr = DownloadRecord.objects.get(user=user, resource_url=oss_resource.url, is_deleted=False)
             dr.update_time = datetime.datetime.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
             if user.valid_count <= 0:
                 return HttpResponse('下载数已用完')
+            if not oss_resource.tags.count('VIP免费文档') or not user.has_subscribed:
+                # 更新用户的可用下载数和已用下载数
+                user.valid_count -= 1
+                user.used_count += 1
+                user.save()
+            DownloadRecord.objects.create(user=user, resource_url=oss_resource.url, title=oss_resource.title)
 
-            # 更新用户的可用下载数和已用下载数
-            user.valid_count -= 1
-            user.used_count += 1
-            user.save()
-            DownloadRecord.objects.create(user=user, resource_url=resource_.url, title=resource_.title)
-
-        file = aliyun_oss_get_file(resource_.key)
+        file = aliyun_oss_get_file(oss_resource.key)
         response = FileResponse(file)
         response['Content-Type'] = 'application/octet-stream'
-        response['Content-Disposition'] = 'attachment;filename="' + parse.quote(resource_.filename, safe=string.printable) + '"'
+        response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
+                                                                                safe=string.printable) + '"'
         return response
 
 
@@ -984,7 +871,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '欢迎关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            content = '欢迎关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
@@ -1008,10 +895,10 @@ def wx(request):
                         user.wx_openid = msg.source
                         user.has_subscribed = True
                         user.save()
-                        content = '成功获取百度文库#VIP免费文档#下载特权（每天三次）！'
+                        content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
                         reply = TextReply(content=content, message=msg)
                     else:
-                        content = '该账号已经获取百度文库#VIP免费文档#下载特权！'
+                        content = '该账号已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
                         reply = TextReply(content=content, message=msg)
                 except User.DoesNotExist:
                     content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
@@ -1025,14 +912,4 @@ def wx(request):
 
 
 def test(request):
-    ret_data = {
-        'xml': {
-            'ToUserName': 'a',
-            'FromUserName': 'b',
-            'CreateTime': int(datetime.datetime.now().timestamp()),
-            'MsgType': 'text',
-            'Content': 'test'
-        }
-    }
-    ret_xml = xmltodict.unparse(ret_data)
-    return HttpResponse(ret_xml, content_type="text/xml")
+    return HttpResponse('')

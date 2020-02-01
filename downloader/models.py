@@ -54,14 +54,6 @@ class Service(Base):
         db_table = 'service'
 
 
-class Csdnbot(Base):
-    is_healthy = models.BooleanField()
-    wx_access_token = models.TextField()
-
-    class Meta:
-        db_table = 'csdnbot'
-
-
 class Resource(Base):
     # 资源地址，如果是上传资源，则留空
     url = models.CharField(max_length=200, null=True, default=None, verbose_name='资源地址')

@@ -135,6 +135,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 CORS_ORIGIN_ALLOW_ALL = True
+# 暴露给前端的header
 CORS_EXPOSE_HEADERS = [
     'Content-Disposition'
 ]
@@ -154,6 +155,8 @@ AUTH_PATHS = [
     '/resource/',
     '/resource_count/',
     '/coupon/',
+    '/download/',
+    '/resource_download/'
 ]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '

@@ -19,7 +19,6 @@ urlpatterns = [
     path('reset_password/', reset_password),
     path('download_record/', download_record),
     path('service/', service),
-    path('health_check/', health_check),
     path('test/', test),
     re_path(r'^resource/?$', resource),
     path('resource_count/', resource_count),

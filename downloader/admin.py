@@ -40,11 +40,6 @@ class ResourceAdmin(admin.ModelAdmin):
     search_fields = ['title']
 
 
-@admin.register(Csdnbot)
-class CsdnbotAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_healthy', 'update_time')
-
-
 admin.site.site_header = 'CSDNBot Admin'
 admin.site.site_title = 'CSDNBot Admin'
 admin.site.site_url = settings.CSDNBOT_UI
