@@ -983,15 +983,14 @@ def wx(request):
         # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
         reply = TextReply(content='', message=msg)
 
+        logging.info(msg.source)
+
         # 关注/取消关注事件
         if msg.type == 'event':
             subscribe_event = SubscribeEvent(message=msg)
             if subscribe_event.event == 'subscribe':
                 ding('公众号关注 +1')
-                reply.content = '''欢迎关注公众号！
-                CSDNBot是一个支持CSDN和百度文库的资源自动下载平台。
-                CSDNBot用户在公众号内回复注册邮箱可以获得百度文库VIP免费文档下载特权（无次数限制）！
-                CSDNBot注册地址：https://csdnbot.com/register?code=200109'''
+                reply.content = '欢迎关注公众号！\nCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\nCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\nCSDNBot注册地址：https://csdnbot.com/register?code=200109'
             elif subscribe_event == 'unsubscribe':
                 ding('公众号关注 -1')
                 try:
