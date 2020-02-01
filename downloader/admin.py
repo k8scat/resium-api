@@ -7,8 +7,9 @@ from downloader.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_active', 'email', 'valid_count', 'used_count', 'create_time', 'update_time')
+    list_display = ('id', 'is_active', 'email', 'has_subscribed', 'valid_count', 'used_count', 'create_time', 'update_time')
     list_per_page = 50
+    list_filter = ('has_subscribed', 'is_active')
     search_fields = ['email']
 
 
