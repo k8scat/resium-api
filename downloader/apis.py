@@ -42,6 +42,7 @@ from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.support.wait import WebDriverWait
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
+from wechatpy.events import SubscribeEvent
 from wechatpy.exceptions import InvalidAppIdException, InvalidSignatureException
 from wechatpy.replies import TextReply, EmptyReply
 
@@ -952,7 +953,7 @@ def wx(request):
         encrypt_type
         msg_signature
         """
-        msg_signature = request.GET.get('signature', '')
+        msg_signature = request.GET.get('msg_signature', '')
         timestamp = request.GET.get('timestamp', '')
         nonce = request.GET.get('nonce', '')
 
@@ -976,6 +977,11 @@ def wx(request):
             return HttpResponse(encrypted_xml, content_type="text/xml")
 
         msg = parse_message(decrypted_xml)
+
+        # 关注/取消关注事件
+        if msg.type == 'event':
+            subscribe_event = SubscribeEvent(message=msg)
+            logging.info(subscribe_event.event)
 
         reply = TextReply(message=msg)
         reply.content = 'CSDNBot reply'

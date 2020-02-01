@@ -26,6 +26,7 @@ class User(Base):
     valid_count = models.IntegerField(default=0, verbose_name='可用下载数')
     # 已用总数
     used_count = models.IntegerField(default=0, verbose_name='已用下载数')
+    wx_openid = models.CharField(max_length=200)
 
     class Meta:
         db_table = 'user'
