@@ -929,7 +929,7 @@ def wx(request):
         </xml>
         
         加密消息
-        OrderedDict([('ToUserName', 'gh_7ad5c6e34b81'), ('Encrypt', 'pQraYejvwwXDtHrz4oQ5VImK9HL2Ry8wRv5Hs0JRJ0VNs1P2yAZD9fKbYHmwuKpZPV77EmvmbyZPaBw0g8/Bge+S6B152MMZPQ47PD3/fHoi9pfhWQSqRHI+q5BW7AKN+RZ2QeV++0kN+BOE9NjPUuee0YCklcHdS2i7tulb6JFiOGi9ZoMQbmVlnRQuz2qc8Y0qYMPVirddHUYsA5JooVEkzS4LLuUY3vizr5uDSHs/Q6PIkvHhZY/BwOUTqsjkmQ38sEkR265sKauisKATNDRwlUcRWlZMn+RMByOCRyncYFPkWEABONe/Z/IegkzUR0ghUtyt3Th7cyvSMjcjgOYWZVLJN2Vg2VZm8tiT/vzb09S0500zlC3pJjmHr2LL8HmYVyiZbqX9+Iq/cPQQqU2o+k7BH3SJWFEILhsHkTE=')])
+        b'<xml>\n    <ToUserName><![CDATA[gh_7ad5c6e34b81]]></ToUserName>\n    <Encrypt><![CDATA[+fOxSz93orPUJk5rDoevsIz1Zdt33oEEkgmpDDT8WK8mmCP1t+aXJzXUdzMiIy/vaigbvMrUI+BaKXlUhBuU04PSj5NFOEpmHaTRvXW+Otv0vtCY01MIinahpeHox+5d4Uvyf1Wa/m1+O5UiyI05r1eTBQZfC1Hxw4/JceqaRPcB+YAs+oykwJmwlHWLwsAyRTS/AAN3fpOy0Bwf12PTEqogpj4I7Kg2kxS50zLkjsnlHAn/H+UXzE6FppZjv0+Dks09LtEo+Uo10pi02yxnfF7OBVN1wsW7eEZLXBK3HyW1vbQFXwhcfvxIINXNWgxDRV20cnUlBBuIjXT8XEwNDkSU3G+/S2m9qk3Gr12rJB9r1s64zM5u9UOlrOAerGokKHDoV7QjNslPDxqxgAxjcsQxLO/hCJjL7vUIqlb93PA=]]></Encrypt>\n</xml>\n'
 
         回复文本消息
         <xml>
@@ -944,15 +944,19 @@ def wx(request):
         
         示例请求
         POST /wx/?signature=78b016334f993e6701897e0dec278ea731af7d72&timestamp=1580552507&nonce=1302514634&openid=oc5rb00oVXaRUTRvvbIpCvDNSoFA&encrypt_type=aes&msg_signature=73ef0f95249e268641de2dc87761f234ca9d6db0
+        路径参数
+        signature
+        timestamp
+        nonce
+        openid
+        encrypt_type
+        msg_signature
         """
-        msg_signature = request.GET.get('signature', '')
+        msg_signature = request.GET.get('msg_signature', '')
         timestamp = request.GET.get('timestamp', '')
         nonce = request.GET.get('nonce', '')
 
-        # request.body 是xml请求数据
-        # 使用 xmltodict.parse() 转换成 OrderedDict
         xml_data = request.body
-        logging.info(xml_data)
 
         crypto = WeChatCrypto(settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
         try:
@@ -962,14 +966,14 @@ def wx(request):
                 timestamp,
                 nonce
             )
-        except (InvalidAppIdException, InvalidSignatureException):
-            logging.info('解密失败')
+        except Exception as e:
+            logging.info(e)
             return HttpResponse('')
 
         msg = parse_message(decrypted_xml)
 
         reply = TextReply(message=msg)
-        reply.content = 'text reply'
+        reply.content = 'CSDNBot reply'
         # 转换成 XML
         ret_xml = reply.render()
         return HttpResponse(ret_xml, content_type="text/xml")
