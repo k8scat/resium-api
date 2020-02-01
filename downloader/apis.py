@@ -14,7 +14,7 @@ from threading import Thread
 from urllib import parse
 
 import requests
-# import xmltodict
+import xmltodict
 from bs4 import BeautifulSoup
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -857,99 +857,99 @@ def refresh_cookies(request):
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-#
-# def wx(request):
-#     """
-#     微信公众号服务器接口
-#     https://mp.weixin.qq.com/advanced/advanced?action=interface&t=advanced/interface&token=508240585&lang=zh_CN
-#
-#     接入文档
-#     https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Access_Overview.html
-#
-#     开源SDK
-#     https://github.com/jxtech/wechatpy
-#
-#     URL: https://api.csdnbot.ncucoder.com/wx/
-#     Token: 6zOpjsMV15xWihocay4grCRPY82EQS7m
-#     EncodingAESKey: KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi
-#
-#     请求参数
-#     signature	微信加密签名，signature结合了开发者填写的token参数和请求中的timestamp参数、nonce参数。
-#     timestamp	时间戳
-#     nonce	随机数
-#     echostr	随机字符串
-#
-#     请求示例
-#     /wx/?signature=c047ea9c3b369811f237ef4145a0092b03e53149&echostr=4106217736181366575&timestamp=1580479503&nonce=14640658
-#
-#     Django 返回字符串使用 return HttpResponse('str')
-#
-#     :param request:
-#     :return:
-#     """
-#     if request.method == 'GET':
-#         """
-#         接入微信公众平台开发
-#         https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Access_Overview.html
-#         """
-#
-#         signature = request.GET.get('signature', '')
-#         timestamp = request.GET.get('timestamp', '')
-#         nonce = request.GET.get('nonce', '')
-#         echostr = request.GET.get('echostr', '')
-#
-#         # 1）将token、timestamp、nonce三个参数进行字典序排序
-#         param_list = [settings.WX_TOKEN, timestamp, nonce]
-#         param_list.sort()
-#         tmp_str = ''.join(param_list)
-#         # 2）将三个参数字符串拼接成一个字符串进行sha1加密
-#         sha1 = hashlib.sha1(tmp_str.encode('utf-8'))
-#         hashcode = sha1.hexdigest()
-#         # 3）开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
-#         if hashcode == signature:
-#             return HttpResponse(echostr)
-#         else:
-#             return HttpResponse('')
-#     elif request.method == 'POST':
-#         """
-#         消息管理
-#
-#         文本消息
-#         <xml>
-#           <ToUserName><![CDATA[toUser]]></ToUserName>
-#           <FromUserName><![CDATA[fromUser]]></FromUserName>
-#           <CreateTime>1348831860</CreateTime>
-#           <MsgType><![CDATA[text]]></MsgType>
-#           <Content><![CDATA[this is a test]]></Content>
-#           <MsgId>1234567890123456</MsgId>
-#         </xml>
-#
-#         回复文本消息
-#         <xml>
-#           <ToUserName><![CDATA[toUser]]></ToUserName>
-#           <FromUserName><![CDATA[fromUser]]></FromUserName>
-#           <CreateTime>12345678</CreateTime>
-#           <MsgType><![CDATA[text]]></MsgType>
-#           <Content><![CDATA[你好]]></Content>
-#         </xml>
-#
-#         最终返回 xml
-#         """
-#         # request.body 是xml请求数据
-#         # 使用 xmltodict.parse() 转换成 OrderedDict
-#         data = xmltodict.parse(request.body).get('xml')
-#
-#         ret_data = {
-#             'xml': {
-#                 'ToUserName': data.get('FromUserName'),
-#                 'FromUserName': data.get('ToUserName'),
-#                 'CreateTime': int(datetime.datetime.now().timestamp()),
-#                 'MsgType': 'text',
-#                 'Content': 'test'
-#             }
-#         }
-#         ret_xml = xmltodict.unparse(ret_data)
-#         return HttpResponse(ret_xml, content_type="text/xml")
+
+def wx(request):
+    """
+    微信公众号服务器接口
+    https://mp.weixin.qq.com/advanced/advanced?action=interface&t=advanced/interface&token=508240585&lang=zh_CN
+
+    接入文档
+    https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Access_Overview.html
+
+    开源SDK
+    https://github.com/jxtech/wechatpy
+
+    URL: https://api.csdnbot.ncucoder.com/wx/
+    Token: 6zOpjsMV15xWihocay4grCRPY82EQS7m
+    EncodingAESKey: KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi
+
+    请求参数
+    signature	微信加密签名，signature结合了开发者填写的token参数和请求中的timestamp参数、nonce参数。
+    timestamp	时间戳
+    nonce	随机数
+    echostr	随机字符串
+
+    请求示例
+    /wx/?signature=c047ea9c3b369811f237ef4145a0092b03e53149&echostr=4106217736181366575&timestamp=1580479503&nonce=14640658
+
+    Django 返回字符串使用 return HttpResponse('str')
+
+    :param request:
+    :return:
+    """
+    if request.method == 'GET':
+        """
+        接入微信公众平台开发
+        https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Access_Overview.html
+        """
+
+        signature = request.GET.get('signature', '')
+        timestamp = request.GET.get('timestamp', '')
+        nonce = request.GET.get('nonce', '')
+        echostr = request.GET.get('echostr', '')
+
+        # 1）将token、timestamp、nonce三个参数进行字典序排序
+        param_list = [settings.WX_TOKEN, timestamp, nonce]
+        param_list.sort()
+        tmp_str = ''.join(param_list)
+        # 2）将三个参数字符串拼接成一个字符串进行sha1加密
+        sha1 = hashlib.sha1(tmp_str.encode('utf-8'))
+        hashcode = sha1.hexdigest()
+        # 3）开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
+        if hashcode == signature:
+            return HttpResponse(echostr)
+        else:
+            return HttpResponse('')
+    elif request.method == 'POST':
+        """
+        消息管理
+
+        文本消息
+        <xml>
+          <ToUserName><![CDATA[toUser]]></ToUserName>
+          <FromUserName><![CDATA[fromUser]]></FromUserName>
+          <CreateTime>1348831860</CreateTime>
+          <MsgType><![CDATA[text]]></MsgType>
+          <Content><![CDATA[this is a test]]></Content>
+          <MsgId>1234567890123456</MsgId>
+        </xml>
+
+        回复文本消息
+        <xml>
+          <ToUserName><![CDATA[toUser]]></ToUserName>
+          <FromUserName><![CDATA[fromUser]]></FromUserName>
+          <CreateTime>12345678</CreateTime>
+          <MsgType><![CDATA[text]]></MsgType>
+          <Content><![CDATA[你好]]></Content>
+        </xml>
+
+        最终返回 xml
+        """
+        # request.body 是xml请求数据
+        # 使用 xmltodict.parse() 转换成 OrderedDict
+        data = xmltodict.parse(request.body).get('xml')
+
+        ret_data = {
+            'xml': {
+                'ToUserName': data.get('FromUserName'),
+                'FromUserName': data.get('ToUserName'),
+                'CreateTime': int(datetime.datetime.now().timestamp()),
+                'MsgType': 'text',
+                'Content': 'test'
+            }
+        }
+        ret_xml = xmltodict.unparse(ret_data)
+        return HttpResponse(ret_xml, content_type="text/xml")
 
 
 def test(request):
