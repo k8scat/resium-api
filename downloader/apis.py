@@ -14,7 +14,7 @@ from threading import Thread
 from urllib import parse
 
 import requests
-import xmltodict
+# import xmltodict
 from bs4 import BeautifulSoup
 from django.db.models import Q
 from django.shortcuts import redirect
