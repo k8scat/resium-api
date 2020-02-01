@@ -954,69 +954,73 @@ def wx(request):
         encrypt_type
         msg_signature
         """
-        msg_signature = request.GET.get('msg_signature', '')
-        timestamp = request.GET.get('timestamp', '')
-        nonce = request.GET.get('nonce', '')
 
-        xml_data = request.body
-
-        crypto = WeChatCrypto(settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
         try:
-            decrypted_xml = crypto.decrypt_message(
-                xml_data,
-                msg_signature,
-                timestamp,
-                nonce
-            )
-        except Exception as e:
-            logging.info(e)
-            reply = EmptyReply()
+            msg_signature = request.GET.get('msg_signature', '')
+            timestamp = request.GET.get('timestamp', '')
+            nonce = request.GET.get('nonce', '')
+
+            xml_data = request.body
+
+            crypto = WeChatCrypto(settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
+            try:
+                decrypted_xml = crypto.decrypt_message(
+                    xml_data,
+                    msg_signature,
+                    timestamp,
+                    nonce
+                )
+            except Exception as e:
+                logging.info(e)
+                reply = EmptyReply()
+                # 转换成 XML
+                ret_xml = reply.render()
+                # 加密
+                encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
+                return HttpResponse(encrypted_xml, content_type="text/xml")
+
+            msg = parse_message(decrypted_xml)
+
+            # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
+            reply = TextReply(content='', message=msg)
+
+            # 关注/取消关注事件
+            if msg.type == 'event':
+                logging.info(msg.event)
+                if msg.event == 'subscribe':
+                    ding('公众号关注 +1')
+                    reply.content = '欢迎关注公众号！\nCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\nCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\nCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+                elif msg.event == 'unsubscribe':
+                    ding('公众号关注 -1')
+                    try:
+                        user = User.objects.get(wx_openid=msg.source)
+                        user.has_subscribed = False
+                        user.save()
+                    except User.DoesNotExist:
+                        pass
+
+            # 文本消息
+            elif msg.type == 'text':
+                logging.info(msg.content)
+                email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
+                if email_pattern.match(msg.content.strip()):
+                    try:
+                        user = User.objects.get(email=msg.content, is_active=True)
+                        # 保存用户openid
+                        user.wx_openid = msg.source
+                        user.has_subscribed = True
+                        user.save()
+                        reply.content = f'{msg.content.strip()}成功获取百度文库VIP免费文档下载特权（每天三次）！'
+                    except User.DoesNotExist:
+                        reply.content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
+
             # 转换成 XML
             ret_xml = reply.render()
             # 加密
             encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
             return HttpResponse(encrypted_xml, content_type="text/xml")
-
-        msg = parse_message(decrypted_xml)
-
-        # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
-        reply = TextReply(content='', message=msg)
-
-        # 关注/取消关注事件
-        if msg.type == 'event':
-            logging.info(msg.event)
-            if msg.event == 'subscribe':
-                ding('公众号关注 +1')
-                reply.content = '欢迎关注公众号！\nCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\nCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\nCSDNBot注册地址：https://csdnbot.com/register?code=200109'
-            elif msg.event == 'unsubscribe':
-                ding('公众号关注 -1')
-                try:
-                    user = User.objects.get(wx_openid=msg.source)
-                    user.has_subscribed = False
-                    user.save()
-                except User.DoesNotExist:
-                    pass
-
-        # 文本消息
-        elif msg.type == 'text':
-            logging.info(msg.content)
-            email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
-            if email_pattern.match(msg.content.strip()):
-                try:
-                    user = User.objects.get(email=msg.content, is_active=True)
-                    # 保存用户openid
-                    user.wx_openid = msg.source
-                    user.has_subscribed = True
-                    user.save()
-                    reply.content = f'{msg.content.strip()}成功获取百度文库VIP免费文档下载特权（每天三次）！'
-                except User.DoesNotExist:
-                    reply.content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
-
-        # 转换成 XML
-        ret_xml = reply.render()
-        # 加密
-        encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
-        return HttpResponse(encrypted_xml, content_type="text/xml")
+        except Exception as e:
+            logging.error(e)
 
 
 def test(request):
