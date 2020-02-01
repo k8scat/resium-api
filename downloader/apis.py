@@ -9,6 +9,7 @@ import datetime
 import hashlib
 import json
 import logging
+import re
 import string
 from threading import Thread
 from urllib import parse
@@ -44,6 +45,7 @@ from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
 from wechatpy.events import SubscribeEvent
 from wechatpy.exceptions import InvalidAppIdException, InvalidSignatureException
+from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.models import User, DownloadRecord, Order, Service, Csdnbot, Resource, Coupon
@@ -978,13 +980,44 @@ def wx(request):
 
         msg = parse_message(decrypted_xml)
 
+        # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
+        reply = TextReply(content='', message=msg)
+
         # 关注/取消关注事件
         if msg.type == 'event':
             subscribe_event = SubscribeEvent(message=msg)
-            logging.info(subscribe_event.event)
+            if subscribe_event.event == 'subscribe':
+                ding('公众号关注 +1')
+                reply.content = '''欢迎关注公众号！
+                CSDNBot是一个支持CSDN和百度文库的资源自动下载平台。
+                CSDNBot用户在公众号内回复注册邮箱可以获得百度文库VIP免费文档下载特权（无次数限制）！
+                CSDNBot注册地址：https://csdnbot.com/register?code=200109'''
+            elif subscribe_event == 'unsubscribe':
+                ding('公众号关注 -1')
+                try:
+                    user = User.objects.get(wx_openid=subscribe_event.source)
+                    user.has_subscribed = False
+                    user.save()
+                except User.DoesNotExist:
+                    pass
 
-        reply = TextReply(message=msg)
-        reply.content = 'CSDNBot reply'
+        # 文本消息
+        elif msg.type == 'text':
+            text_msg = TextMessage(message=msg)
+
+            logging.info(text_msg.source)
+
+            email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
+            if email_pattern.match(text_msg.content):
+                try:
+                    user = User.objects.get(email=text_msg.content, is_active=True)
+                    # 保存用户openid
+                    user.wx_openid = text_msg.source
+                    user.has_subscribed = True
+                    user.save()
+                except User.DoesNotExist:
+                    reply.content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
+
         # 转换成 XML
         ret_xml = reply.render()
         # 加密
