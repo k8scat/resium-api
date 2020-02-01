@@ -44,7 +44,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
 from wechatpy.events import SubscribeEvent
-from wechatpy.exceptions import InvalidAppIdException, InvalidSignatureException
 from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
@@ -980,10 +979,10 @@ def wx(request):
 
         msg = parse_message(decrypted_xml)
 
+        logging.info(msg)
+
         # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
         reply = TextReply(content='', message=msg)
-
-        logging.info(msg.source)
 
         # 关注/取消关注事件
         if msg.type == 'event':
