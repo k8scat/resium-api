@@ -80,7 +80,6 @@ class Coupon(Base):
     total_amount = models.FloatField()
     purchase_count = models.IntegerField()
     is_used = models.BooleanField(default=False)
-    expire_time = models.DateTimeField()
     # 优惠券唯一编码
     code = models.CharField(max_length=50)
     comment = models.CharField(max_length=100, null=True)
