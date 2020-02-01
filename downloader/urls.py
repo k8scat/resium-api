@@ -19,11 +19,12 @@ urlpatterns = [
     path('reset_password/', reset_password),
     path('download_record/', download_record),
     path('service/', service),
-    path('status/', get_status),
+    path('health_check/', health_check),
     path('test/', test),
     re_path(r'^resource/?$', resource),
     path('resource_count/', resource_count),
     path('resource_download/', resource_download),
     path('coupon/', coupon),
-    re_path(r'^refresh_cookies/?$', refresh_cookies)
+    re_path(r'^refresh_cookies/?$', refresh_cookies),
+    re_path(r'^wx/?$', wx)
 ]

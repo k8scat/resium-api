@@ -51,7 +51,8 @@ class Service(Base):
 
 
 class Csdnbot(Base):
-    status = models.BooleanField()
+    is_healthy = models.BooleanField()
+    wx_access_token = models.TextField()
 
     class Meta:
         db_table = 'csdnbot'

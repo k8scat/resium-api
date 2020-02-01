@@ -42,7 +42,7 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(Csdnbot)
 class CsdnbotAdmin(admin.ModelAdmin):
-    list_display = ('id', 'status', 'update_time')
+    list_display = ('id', 'is_healthy', 'update_time')
 
 
 admin.site.site_header = 'CSDNBot Admin'

@@ -6,14 +6,11 @@
 
 """
 import logging
-import time
 
 import jwt
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
-
-from downloader.models import User
 
 
 class AuthMiddleware(MiddlewareMixin):
