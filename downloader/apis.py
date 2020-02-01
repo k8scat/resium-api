@@ -984,7 +984,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '欢迎关注公众号！\n/:liCSDNBot是一个支持CSDN和百度文库的资源自动下载平台。\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            content = '欢迎关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库VIP免费文档下载特权（每日三次）！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
