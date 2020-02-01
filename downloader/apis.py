@@ -1003,12 +1003,16 @@ def wx(request):
             if email_pattern.match(msg.content.strip()):
                 try:
                     user = User.objects.get(email=msg.content, is_active=True)
-                    # 保存用户openid
-                    user.wx_openid = msg.source
-                    user.has_subscribed = True
-                    user.save()
-                    content = '成功获取百度文库#VIP免费文档#下载特权（每天三次）！'
-                    reply = TextReply(content=content, message=msg)
+                    if not user.has_subscribed:
+                        # 保存用户openid
+                        user.wx_openid = msg.source
+                        user.has_subscribed = True
+                        user.save()
+                        content = '成功获取百度文库#VIP免费文档#下载特权（每天三次）！'
+                        reply = TextReply(content=content, message=msg)
+                    else:
+                        content = '该账号已经获取百度文库#VIP免费文档#下载特权！'
+                        reply = TextReply(content=content, message=msg)
                 except User.DoesNotExist:
                     content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
                     reply = TextReply(content=content, message=msg)
