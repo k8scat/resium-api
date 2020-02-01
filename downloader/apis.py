@@ -887,17 +887,22 @@ def wx(request):
             email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
             if email_pattern.match(msg.content.strip()):
                 try:
-                    user = User.objects.get(email=msg.content, is_active=True)
-                    if not user.has_subscribed:
-                        # 保存用户openid
-                        user.wx_openid = msg.source
-                        user.has_subscribed = True
-                        user.save()
-                        content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
-                        reply = TextReply(content=content, message=msg)
-                    else:
-                        content = '该账号已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
-                        reply = TextReply(content=content, message=msg)
+                    try:
+                        user = User.objects.get(wx_openid=msg.source)
+                        content = f'该微信账号已绑定邮箱{user.email}'
+                        reply = TextReply(content, message=msg)
+                    except User.DoesNotExist:
+                        user = User.objects.get(email=msg.content, is_active=True)
+                        if not user.has_subscribed:
+                            # 保存用户openid
+                            user.wx_openid = msg.source
+                            user.has_subscribed = True
+                            user.save()
+                            content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
+                            reply = TextReply(content=content, message=msg)
+                        else:
+                            content = '该账号已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
+                            reply = TextReply(content=content, message=msg)
                 except User.DoesNotExist:
                     content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
                     reply = TextReply(content=content, message=msg)
