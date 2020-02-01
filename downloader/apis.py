@@ -938,6 +938,7 @@ def wx(request):
         # request.body 是xml请求数据
         # 使用 xmltodict.parse() 转换成 OrderedDict
         data = xmltodict.parse(request.body).get('xml')
+        logging.info(data)
 
         ret_data = {
             'xml': {
@@ -953,4 +954,14 @@ def wx(request):
 
 
 def test(request):
-    return HttpResponse('test')
+    ret_data = {
+        'xml': {
+            'ToUserName': 'a',
+            'FromUserName': 'b',
+            'CreateTime': int(datetime.datetime.now().timestamp()),
+            'MsgType': 'text',
+            'Content': 'test'
+        }
+    }
+    ret_xml = xmltodict.unparse(ret_data)
+    return HttpResponse(ret_xml, content_type="text/xml")
