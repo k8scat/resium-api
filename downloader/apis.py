@@ -983,6 +983,8 @@ def wx(request):
         # 回复文本消息: https://wechatpy.readthedocs.io/zh_CN/master/quickstart.html#id5
         reply = TextReply(content='', message=msg)
 
+        logging.info(msg.source)
+
         # 关注/取消关注事件
         if msg.type == 'event':
             subscribe_event = SubscribeEvent(message=msg)
@@ -1002,14 +1004,14 @@ def wx(request):
         elif msg.type == 'text':
             text_msg = TextMessage(message=msg)
 
-            logging.info(text_msg.content)
+            logging.info(text_msg.content.converter)
 
             email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
             if email_pattern.match(text_msg.content):
                 try:
                     user = User.objects.get(email=text_msg.content, is_active=True)
                     # 保存用户openid
-                    user.wx_openid = msg.source
+                    user.wx_openid = text_msg.source.converter
                     user.has_subscribed = True
                     user.save()
                 except User.DoesNotExist:
