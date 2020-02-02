@@ -42,7 +42,7 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_used', 'total_amount', 'purchase_count', 'create_time')
+    list_display = ('id', 'user', 'is_used', 'total_amount', 'purchase_count', 'create_time')
     list_per_page = 50
     search_fields = ['title']
     list_filter = ('is_used',)
