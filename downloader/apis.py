@@ -890,8 +890,12 @@ def wx(request):
                 try:
                     try:
                         user = User.objects.get(wx_openid=msg.source, has_subscribed=True)
-                        content = f'该微信账号已绑定邮箱{user.email}，如需解绑只需要重新关注公众号即可！'
-                        reply = TextReply(content=content, message=msg)
+                        if user.email == msg.content:
+                            content = f'账号{msg.content}已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
+                            reply = TextReply(content=content, message=msg)
+                        else:
+                            content = f'该微信账号已绑定邮箱{user.email}，如需解绑只需要重新关注公众号即可！'
+                            reply = TextReply(content=content, message=msg)
                     except User.DoesNotExist:
                         user = User.objects.get(email=msg.content, is_active=True)
                         if not user.has_subscribed:
@@ -901,9 +905,7 @@ def wx(request):
                             user.save()
                             content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
                             reply = TextReply(content=content, message=msg)
-                        else:
-                            content = f'账号{msg.content}已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
-                            reply = TextReply(content=content, message=msg)
+
                 except User.DoesNotExist:
                     content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
                     reply = TextReply(content=content, message=msg)
