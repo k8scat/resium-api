@@ -16,8 +16,8 @@ class User(Base):
     invite_code = models.CharField(max_length=6, verbose_name='邀请码')
     # 受邀请码
     invited_code = models.CharField(max_length=6, verbose_name='受邀请码')
-    # 是否给过邀请人优惠券
-    return_invitor = models.BooleanField(default=False)
+    # 是否返还邀请人优惠券
+    return_invitor = models.BooleanField(default=False, verbose_name='是否返还邀请人优惠券')
     # 是否激活
     is_active = models.BooleanField(default=False, verbose_name='是否激活')
     # 验证码
@@ -27,9 +27,11 @@ class User(Base):
     # 已用总数
     used_count = models.IntegerField(default=0, verbose_name='已用下载数')
     # 微信用户唯一标识
-    wx_openid = models.CharField(max_length=200, null=True, default=None)
+    wx_openid = models.CharField(max_length=200, null=True, default=None, verbose_name='微信用户唯一标识')
     # 是否关注微信公众号
-    has_subscribed = models.BooleanField(default=False)
+    has_subscribed = models.BooleanField(default=False, verbose_name='是否关注微信公众号')
+    # 防止统一账号同时下载多个资源
+    is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
 
     class Meta:
         db_table = 'user'
@@ -38,17 +40,17 @@ class User(Base):
 class DownloadRecord(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     # 资源地址
-    resource_url = models.CharField(max_length=200)
-    is_deleted = models.BooleanField(default=False)
-    title = models.CharField(max_length=100)
+    resource_url = models.CharField(max_length=200, verbose_name='资源地址')
+    is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
+    title = models.CharField(max_length=100, verbose_name='资源名称')
 
     class Meta:
         db_table = 'download_record'
 
 
 class Service(Base):
-    total_amount = models.FloatField()
-    purchase_count = models.IntegerField()
+    total_amount = models.FloatField(verbose_name='总金额')
+    purchase_count = models.IntegerField(verbose_name='下载次数')
 
     class Meta:
         db_table = 'service'
@@ -77,13 +79,12 @@ class Coupon(Base):
     """
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    total_amount = models.FloatField()
-    purchase_count = models.IntegerField()
-    is_used = models.BooleanField(default=False)
+    total_amount = models.FloatField(verbose_name='总金额')
+    purchase_count = models.IntegerField(verbose_name='下载次数')
+    is_used = models.BooleanField(default=False, verbose_name='是否使用')
     # 优惠券唯一编码
-    code = models.CharField(max_length=50)
-    comment = models.CharField(max_length=100, null=True)
-    is_deleted = models.BooleanField(default=False)
+    code = models.CharField(max_length=50, verbose_name='优惠券唯一编码')
+    comment = models.CharField(max_length=100, null=True, verbose_name='备注')
 
     class Meta:
         db_table = 'coupon'
@@ -92,17 +93,16 @@ class Coupon(Base):
 class Order(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     # 订单名称
-    subject = models.CharField(max_length=50)
+    subject = models.CharField(max_length=50, verbose_name='订单名称')
     # 唯一订单号
-    out_trade_no = models.CharField(max_length=50, unique=True)
+    out_trade_no = models.CharField(max_length=50, unique=True, verbose_name='订单号')
     # 总金额
-    total_amount = models.FloatField()
+    total_amount = models.FloatField(verbose_name='总金额')
     # 支付时间
-    paid_time = models.DateTimeField(null=True)
-    pay_url = models.TextField()
+    paid_time = models.DateTimeField(null=True, verbose_name='支付时间')
+    pay_url = models.TextField(verbose_name='支付地址')
     # 购买次数
-    purchase_count = models.IntegerField()
-    is_deleted = models.BooleanField(default=False)
+    purchase_count = models.IntegerField(verbose_name='下载次数')
     coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True)
 
     class Meta:

@@ -187,221 +187,258 @@ def activate(request):
 
 def download(request):
     if request.method == 'GET':
-        email = request.session.get('email')
+        user = None
         try:
-            user = User.objects.get(email=email, is_active=True)
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=401, msg='未认证'))
-
-        resource_url = request.GET.get('resource_url', '')
-        if resource_url == '':
-            return JsonResponse(dict(code=400, msg='资源地址不能为空'))
-        # 去除资源地址参数
-        resource_url = resource_url.split('?')[0]
-
-        try:
-            # 判断用户是否存在下载记录，如果存在，则直接下载
-            dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
-            dr.update_time = datetime.datetime.now()
-            dr.save()
-
-            oss_resource = check_oss(resource_url)
-
-            if oss_resource:
-                file = aliyun_oss_get_file(oss_resource.key)
-                response = FileResponse(file)
-                response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename, safe=string.printable) + '"'
-                return response
-        except DownloadRecord.DoesNotExist:
-            if user.valid_count <= 0:
-                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
-
-            # 更新用户的可用下载数和已用下载数
-            user.valid_count -= 1
-            user.used_count += 1
-            user.save()
-
-        # 生成资源存放的唯一子目录
-        uuid_str = str(uuid.uuid1())
-        save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
-        while True:
-            if os.path.exists(save_dir):
-                uuid_str = str(uuid.uuid1())
-                save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
-            else:
-                os.mkdir(save_dir)
-                break
-
-        if resource_url.startswith('https://download.csdn.net/download/'):
-            logging.info(f'csdn资源下载: {resource_url}')
-
-            if not check_csdn():
-                return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
-
-            r = requests.get(resource_url)
-            title = None
-            if r.status_code == 200:
-                try:
-                    soup = BeautifulSoup(r.text, 'lxml')
-                    # 版权受限
-                    cannot_download = len(soup.select('div.resource_box a.copty-btn'))
-                    if cannot_download:
-                        return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
-                    title = soup.select('dl.resource_box_dl span.resource_title')[0].string
-                except Exception as e:
-                    recover(user)
-                    logging.error(e)
-                    ding('资源名称获取失败 ' + str(e))
-                    return JsonResponse(dict(code=500, msg='下载失败'))
-            # 保存下载记录
-            dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
-
-            driver = get_driver(uuid_str)
+            email = request.session.get('email')
             try:
-                # 先请求，再添加cookies
-                # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
-                driver.get('https://download.csdn.net')
-                add_cookie(driver, settings.CSDN_COOKIES_FILE)
+                user = User.objects.get(email=email, is_active=True)
+                if user.is_downloading:
+                    return JsonResponse(dict(code=400, msg='不能同时下载多个资源'))
+                user.is_downloading = True
+                user.save()
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=401, msg='未认证'))
 
-                # 访问资源地址
-                driver.get(resource_url)
+            resource_url = request.GET.get('resource_url', '')
+            if resource_url == '':
+                return JsonResponse(dict(code=400, msg='资源地址不能为空'))
+            # 去除资源地址参数
+            resource_url = resource_url.split('?')[0]
 
-                # 点击VIP下载按钮
-                el = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
-                )
-                el.click()
-
-                # 点击弹框中的VIP下载
-                el = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH,
-                                                    "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
-                )
-                el.click()
-
-                filepath, filename = check_download(save_dir)
-                # 保存资源
-                t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title))
-                t.start()
-
-                f = open(filepath, 'rb')
-                response = FileResponse(f)
-                response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
-                                                                                        safe=string.printable) + '"'
-                return response
-
-            except Exception as e:
-                # 恢复用户可用下载数和已用下载数
-                recover(user, dr)
-                logging.error(e)
-                ding(f'下载出现未知错误（{resource_url}） ' + str(e))
-                return JsonResponse(dict(code=500, msg='下载失败'))
-
-            finally:
-                driver.quit()
-
-        elif resource_url.startswith('https://wenku.baidu.com/view/'):
-            logging.info(f'百度文库资源下载: {resource_url}')
-
-            dr = None
-            driver = get_driver(uuid_str)
+            has_downloaded = False
             try:
-                driver.get('https://www.baidu.com/')
-                add_cookie(driver, settings.WENKU_COOKIES_FILE)
+                # 判断用户是否存在下载记录，如果存在，则直接下载
+                dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
+                has_downloaded = True
+                dr.update_time = datetime.datetime.now()
+                dr.save()
 
-                driver.get(resource_url)
+                oss_resource = check_oss(resource_url)
 
-                # VIP免费文档 共享文档 VIP专享文档 付费文档 VIP尊享8折文档
-                doc_tag = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH,
-                                                    "//div[contains(@class, 'bd doc-reader')]/div/div[contains(@style, 'display: block;')]/span"))
-                ).text
-                # ['VIP免费文档', '共享文档', 'VIP专享文档']
-                if doc_tag not in ['VIP免费文档']:
-                    return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
+                if oss_resource:
+                    file = aliyun_oss_get_file(oss_resource.key)
+                    response = FileResponse(file)
+                    response['Content-Type'] = 'application/octet-stream'
+                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
+                                                                                            safe=string.printable) + '"'
+                    return response
+            except DownloadRecord.DoesNotExist:
+                pass
 
-                # 文档标题
-                title = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
-                ).text
+            # 生成资源存放的唯一子目录
+            uuid_str = str(uuid.uuid1())
+            save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+            while True:
+                if os.path.exists(save_dir):
+                    uuid_str = str(uuid.uuid1())
+                    save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+                else:
+                    os.mkdir(save_dir)
+                    break
+
+            if resource_url.startswith('https://download.csdn.net/download/'):
+                logging.info(f'csdn资源下载: {resource_url}')
+
+                if not has_downloaded:
+                    if user.valid_count <= 0:
+                        return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+
+                if not check_csdn():
+                    return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
+
+                r = requests.get(resource_url)
+                title = None
+                if r.status_code == 200:
+                    try:
+                        soup = BeautifulSoup(r.text, 'lxml')
+                        # 版权受限
+                        cannot_download = len(soup.select('div.resource_box a.copty-btn'))
+                        if cannot_download:
+                            return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
+                        title = soup.select('dl.resource_box_dl span.resource_title')[0].string
+                    except Exception as e:
+                        recover(user)
+                        logging.error(e)
+                        ding('资源名称获取失败 ' + str(e))
+                        return JsonResponse(dict(code=500, msg='下载失败'))
                 # 保存下载记录
                 dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
 
-                # 文档标签，可能不存在
-                # find_elements_by_xpath 返回的是一个List
-                tags = [doc_tag]
-                tag_els = driver.find_elements_by_xpath("//div[@class='tag-tips']/a")
-                for tag_el in tag_els:
-                    tags.append(tag_el.text)
-                tags = settings.TAG_SEP.join(tags)
-
-                # 文档分类
-                cat_els = WebDriverWait(driver, 10).until(
-                    EC.presence_of_all_elements_located((By.XPATH, "//div[@id='page-curmbs']/ul//a"))
-                )[1:]
-                cats = []
-                for cat_el in cat_els:
-                    cats.append(cat_el.text)
-                cats = '-'.join(cats)
-
-                # 显示下载对话框的按钮
-                show_download_modal_button = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
-                )
-                show_download_modal_button.click()
-
-                # 下载按钮
+                driver = get_driver(uuid_str)
                 try:
-                    # 首次下载
-                    download_button = WebDriverWait(driver, 5).until(
+                    # 先请求，再添加cookies
+                    # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
+                    driver.get('https://download.csdn.net')
+                    add_cookie(driver, settings.CSDN_COOKIES_FILE)
+
+                    # 访问资源地址
+                    driver.get(resource_url)
+
+                    # 点击VIP下载按钮
+                    el = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
+                    )
+                    el.click()
+
+                    # 点击弹框中的VIP下载
+                    el = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH,
+                                                        "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+                    )
+                    el.click()
+
+                    filepath, filename = check_download(save_dir)
+                    # 保存资源
+                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title))
+                    t.start()
+
+                    f = open(filepath, 'rb')
+                    response = FileResponse(f)
+                    response['Content-Type'] = 'application/octet-stream'
+                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
+                                                                                            safe=string.printable) + '"'
+
+                    if not has_downloaded:
+                        # 更新用户的可用下载数和已用下载数
+                        user.valid_count -= 1
+                        user.used_count += 1
+                        user.save()
+
+                    return response
+
+                except Exception as e:
+                    if dr:
+                        dr.is_deleted = True
+                        dr.save()
+                    logging.error(e)
+                    ding(f'下载出现未知错误（{resource_url}） ' + str(e))
+                    return JsonResponse(dict(code=500, msg='下载失败'))
+
+                finally:
+                    driver.quit()
+
+            elif resource_url.startswith('https://wenku.baidu.com/view/'):
+                logging.info(f'百度文库资源下载: {resource_url}')
+
+                dr = None
+                driver = get_driver(uuid_str)
+                try:
+                    driver.get('https://www.baidu.com/')
+                    add_cookie(driver, settings.WENKU_COOKIES_FILE)
+
+                    driver.get(resource_url)
+
+                    # VIP免费文档 共享文档 VIP专享文档 付费文档 VIP尊享8折文档
+                    doc_tag = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH,
+                                                        "//div[contains(@class, 'bd doc-reader')]/div/div[contains(@style, 'display: block;')]/span"))
+                    ).text
+                    # ['VIP免费文档', '共享文档', 'VIP专享文档']
+                    if doc_tag not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
+                        return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
+
+                    if user.has_subscribed:
+                        if not has_downloaded and doc_tag != 'VIP免费文档':
+                            if user.valid_count <= 0:
+                                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+                    else:
+                        if not has_downloaded:
+                            if user.valid_count <= 0:
+                                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+
+                    # 文档标题
+                    title = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
+                            (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
+                    ).text
+                    # 保存下载记录
+                    dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
+
+                    # 文档标签，可能不存在
+                    # find_elements_by_xpath 返回的是一个List
+                    tags = [doc_tag]
+                    tag_els = driver.find_elements_by_xpath("//div[@class='tag-tips']/a")
+                    for tag_el in tag_els:
+                        tags.append(tag_el.text)
+                    tags = settings.TAG_SEP.join(tags)
+
+                    # 文档分类
+                    cat_els = WebDriverWait(driver, 10).until(
+                        EC.presence_of_all_elements_located((By.XPATH, "//div[@id='page-curmbs']/ul//a"))
+                    )[1:]
+                    cats = []
+                    for cat_el in cat_els:
+                        cats.append(cat_el.text)
+                    cats = '-'.join(cats)
+
+                    # 显示下载对话框的按钮
+                    show_download_modal_button = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
                     )
-                    # 取消转存网盘
-                    cancel_wp_upload_check = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
-                    )
-                    cancel_wp_upload_check.click()
-                    download_button.click()
-                except TimeoutException:
-                    if doc_tag != 'VIP专享文档':
-                        # 已转存过此文档
+                    show_download_modal_button.click()
+
+                    # 下载按钮
+                    try:
+                        # 首次下载
                         download_button = WebDriverWait(driver, 5).until(
-                            EC.presence_of_element_located((By.ID, 'WkDialogOk'))
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
                         )
+                        # 取消转存网盘
+                        cancel_wp_upload_check = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
+                        )
+                        cancel_wp_upload_check.click()
                         download_button.click()
+                    except TimeoutException:
+                        if doc_tag != 'VIP专享文档':
+                            # 已转存过此文档
+                            download_button = WebDriverWait(driver, 5).until(
+                                EC.presence_of_element_located((By.ID, 'WkDialogOk'))
+                            )
+                            download_button.click()
 
-                filepath, filename = check_download(save_dir)
-                # 保存资源
-                t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats))
-                t.start()
+                    filepath, filename = check_download(save_dir)
+                    # 保存资源
+                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats))
+                    t.start()
 
-                f = open(filepath, 'rb')
-                response = FileResponse(f)
-                response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
-                                                                                        safe=string.printable) + '"'
+                    f = open(filepath, 'rb')
+                    response = FileResponse(f)
+                    response['Content-Type'] = 'application/octet-stream'
+                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
+                                                                                            safe=string.printable) + '"'
 
-                if doc_tag == 'VIP免费文档' and user.has_subscribed:
-                    recover(user)
+                    if user.has_subscribed:
+                        if not has_downloaded and doc_tag != 'VIP免费文档':
+                            user.valid_count -= 1
+                            user.used_count += 1
+                            user.save()
+                    else:
+                        if not has_downloaded:
+                            user.valid_count -= 1
+                            user.used_count += 1
+                            user.save()
 
-                return response
+                    return response
 
-            except Exception as e:
-                # 恢复用户可用下载数和已用下载数
-                recover(user, dr)
-                logging.error(e)
-                ding(f'下载出现未知错误（{resource_url}） ' + str(e))
-                return JsonResponse(dict(code=500, msg='下载失败'))
+                except Exception as e:
+                    if dr:
+                        dr.is_deleted = True
+                        dr.save()
+                    logging.error(e)
+                    ding(f'下载出现未知错误（{resource_url}） ' + str(e))
+                    return JsonResponse(dict(code=500, msg='下载失败'))
 
-            finally:
-                driver.quit()
+                finally:
+                    driver.quit()
 
-        else:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            else:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+        finally:
+            if user and user.is_downloading:
+                user.is_downloading = False
+                user.save()
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -869,7 +906,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '感谢关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:liCSDNBot用户在公众号内回复注册邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            content = '感谢关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:li在公众号内回复注册CSDNBot的邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件

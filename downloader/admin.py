@@ -7,7 +7,7 @@ from downloader.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_active', 'email', 'has_subscribed', 'valid_count', 'used_count', 'create_time', 'update_time')
+    list_display = ('id', 'email', 'is_active', 'has_subscribed', 'valid_count', 'used_count', 'create_time', 'update_time')
     list_per_page = 50
     list_filter = ('has_subscribed', 'is_active')
     search_fields = ['email']
@@ -31,7 +31,6 @@ class OrderAdmin(admin.ModelAdmin):
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ('id', 'total_amount', 'purchase_count', 'create_time', 'update_time')
-    list_filter = ('create_time', 'update_time', 'total_amount', 'purchase_count')
 
 
 @admin.register(Resource)
@@ -39,6 +38,14 @@ class ResourceAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'key', 'create_time')
     list_per_page = 50
     search_fields = ['title']
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_used', 'total_amount', 'purchase_count', 'create_time')
+    list_per_page = 50
+    search_fields = ['title']
+    list_filter = ('is_used',)
 
 
 admin.site.site_header = 'CSDNBot Admin'
