@@ -356,3 +356,4 @@ def recover(user, download_record=None, is_healthy=False):
         download_record.is_deleted = True
         download_record.save()
 
+

@@ -25,5 +25,6 @@ urlpatterns = [
     path('resource_download/', resource_download),
     path('coupon/', coupon),
     re_path(r'^refresh_cookies/?$', refresh_cookies),
-    re_path(r'^wx/?$', wx)
+    re_path(r'^wx/?$', wx),
+    re_path(r'^check_wenku_cookies/?$', check_wenku_cookies)
 ]

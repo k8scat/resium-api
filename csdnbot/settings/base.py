@@ -238,7 +238,10 @@ GITHUB_PASSWORD = 'holdon7868'
 
 TAG_SEP = '!sep!'
 
+# 刷新CSDN cookies的凭证
 RC_TOKEN = 'Holdon@7868'
+# 检查百度文库cookies的凭证
+CWC_TOKEN = 'Holdon@7868'
 
 WX_TOKEN = '6zOpjsMV15xWihocay4grCRPY82EQS7m'
 WX_APP_ID = 'wx77307b155750dfbb'

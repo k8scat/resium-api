@@ -954,5 +954,44 @@ def wx(request):
         return HttpResponse(encrypted_xml, content_type="text/xml")
 
 
+def check_wenku_cookies(request):
+    """
+    检查百度文库cookies是否有效
+
+    百度文库首页(https://wenku.baidu.com)的编码是gbk, r.content.decode('gbk')
+    百度文库的用户个人中心(https://wenku.baidu.com/user/mydocs)的编码是utf-8, r.content.decode('utf-8')
+
+    :param request:
+    :return:
+    """
+
+    try:
+        cwc_token = request.GET.get('cwc_token', '')
+        if cwc_token == settings.CWC_TOKEN:
+            with open(settings.WENKU_COOKIES_FILE, 'r', encoding='utf-8') as f:
+                cookies = json.loads(f.read())
+                jar = requests.cookies.RequestsCookieJar()
+                for c in cookies:
+                    jar.set(c['name'], c['value'], path=c['path'], domain=c['domain'])
+
+                headers = {
+                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
+                    'host': 'wenku.baidu.com',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+                }
+                r = requests.get('https://wenku.baidu.com/user/mydocs', cookies=jar, headers=headers)
+                content = r.content.decode('utf-8')
+                if content.count('林疯158'):
+                    ding('百度文库cookies仍有效')
+                else:
+                    ding('百度文库cookies已失效，请及时更新cookies')
+    except Exception as e:
+        ding('百度文库cookies检查失败，出现未知异常 ' + str(e))
+
+    return HttpResponse('')
+
+
 def test(request):
     return HttpResponse('')
