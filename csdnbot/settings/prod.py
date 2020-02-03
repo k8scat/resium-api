@@ -17,7 +17,7 @@ DATABASES = {
         'NAME': 'csdnbot',
         'USER': 'root',
         'PASSWORD': 'Holdon@7868',
-        'HOST': 'mysql',  # 49.235.161.70
+        'HOST': '139.199.71.19',
         'PORT': '3306',
     }
 }
