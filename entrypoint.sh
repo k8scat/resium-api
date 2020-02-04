@@ -2,4 +2,4 @@
 
 uwsgi uwsgi.ini &
 mv csdnbot-nginx.conf /etc/nginx/conf.d/
-nginx
+nginx -g daemon off;
