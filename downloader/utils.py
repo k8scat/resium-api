@@ -192,6 +192,7 @@ def csdn_auto_login():
                 ding('cookies更新成功')
                 return True
 
+        logging.info(cookies)
         ding('cookies更新失败，请检查CSDN自动登录脚本')
         return False
 
