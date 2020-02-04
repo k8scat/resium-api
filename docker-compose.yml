@@ -9,6 +9,7 @@ services:
       - mysql_net
     volumes:
       - /srv/csdnbot/download:/csdnbot/download
+    command: [nginx-debug, '-g', 'daemon off;']
     container_name: csdnbot
   selenium:
     image: selenium/standalone-chrome
