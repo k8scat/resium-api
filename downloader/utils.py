@@ -338,22 +338,4 @@ def check_csdn():
     return True
 
 
-def recover(user, download_record=None, is_healthy=False):
-    """
-    恢复用户可用下载数并将平台状态改为维护中
-
-    :param user:
-    :param download_record: 如果download_record不为空，会将下载记录的is_deleted改为True
-    :param is_healthy: 一般是在下载出现问题的时候调用该方法，也可以在正常的时候调用该方法，但是要传参数 is_healthy=True
-    :return:
-    """
-
-    user.valid_count += 1
-    user.used_count -= 1
-    user.save()
-
-    if download_record:
-        download_record.is_deleted = True
-        download_record.save()
-
 

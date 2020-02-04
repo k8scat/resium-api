@@ -4,7 +4,7 @@ services:
     build: .
     image: csdnbot
     ports:
-      - 8055:8000
+      - 8055:80
     networks:
       - mysql_net
     volumes:

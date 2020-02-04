@@ -47,7 +47,7 @@ from downloader.models import User, DownloadRecord, Order, Service, Resource, Co
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
     ResourceSerializers, CouponSerializers
 from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file, csdn_auto_login, \
-    get_alipay, check_oss, get_driver, add_cookie, check_download, recover, check_csdn
+    get_alipay, check_oss, get_driver, add_cookie, check_download, check_csdn
 
 
 def login(request):
@@ -145,6 +145,8 @@ def register(request):
                       fail_silently=False)
             return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
         except Exception as e:
+            if str(e).count('Mailbox not found or access denied'):
+                return JsonResponse(dict(code=400, msg='邮箱不可用，请使用其他邮箱注册'))
             logging.error(e)
             user.delete()
             ding('注册激活邮件发送失败')
@@ -257,7 +259,6 @@ def download(request):
                             return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
                         title = soup.select('dl.resource_box_dl span.resource_title')[0].string
                     except Exception as e:
-                        recover(user)
                         logging.error(e)
                         ding('资源名称获取失败 ' + str(e))
                         return JsonResponse(dict(code=500, msg='下载失败'))

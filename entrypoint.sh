@@ -1,3 +1,4 @@
 #!/bin/bash
 
-python manage.py runserver 0.0.0.0:8000 --insecure --settings=csdnbot.settings.prod
+uwsgi uwsgi.ini &
+nginx -c /csdnbot/nginx.conf

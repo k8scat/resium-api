@@ -4,7 +4,7 @@ LABEL maintainer="hsowan <hsowan.me@gmail.com>"
 
 WORKDIR /csdnbot
 
-EXPOSE 8000
+EXPOSE 80
 
 COPY . .
 
