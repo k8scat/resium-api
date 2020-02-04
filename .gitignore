@@ -1,3 +1,7 @@
 .vscode
 .idea
 *.log
+download/*
+!download/.gitkeep
+__pycache__
+ENV
