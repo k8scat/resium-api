@@ -8,4 +8,5 @@ EXPOSE 80
 
 COPY . .
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+RUN mv csdnbot-nginx.conf /etc/nginx/conf.d/ && \
+uwsgi uwsgi.ini &
