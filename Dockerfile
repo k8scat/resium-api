@@ -7,5 +7,6 @@ WORKDIR /csdnbot
 EXPOSE 80
 
 COPY . .
+COPY ./csdnbot.conf /etc/nginx/conf.d/
 
 ENTRYPOINT [ "./entrypoint.sh" ]
