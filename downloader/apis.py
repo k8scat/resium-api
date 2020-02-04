@@ -145,12 +145,12 @@ def register(request):
                       fail_silently=False)
             return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
         except Exception as e:
+            user.delete()
             if str(e).count('Mailbox not found or access denied'):
                 return JsonResponse(dict(code=400, msg='邮箱不可用，请使用其他邮箱注册'))
             logging.error(e)
-            user.delete()
-            ding('注册激活邮件发送失败')
-            return JsonResponse(dict(code=500, msg='注册失败'))
+            ding('注册激活邮件发送失败 ' + str(e))
+            return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))

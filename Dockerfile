@@ -4,9 +4,8 @@ LABEL maintainer="hsowan <hsowan.me@gmail.com>"
 
 WORKDIR /csdnbot
 
-EXPOSE 80
+EXPOSE 8000
 
 COPY . .
 
-RUN mv csdnbot-nginx.conf /etc/nginx/conf.d/ && \
-uwsgi uwsgi.ini
+ENTRYPOINT [ "./entrypoint.sh" ]

@@ -4,12 +4,11 @@ services:
     build: .
     image: csdnbot
     ports:
-      - 8055:80
+      - 8055:8000
     networks:
       - mysql_net
     volumes:
       - /srv/csdnbot/download:/csdnbot/download
-    command: ['nginx', '-g', 'daemon off;']
     container_name: csdnbot
   selenium:
     image: selenium/standalone-chrome
