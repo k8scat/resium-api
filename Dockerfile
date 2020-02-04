@@ -9,4 +9,4 @@ EXPOSE 80
 COPY . .
 
 RUN mv csdnbot-nginx.conf /etc/nginx/conf.d/ && \
-uwsgi uwsgi.ini &
+uwsgi uwsgi.ini
