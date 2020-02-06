@@ -26,5 +26,8 @@ urlpatterns = [
     path('coupon/', coupon),
     re_path(r'^refresh_cookies/?$', refresh_cookies),
     re_path(r'^wx/?$', wx),
-    re_path(r'^check_wenku_cookies/?$', check_wenku_cookies)
+    re_path(r'^check_wenku_cookies/?$', check_wenku_cookies),
+    path('resource_tags/', resource_tags),
+    re_path(r'^forget_password/?$', forget_password),
+    re_path(r'^reset_email/?$', send_forget_password_email),
 ]

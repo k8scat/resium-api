@@ -216,13 +216,15 @@ def download(request):
                 dr.save()
 
                 oss_resource = check_oss(resource_url)
-
                 if oss_resource:
                     file = aliyun_oss_get_file(oss_resource.key)
                     response = FileResponse(file)
                     response['Content-Type'] = 'application/octet-stream'
                     response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
                                                                                             safe=string.printable) + '"'
+                    # 更新资源的下载次数
+                    oss_resource.download_count += 1
+                    oss_resource.save()
                     return response
             except DownloadRecord.DoesNotExist:
                 pass
@@ -357,7 +359,7 @@ def download(request):
 
                     # 文档标签，可能不存在
                     # find_elements_by_xpath 返回的是一个List
-                    tags = [doc_tag]
+                    tags = []
                     tag_els = driver.find_elements_by_xpath("//div[@class='tag-tips']/a")
                     for tag_el in tag_els:
                         tags.append(tag_el.text)
@@ -721,6 +723,21 @@ def resource_count(request):
         key = request.GET.get('key', '')
         return JsonResponse(dict(code=200, count=Resource.objects.filter(
             Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).count()))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+def resource_tags(request):
+    if request.method == 'GET':
+        tags = Resource.objects.values_list('tags')
+        ret_tags = []
+        for tag in tags:
+            for t in tag[0].split(settings.TAG_SEP):
+                if t not in ret_tags and t != '':
+                    ret_tags.append(t)
+        return JsonResponse(dict(code=200, tags='#sep#'.join(ret_tags)))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 def resource_download(request):
@@ -757,11 +774,9 @@ def resource_download(request):
         except DownloadRecord.DoesNotExist:
             if user.valid_count <= 0:
                 return HttpResponse('下载数已用完')
-            if not oss_resource.tags.count('VIP免费文档') or not user.has_subscribed:
-                # 更新用户的可用下载数和已用下载数
-                user.valid_count -= 1
-                user.used_count += 1
-                user.save()
+            user.valid_count -= 1
+            user.used_count += 1
+            user.save()
             DownloadRecord.objects.create(user=user, resource_url=oss_resource.url, title=oss_resource.title)
 
         file = aliyun_oss_get_file(oss_resource.key)
@@ -907,7 +922,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '感谢关注华隐科技公众号！\n\n/:liCSDNBot是华隐科技旗下的一个支持CSDN和百度文库的资源自动下载平台。\n\n/:li在公众号内回复注册CSDNBot的邮箱即可获得百度文库#VIP免费文档#下载特权！\n\n/:liCSDNBot注册地址：https://csdnbot.com/register?code=200109'
+            content = '感谢关注华隐科技公众号！\n\n/:li公众号内回复注册CSDNBot的邮箱获取百度文库#VIP免费文档#下载特权！\n\n/:liQQ交流群：399244715'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
@@ -945,7 +960,7 @@ def wx(request):
                             reply = TextReply(content=content, message=msg)
 
                 except User.DoesNotExist:
-                    content = '该邮箱尚未注册CSDNBot，前往注册：https://csdnbot.com/register?code=200109'
+                    content = '该邮箱尚未注册CSDNBot！'
                     reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
@@ -992,6 +1007,67 @@ def check_wenku_cookies(request):
         ding('百度文库cookies检查失败，出现未知异常 ' + str(e))
 
     return HttpResponse('')
+
+
+def send_forget_password_email(request):
+    if request.method == 'GET':
+        email = request.GET.get('email', '')
+        if email:
+            try:
+                user = User.objects.get(email=email, is_active=True)
+                code = ''.join(random.sample(string.digits, 6))
+                password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
+                encrypted_password = make_password(password)
+                reset_password_url = quote(settings.CSDNBOT_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
+                                           encoding='utf-8',
+                                           safe=':/?=&')
+                subject = '[CSDNBot] 密码重置'
+                html_message = render_to_string('downloader/forget_password.html',
+                                                {'reset_password_url': reset_password_url, 'password': password})
+                plain_message = strip_tags(html_message)
+                from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
+                try:
+                    send_mail(subject=subject,
+                              message=plain_message,
+                              from_email=from_email,
+                              recipient_list=[email],
+                              html_message=html_message,
+                              fail_silently=False)
+                    user.temp_password = encrypted_password
+                    user.code = code
+                    user.save()
+                    return JsonResponse(dict(code=200, msg='发送成功，请前往邮箱重置密码'))
+                except Exception as e:
+                    logging.error(e)
+                    ding('密码重置邮件发送失败 ' + str(e))
+                    return JsonResponse(dict(code=500, msg='发送失败'))
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='用户不存在'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+def forget_password(request):
+    if request.method == 'GET':
+        email = request.GET.get('email', '')
+        code = request.GET.get('code', '')
+        temp_password = request.GET.get('token', '')
+        if email and code and temp_password:
+            try:
+                user = User.objects.get(email=email, code=code, is_active=True, temp_password=temp_password)
+                user.password = temp_password
+                user.temp_password = None
+                user.save()
+                return redirect(settings.CSDNBOT_UI + '/login?msg=密码重置成功')
+            except User.DoesNotExist:
+                return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+        else:
+            return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+
+    else:
+        return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
 
 
 def test(request):

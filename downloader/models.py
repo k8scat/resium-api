@@ -12,6 +12,7 @@ class Base(models.Model):
 class User(Base):
     email = models.EmailField(verbose_name='邮箱')
     password = models.CharField(max_length=100, verbose_name='密码')
+    temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='临时密码')
     # 邀请码
     invite_code = models.CharField(max_length=6, verbose_name='邀请码')
     # 受邀请码
@@ -68,6 +69,8 @@ class Resource(Base):
     key = models.CharField(max_length=200, verbose_name='资源存储文件')
     # 以 !sep! 分离
     tags = models.CharField(max_length=240, verbose_name='资源标签')
+    # 下载次数
+    download_count = models.IntegerField(default=1)
 
     class Meta:
         db_table = 'resource'

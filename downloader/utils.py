@@ -16,6 +16,7 @@ from django.conf import settings
 
 import os
 from oss2 import SizedFileAdapter, determine_part_size
+from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
 import oss2
 from selenium import webdriver
@@ -140,7 +141,10 @@ def aliyun_oss_check_file(key):
     :return:
     """
     bucket = get_aliyun_oss_bucket()
-    return bucket.object_exists(key)
+    try:
+        return bucket.object_exists(key)
+    except NoSuchKey:
+        return None
 
 
 def aliyun_oss_sign_url(key):
