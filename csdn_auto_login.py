@@ -22,7 +22,7 @@ def csdn_auto_login():
 
     # driver = webdriver.Chrome()
 
-    selenium_server = 'http://49.235.161.70:6666/wd/hub'
+    selenium_server = 'http://139.199.71.19:4444/wd/hub'
     caps = DesiredCapabilities.CHROME
     driver = webdriver.Remote(command_executor=selenium_server, desired_capabilities=caps)
     try:
