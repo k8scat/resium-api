@@ -713,8 +713,9 @@ def resource(request):
 
         start = 5 * (page - 1)
         end = start + 5
+        # https://cloud.tencent.com/developer/ask/81558
         resources = Resource.objects.order_by('-create_time').filter(
-            Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).all()[start:end]
+            Q(title__icontains=key) | Q(desc__icontains=key) | Q(tags__icontains=key)).all()[start:end]
         return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
 
 
@@ -722,7 +723,7 @@ def resource_count(request):
     if request.method == 'GET':
         key = request.GET.get('key', '')
         return JsonResponse(dict(code=200, count=Resource.objects.filter(
-            Q(title__contains=key) | Q(desc__contains=key) | Q(tags__contains=key)).count()))
+            Q(title__icontains=key) | Q(desc__icontains=key) | Q(tags__icontains=key)).count()))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
