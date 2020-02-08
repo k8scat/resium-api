@@ -8,11 +8,11 @@
 
 """
 import requests
-from csdnbot.settings.base import CWC_TOKEN
+from csdnbot.settings.base import ADMIN_TOKEN
 
 if __name__ == '__main__':
     payload = {
-        'cwc_token': CWC_TOKEN
+        'token': ADMIN_TOKEN
     }
-    requests.get('http://localhost:8055/check_wenku_cookies/', params=payload)
+    requests.get('http://localhost:8055/refresh_baidu_cookies/', params=payload)
 

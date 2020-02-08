@@ -44,6 +44,7 @@ class DownloadRecord(Base):
     resource_url = models.CharField(max_length=200, verbose_name='资源地址')
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
     title = models.CharField(max_length=100, verbose_name='资源名称')
+    account = models.EmailField(verbose_name='使用的会员账号')
 
     class Meta:
         db_table = 'download_record'
@@ -110,3 +111,28 @@ class Order(Base):
 
     class Meta:
         db_table = 'order'
+
+
+class CsdnAccount(Base):
+    github_username = models.CharField(max_length=50, verbose_name='账号绑定的GitHub用户名')
+    github_password = models.CharField(max_length=50, verbose_name='账号绑定的GitHub密码')
+    username = models.CharField(max_length=50, verbose_name='账号唯一名称')
+    phone = models.CharField(max_length=20, verbose_name='账号绑定手机号')
+    email = models.EmailField(verbose_name='联系邮箱')
+    cookies = models.TextField(null=True, default=None)
+    used_count = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'csdn_account'
+
+
+class BaiduAccount(Base):
+    username = models.CharField(max_length=50, verbose_name='账号登录名')
+    password = models.CharField(max_length=50, verbose_name='账号密码')
+    nickname = models.CharField(max_length=50, verbose_name='账号唯一昵称')
+    email = models.EmailField(verbose_name='联系邮箱')
+    cookies = models.TextField(null=True, default=None)
+    used_count = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'baidu_account'

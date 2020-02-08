@@ -7,6 +7,8 @@
 """
 import json
 import os
+from time import sleep
+
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.by import By
@@ -14,10 +16,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
+github_username = 'hsowan-me'
+github_password = 'holdon7868'
+csdn_phone = '17770040362'
+csdn_username = 'weixin_45152242'
+
 
 def csdn_auto_login():
-    github_username = 'hsowan-me'
-    github_password = 'holdon7868'
     csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
 
     # driver = webdriver.Chrome()
@@ -41,13 +46,17 @@ def csdn_auto_login():
 
         password.send_keys(Keys.ENTER)
 
-        # GitHub登录设备验证
-        # device_verification_code_input = WebDriverWait(driver, 10).until(
-        #     EC.presence_of_element_located((By.ID, 'otp'))
-        # )
-        # dv_code = input('Device verification code: ')
-        # device_verification_code_input.send_keys(dv_code)
-        # device_verification_code_input.send_keys(Keys.ENTER)
+        def github_login_verify():
+            # GitHub登录设备验证
+            device_verification_code_input = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'otp'))
+            )
+            dv_code = input('Device verification code: ')
+            device_verification_code_input.send_keys(dv_code)
+            device_verification_code_input.send_keys(Keys.ENTER)
+
+        if input('是否需要GitHub邮箱验证码: ') == 'y':
+            github_login_verify()
 
         driver.get(csdn_github_oauth_url)
 
@@ -61,7 +70,7 @@ def csdn_auto_login():
             phone = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, 'phone'))
             )
-            phone.send_keys('17770040362')
+            phone.send_keys(csdn_phone)
 
             # 发送验证码按钮
             send_code_button = WebDriverWait(driver, 10).until(
@@ -81,7 +90,8 @@ def csdn_auto_login():
             )
             submit_button.click()
 
-        # csdn_login_verify()
+        if input('是否需要CSDN手机验证码: ') == 'y':
+            csdn_login_verify()
 
         return driver.get_cookies()
 
@@ -95,7 +105,7 @@ if __name__ == '__main__':
     cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csdn_cookies.json')
     # 判断是否登录成功
     for c in cookies:
-        if c['value'] == 'ken1583096683':
+        if c['value'] == csdn_username:
             # 登录成功则保存cookies
             cookies_str = json.dumps(cookies)
             with open(cookies_file, 'w') as f:

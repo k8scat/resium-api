@@ -22,6 +22,8 @@ DATABASES = {
     }
 }
 
+# 127.0.0.1 本地selenium可下载资源
+# 远程 139.199.71.19 selenium只能用于认证
 SELENIUM_SERVER = 'http://127.0.0.1:4444/wd/hub'
 
 CSDNBOT_UI = 'http://localhost:3000'

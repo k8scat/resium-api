@@ -8,12 +8,12 @@
 
 """
 import requests
-from csdnbot.settings.base import RC_TOKEN
+from csdnbot.settings.base import ADMIN_TOKEN
 
 
 if __name__ == '__main__':
     payload = {
-        'rc_token': RC_TOKEN
+        'token': ADMIN_TOKEN
     }
-    requests.get('http://localhost:8055/refresh_cookies/', params=payload)
+    requests.get('http://localhost:8055/refresh_csdn_cookies/', params=payload)
 

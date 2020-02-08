@@ -8,6 +8,7 @@
 import datetime
 import json
 import logging
+import random
 import time
 
 import alipay
@@ -20,13 +21,14 @@ from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
 import oss2
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -161,52 +163,127 @@ def aliyun_oss_sign_url(key):
     return bucket.sign_url('GET', key, 60 * 60)
 
 
+def baidu_auto_login():
+    """
+    百度第一次登录必须手动登录并保存cookies
+    自动登录是在已经验证异地登录的情况下进行的
+
+    :return:
+    """
+    baidu_accounts = BaiduAccount.objects.all()
+    for baidu_account in baidu_accounts:
+
+        wenku_home = 'https://wenku.baidu.com/'
+        logout = 'https://passport.baidu.com/?logout&aid=7&u=https%3A//login.bce.baidu.com/'
+
+        cookies = json.loads(baidu_account.cookies)
+        caps = DesiredCapabilities.CHROME
+        driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
+
+        try:
+            driver.get(wenku_home)
+            for cookie in cookies:
+                if 'expiry' in cookie:
+                    del cookie['expiry']
+                driver.add_cookie(cookie)
+
+            # 再退出登录
+            driver.get(logout)
+
+            # 百度云登录用户名输入框
+            username_input = WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__userName'))
+            )
+            # 百度云登录密码输入框
+            password_input = WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__password'))
+            )
+            # 百度云登录按钮
+            login_button = WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__submit'))
+            )
+
+            username_input.send_keys(baidu_account.username)
+            password_input.send_keys(baidu_account.password)
+            login_button.click()
+            # 等待跳转进百度云
+            time.sleep(5)
+            driver.get(wenku_home)
+
+            try:
+                # 尝试获取百度账号的昵称, 目前这个昵称是不能更改的
+                nickname = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, "//a[@id='userNameCon']/span"))
+                ).text.strip()
+            except TimeoutException:
+                nickname = None
+            if nickname == baidu_account.nickname:
+                # 保存cookies
+                baidu_cookies = driver.get_cookies()
+                baidu_cookies_str = json.dumps(baidu_cookies)
+                # 保存cookies以及更新百度账号状态
+                baidu_account.cookies = baidu_cookies_str
+                baidu_account.save()
+                ding(f'百度账号 {baidu_account.username} cookies 更新成功')
+            else:
+                ding(f'百度账号 {baidu_account.username} cookies更新失败, 请及时检查百度自动登录代码')
+        except Exception as e:
+            logging.error(e)
+            ding(f'百度账号 {baidu_account.username} 自动登录出现异常 ' + str(e))
+        finally:
+            driver.close()
+
+
 def csdn_auto_login():
-    csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
-    github_login_url = 'https://github.com/login'
+    """
+    CSDN自动登录
+    自动登录是在已经验证异地登录的情况下进行的
 
-    caps = DesiredCapabilities.CHROME
-    driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
-    try:
-        # 登录GitHub
-        driver.get(github_login_url)
+    :return:
+    """
+    csdn_accounts = CsdnAccount.objects.all()
+    for csdn_account in csdn_accounts:
+        csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
+        github_login_url = 'https://github.com/login'
 
-        login_field = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'login_field'))
-        )
-        login_field.send_keys(settings.GITHUB_USERNAME)
+        caps = DesiredCapabilities.CHROME
+        driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
+        try:
+            # 登录GitHub
+            driver.get(github_login_url)
 
-        password = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'password'))
-        )
-        password.send_keys(settings.GITHUB_PASSWORD)
+            login_field = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'login_field'))
+            )
+            login_field.send_keys(csdn_account.github_username)
 
-        password.send_keys(Keys.ENTER)
+            password = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'password'))
+            )
+            password.send_keys(csdn_account.github_password)
+            # 回车登录
+            password.send_keys(Keys.ENTER)
+            # GitHub OAuth 登录CSDN
+            driver.get(csdn_github_oauth_url)
+            # 获取csdn cookies
+            csdn_cookies = driver.get_cookies()
 
-        driver.get(csdn_github_oauth_url)
-
-        cookies = driver.get_cookies()
-
-        for c in cookies:
-            if c['value'] == 'ken1583096683':
-                # 登录成功则保存cookies
-                cookies_str = json.dumps(cookies)
-                with open(settings.CSDN_COOKIES_FILE, 'w') as f:
-                    f.write(cookies_str)
-                ding('cookies更新成功')
-                return True
-
-        logging.info(cookies)
-        ding('cookies更新失败，请检查CSDN自动登录脚本')
-        return False
-
-    except Exception as e:
-        logging.error(e)
-        ding('CSDN自动登录出现异常 ' + str(e))
-        return False
-
-    finally:
-        driver.close()
+            for cookie in csdn_cookies:
+                if cookie['value'] == csdn_account.username:
+                    # 登录成功则保存cookies
+                    csdn_cookies_str = json.dumps(csdn_cookies)
+                    # 保存cookies并更新账号状态
+                    csdn_account.cookies = csdn_cookies_str
+                    csdn_account.save()
+                    ding(f'CSDN账号 {csdn_account.username} cookies更新成功')
+                    break
+            else:
+                ding(f'CSDN账号 {csdn_account.username} cookies更新失败，请及时检查CSDN自动登录脚本')
+        except Exception as e:
+            logging.error(e)
+            ding(f'CSDN账号 {csdn_account.username} 自动登录出现异常 ' + str(e))
+        finally:
+            driver.close()
 
 
 def get_alipay():
@@ -277,22 +354,28 @@ def check_download(save_dir):
     return filepath, filename
 
 
-def add_cookie(driver, cookies_file):
+def add_cookie(driver, platform):
     """
     给driver添加cookies
 
     :param driver:
-    :param cookies_file:
-    :return:
+    :param platform: csdn or baidu
+    :return: CsdnAccount or BaiduAccount
     """
 
-    # 从文件中获取到cookies
-    with open(cookies_file, 'r', encoding='utf-8') as f:
-        cookies = json.loads(f.read())
+    if platform == 'csdn':
+        account = random.choice(CsdnAccount.objects.all())
+        cookies = json.loads(account.cookies)
+    elif platform == 'baidu':
+        account = random.choice(BaiduAccount.objects.all())
+        cookies = json.loads(account.cookies)
+
     for cookie in cookies:
         if 'expiry' in cookie:
             del cookie['expiry']
         driver.add_cookie(cookie)
+
+    return account
 
 
 def get_driver(unique_folder):

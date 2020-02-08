@@ -141,7 +141,7 @@ CORS_EXPOSE_HEADERS = [
 ]
 
 CSDN_COOKIES_FILE = os.path.join(BASE_DIR, 'csdn_cookies.json')
-WENKU_COOKIES_FILE = os.path.join(BASE_DIR, 'wenku_cookies.json')
+BAIDU_COOKIES_FILE = os.path.join(BASE_DIR, 'baidu_cookies.json')
 
 # 需要认证的路径
 AUTH_PATHS = [
@@ -229,18 +229,18 @@ ALIYUN_OSS_BUCKET_NAME = 'ncucoder'
 ALIYUN_OSS_USER_DOMAIN = 'http://cdn.ncucoder.com/'
 ALIYUN_OSS_DOMAIN = 'http://ncucoder.oss-cn-hangzhou.aliyuncs.com'
 
-CSDN_GITHUB_OAUTH_URL = 'https://passport.csdn.net/v1/register/authorization?authType=github'
-GITHUB_USERNAME = 'hsowan-me'
-GITHUB_PASSWORD = 'holdon7868'
+GITHUB_USERNAME = 'doctorme'
+GITHUB_PASSWORD = 'sherlock2077'
 
 TAG_SEP = '!sep!'
 
-# 刷新CSDN cookies的凭证
-RC_TOKEN = 'Holdon@7868'
-# 检查百度文库cookies的凭证
-CWC_TOKEN = 'Holdon@7868'
+# 管理员凭证
+ADMIN_TOKEN = 'csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ'
 
 WX_TOKEN = '6zOpjsMV15xWihocay4grCRPY82EQS7m'
 WX_APP_ID = 'wx77307b155750dfbb'
 WX_SECRET = '9ca164fe2412185440691412207e917f'
 WX_ENCODING_AES_KEY = 'KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi'
+
+BAIDU_USERNAME = '15216267867'
+BAIDU_PASSWORD = 'Holdon@777!'

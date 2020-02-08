@@ -43,11 +43,11 @@ from wechatpy.events import SubscribeEvent, UnsubscribeEvent
 from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
-from downloader.models import User, DownloadRecord, Order, Service, Resource, Coupon
+from downloader.models import User, DownloadRecord, Order, Service, Resource, Coupon, BaiduAccount, CsdnAccount
 from downloader.serializers import UserSerializers, DownloadRecordSerializers, OrderSerializers, ServiceSerializers, \
     ResourceSerializers, CouponSerializers
 from downloader.utils import ding, aliyun_oss_upload, aliyun_oss_check_file, aliyun_oss_get_file, csdn_auto_login, \
-    get_alipay, check_oss, get_driver, add_cookie, check_download, check_csdn
+    get_alipay, check_oss, get_driver, add_cookie, check_download, check_csdn, baidu_auto_login
 
 
 def login(request):
@@ -241,7 +241,7 @@ def download(request):
                     break
 
             if resource_url.startswith('https://download.csdn.net/download/'):
-                logging.info(f'csdn资源下载: {resource_url}')
+                logging.info(f'CSDN 资源下载: {resource_url}')
 
                 if not has_downloaded:
                     if user.valid_count <= 0:
@@ -272,7 +272,11 @@ def download(request):
                     # 先请求，再添加cookies
                     # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
                     driver.get('https://download.csdn.net')
-                    add_cookie(driver, settings.CSDN_COOKIES_FILE)
+                    # 添加cookies
+                    account = add_cookie(driver, 'csdn')
+                    # 保存所使用的会员账号信息
+                    dr.account = account.email
+                    dr.save()
 
                     # 访问资源地址
                     driver.get(resource_url)
@@ -307,6 +311,9 @@ def download(request):
                         user.used_count += 1
                         user.save()
 
+                        account.used_count += 1
+                        account.save()
+
                     return response
 
                 except Exception as e:
@@ -327,7 +334,8 @@ def download(request):
                 driver = get_driver(uuid_str)
                 try:
                     driver.get('https://www.baidu.com/')
-                    add_cookie(driver, settings.WENKU_COOKIES_FILE)
+                    # 添加cookies
+                    account = add_cookie(driver, 'baidu')
 
                     driver.get(resource_url)
 
@@ -355,7 +363,7 @@ def download(request):
                             (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
                     ).text
                     # 保存下载记录
-                    dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
+                    dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title, account=account.email)
 
                     # 文档标签，可能不存在
                     # find_elements_by_xpath 返回的是一个List
@@ -417,11 +425,15 @@ def download(request):
                             user.valid_count -= 1
                             user.used_count += 1
                             user.save()
+                            account.used_count += 1
+                            account.save()
                     else:
                         if not has_downloaded:
                             user.valid_count -= 1
                             user.used_count += 1
                             user.save()
+                            account.used_count += 1
+                            account.save()
 
                     return response
 
@@ -788,21 +800,6 @@ def resource_download(request):
         return response
 
 
-def refresh_cookies(request):
-    if request.method == 'GET':
-
-        token = request.GET.get('rc_token', None)
-        if token == settings.RC_TOKEN:
-            if csdn_auto_login():
-                return JsonResponse(dict(code=200, msg='cookies更新成功'))
-
-            return JsonResponse(dict(code=500, msg='cookies更新失败'))
-        else:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-    else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-
 def wx(request):
     """
     微信公众号服务器接口
@@ -971,42 +968,31 @@ def wx(request):
         return HttpResponse(encrypted_xml, content_type="text/xml")
 
 
-def check_wenku_cookies(request):
+def refresh_csdn_cookies(request):
     """
-    检查百度文库cookies是否有效
-
-    百度文库首页(https://wenku.baidu.com)的编码是gbk, r.content.decode('gbk')
-    百度文库的用户个人中心(https://wenku.baidu.com/user/mydocs)的编码是utf-8, r.content.decode('utf-8')
+    更新CSDN cookies
 
     :param request:
     :return:
     """
+    token = request.GET.get('token', None)
+    if token == settings.ADMIN_TOKEN:
+        t = Thread(target=csdn_auto_login)
+        t.start()
+    return HttpResponse('')
 
-    try:
-        cwc_token = request.GET.get('cwc_token', '')
-        if cwc_token == settings.CWC_TOKEN:
-            with open(settings.WENKU_COOKIES_FILE, 'r', encoding='utf-8') as f:
-                cookies = json.loads(f.read())
-                jar = requests.cookies.RequestsCookieJar()
-                for c in cookies:
-                    jar.set(c['name'], c['value'], path=c['path'], domain=c['domain'])
 
-                headers = {
-                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
-                    'host': 'wenku.baidu.com',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
-                }
-                r = requests.get('https://wenku.baidu.com/user/mydocs', cookies=jar, headers=headers)
-                content = r.content.decode('utf-8')
-                if content.count('林疯158'):
-                    ding('百度文库cookies仍有效')
-                else:
-                    ding('百度文库cookies已失效，请及时更新cookies')
-    except Exception as e:
-        ding('百度文库cookies检查失败，出现未知异常 ' + str(e))
+def refresh_baidu_cookies(request):
+    """
+    更新百度cookies
 
+    :param request:
+    :return:
+    """
+    token = request.GET.get('token', '')
+    if token == settings.ADMIN_TOKEN:
+        t = Thread(target=baidu_auto_login)
+        t.start()
     return HttpResponse('')
 
 

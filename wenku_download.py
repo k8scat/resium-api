@@ -37,7 +37,7 @@ if __name__ == '__main__':
     try:
         driver.get(baidu_home)
         # 从文件中获取到cookies
-        wenku_cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'wenku_cookies.json')
+        wenku_cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'baidu_cookies.json')
         with open(wenku_cookies_file, 'r', encoding='utf-8') as f:
             cookies = json.loads(f.read())
         for cookie in cookies:

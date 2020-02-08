@@ -7,6 +7,10 @@ AliyunOSS: https://help.aliyun.com/document_detail/85288.html?spm=a2c4g.11186623
 ## Todo
 
 * [ ] 重复保存资源的问题
+* [ ] uWSGI
+* [ ] 接口ip限制
+* [ ] swagger
+* [ ] 前端直接判断是否需要消耗下载数
 
 ## 部署流程
 
