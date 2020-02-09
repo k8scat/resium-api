@@ -48,6 +48,20 @@ class CouponAdmin(admin.ModelAdmin):
     list_filter = ('is_used',)
 
 
+@admin.register(CsdnAccount)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('id', 'email', 'phone', 'github_username', 'username', 'used_count', 'update_time')
+    list_per_page = 50
+    search_fields = ['email', 'github_username', 'phone', 'username']
+
+
+@admin.register(BaiduAccount)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('id', 'email', 'username', 'nickname', 'used_count', 'update_time')
+    list_per_page = 50
+    search_fields = ['email', 'nickname', 'username']
+
+
 admin.site.site_header = 'CSDNBot Admin'
 admin.site.site_title = 'CSDNBot Admin'
 admin.site.site_url = settings.CSDNBOT_UI

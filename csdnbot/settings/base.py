@@ -34,7 +34,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'downloader.apps.DownloaderConfig'
+    'downloader.apps.DownloaderConfig',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -46,7 +47,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'csdnbot.middlewares.AuthMiddleware',
 ]
 
 ROOT_URLCONF = 'csdnbot.urls'
@@ -143,18 +143,6 @@ CORS_EXPOSE_HEADERS = [
 CSDN_COOKIES_FILE = os.path.join(BASE_DIR, 'csdn_cookies.json')
 BAIDU_COOKIES_FILE = os.path.join(BASE_DIR, 'baidu_cookies.json')
 
-# 需要认证的路径
-AUTH_PATHS = [
-    '/purchase/',
-    '/user/',
-    '/reset_password/',
-    '/download_record/',
-    '/order/',
-    '/status/',
-    '/coupon/',
-    '/download/',
-    '/resource_download/',
-]
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
 
@@ -229,9 +217,6 @@ ALIYUN_OSS_BUCKET_NAME = 'ncucoder'
 ALIYUN_OSS_USER_DOMAIN = 'http://cdn.ncucoder.com/'
 ALIYUN_OSS_DOMAIN = 'http://ncucoder.oss-cn-hangzhou.aliyuncs.com'
 
-GITHUB_USERNAME = 'doctorme'
-GITHUB_PASSWORD = 'sherlock2077'
-
 TAG_SEP = '!sep!'
 
 # 管理员凭证
@@ -242,5 +227,12 @@ WX_APP_ID = 'wx77307b155750dfbb'
 WX_SECRET = '9ca164fe2412185440691412207e917f'
 WX_ENCODING_AES_KEY = 'KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi'
 
-BAIDU_USERNAME = '15216267867'
-BAIDU_PASSWORD = 'Holdon@777!'
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   }
+}

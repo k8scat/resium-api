@@ -6,28 +6,29 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import *
+from downloader.apis import user, service, download, pay
 
 urlpatterns = [
-    path('login/', login),
-    path('register/', register),
-    re_path(r'^activate/?$', activate),
-    re_path(r'^order/?$', order),
-    path('alipay_notify/', alipay_notify),
-    path('download/', download),
-    path('user/', get_user),
-    path('reset_password/', reset_password),
-    path('download_record/', download_record),
-    path('service/', service),
-    path('test/', test),
-    re_path(r'^resource/?$', resource),
-    path('resource_count/', resource_count),
-    path('resource_download/', resource_download),
-    path('coupon/', coupon),
-    re_path(r'^wx/?$', wx),
-    re_path(r'^refresh_baidu_cookies/?$', refresh_baidu_cookies),
-    re_path(r'^refresh_csdn_cookies/?$', refresh_csdn_cookies),
-    path('resource_tags/', resource_tags),
-    re_path(r'^forget_password/?$', forget_password),
-    re_path(r'^reset_email/?$', send_forget_password_email),
+    path('login/', user.login),
+    path('register/', user.register),
+    re_path(r'^activate/?$', user.activate),
+    path('reset_password/', user.reset_password),
+    re_path(r'^forget_password/?$', user.forget_password),
+    re_path(r'^reset_email/?$', user.send_forget_password_email),
+    re_path(r'^wx/?$', user.wx),
+
+    path('service/', service.list_services),
+    path('order/', service.list_orders),
+    path('create_order/', service.create_order),
+    path('alipay_notify/', pay.alipay_notify),
+    path('coupon/', service.list_coupons),
+
+    re_path(r'^refresh_baidu_cookies/?$', download.refresh_baidu_cookies),
+    re_path(r'^refresh_csdn_cookies/?$', download.refresh_csdn_cookies),
+    path('resource_tags/', download.resource_tags),
+    path('download_record/', download.download_record),
+    re_path(r'^resource/?$', download.resource),
+    path('resource_count/', download.resource_count),
+    path('resource_download/', download.oss_download),
+    path('download/', download.download),
 ]

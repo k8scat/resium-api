@@ -10,9 +10,11 @@ import json
 import logging
 import random
 import time
+import uuid
 
 import alipay
 import requests
+from bs4 import BeautifulSoup
 from django.conf import settings
 
 import os
@@ -425,5 +427,79 @@ def check_csdn():
         return False
     return True
 
+
+def save_csdn_resource(resource_url, filename, file, title):
+    """
+    保存CSDN资源记录并上传到oss
+
+    :param resource_url:
+    :param filename:
+    :param file:
+    :param title:
+    :return:
+    """
+    # 判断资源记录是否已存在，如果已存在则直接返回
+    if Resource.objects.filter(url=resource_url).count():
+        return
+
+    # 存储在oss中的key
+    key = str(uuid.uuid1()) + '-' + filename
+    upload_success = aliyun_oss_upload(file, key)
+    if not upload_success:
+        ding('阿里云OSS上传资源失败')
+        return
+
+    r = requests.get(resource_url)
+    if r.status_code == 200:
+        try:
+            # 资源文件大小
+            size = os.path.getsize(file)
+            soup = BeautifulSoup(r.text, 'lxml')
+            desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
+            category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
+            tags = settings.TAG_SEP.join(
+                [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
+
+            Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
+                                    url=resource_url, category=category, key=key, tags=tags)
+        except Exception as e:
+            logging.error(e)
+            ding('资源信息保存失败 ' + str(e))
+    else:
+        ding('资源信息保存失败 - 资源请求失败')
+
+
+def save_wenku_resource(resource_url, filename, file, title, tags, category):
+    """
+    保存百度文库资源记录并上传到oss
+
+    :param resource_url:
+    :param filename:
+    :param file:
+    :param title:
+    :param tags:
+    :param category:
+    :return:
+    """
+
+    # 判断资源记录是否已存在，如果已存在则直接返回
+    if Resource.objects.filter(url=resource_url).count():
+        return
+
+    # 存储在oss中的key
+    key = str(uuid.uuid1()) + '-' + filename
+    upload_success = aliyun_oss_upload(file, key)
+    if not upload_success:
+        ding('阿里云OSS上传资源失败')
+        return
+
+    try:
+        # 资源文件大小
+        size = os.path.getsize(file)
+        Resource.objects.create(title=title, filename=filename, size=size,
+                                url=resource_url, category=category, key=key, tags=tags)
+    except Exception as e:
+        logging.error(e)
+        ding('资源信息保存失败 ' + str(e))
 
 

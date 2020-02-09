@@ -12,7 +12,7 @@ class Base(models.Model):
 class User(Base):
     email = models.EmailField(verbose_name='邮箱')
     password = models.CharField(max_length=100, verbose_name='密码')
-    temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='临时密码')
+    temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='修改密码时保存的临时密码')
     # 邀请码
     invite_code = models.CharField(max_length=6, verbose_name='邀请码')
     # 受邀请码
@@ -120,7 +120,7 @@ class CsdnAccount(Base):
     phone = models.CharField(max_length=20, verbose_name='账号绑定手机号')
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
-    used_count = models.IntegerField(default=0)
+    used_count = models.IntegerField(default=0, verbose_name='使用下载数')
 
     class Meta:
         db_table = 'csdn_account'
@@ -132,7 +132,7 @@ class BaiduAccount(Base):
     nickname = models.CharField(max_length=50, verbose_name='账号唯一昵称')
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
-    used_count = models.IntegerField(default=0)
+    used_count = models.IntegerField(default=0, verbose_name='使用下载数')
 
     class Meta:
         db_table = 'baidu_account'
