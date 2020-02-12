@@ -16,10 +16,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
-github_username = 'hsowan-me'
-github_password = 'holdon7868'
-csdn_phone = '17770040362'
-csdn_username = 'weixin_45152242'
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+django.setup()
+from downloader.models import CsdnAccount
 
 
 def csdn_auto_login():
@@ -27,7 +27,7 @@ def csdn_auto_login():
 
     # driver = webdriver.Chrome()
 
-    selenium_server = 'http://139.199.71.19:4444/wd/hub'
+    selenium_server = 'http://139.199.71.19:4567/wd/hub'
     caps = DesiredCapabilities.CHROME
     driver = webdriver.Remote(command_executor=selenium_server, desired_capabilities=caps)
     try:
@@ -37,12 +37,12 @@ def csdn_auto_login():
         login_field = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, 'login_field'))
         )
-        login_field.send_keys(github_username)
+        login_field.send_keys(csdn_account.github_username)
 
         password = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, 'password'))
         )
-        password.send_keys(github_password)
+        password.send_keys(csdn_account.github_password)
 
         password.send_keys(Keys.ENTER)
 
@@ -70,7 +70,7 @@ def csdn_auto_login():
             phone = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, 'phone'))
             )
-            phone.send_keys(csdn_phone)
+            phone.send_keys(csdn_account.phone)
 
             # 发送验证码按钮
             send_code_button = WebDriverWait(driver, 10).until(
@@ -100,13 +100,18 @@ def csdn_auto_login():
 
 
 if __name__ == '__main__':
+    csdn_account = CsdnAccount.objects.get(email='xizhizeze@163.com')
     cookies = csdn_auto_login()
     cookies_str = json.dumps(cookies)
     cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csdn_cookies.json')
     # 判断是否登录成功
     for c in cookies:
-        if c['value'] == csdn_username:
+        if c['value'] == csdn_account.username:
             # 登录成功则保存cookies
             cookies_str = json.dumps(cookies)
-            with open(cookies_file, 'w') as f:
-                f.write(cookies_str)
+            csdn_account.cookies = cookies_str
+            csdn_account.save()
+            print('ok')
+            break
+    else:
+        print('error')

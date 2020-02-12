@@ -432,6 +432,8 @@ def oss_download(request):
         response['Content-Type'] = 'application/octet-stream'
         response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
                                                                                 safe=string.printable) + '"'
+        oss_resource.download_count += 1
+        oss_resource.save()
         return response
 
 

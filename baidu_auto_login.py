@@ -16,12 +16,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+django.setup()
+from downloader.models import BaiduAccount
 
 
 if __name__ == '__main__':
-    baidu_username = '15216267867'
-    baidu_password = 'Holdon@777!'
-    baidu_nickname = '林疯158'
+    # 测试登陆
+    baidu_account = BaiduAccount.objects.get(email='17770040362@163.com')
 
     cloud_login_url = 'https://login.bce.baidu.com/'
     console = 'https://console.bce.baidu.com/'
@@ -30,7 +33,7 @@ if __name__ == '__main__':
 
     # driver = webdriver.Chrome()
 
-    selenium_server = 'http://139.199.71.19:4444/wd/hub'
+    selenium_server = 'http://139.199.71.19:4567/wd/hub'
     caps = DesiredCapabilities.CHROME
     driver = webdriver.Remote(command_executor=selenium_server, desired_capabilities=caps)
 
@@ -38,16 +41,17 @@ if __name__ == '__main__':
         # 先访问百度首页, 否则直接登录百度网盘的话, 百度依旧会需要验证登录
         driver.get(wenku_home)
         # 加入旧的cookies
-        with open('baidu_cookies.json', 'r', encoding='utf-8') as f:
-            cookies = json.loads(f.read())
+        cookies = json.loads(baidu_account.cookies)
         for cookie in cookies:
             if 'expiry' in cookie:
                 del cookie['expiry']
             driver.add_cookie(cookie)
 
-        # 检验cookies
-        # driver.get(wenku_home)
-        # sleep(60)
+        # 检查cookies
+        if input('检查cookies是否有效: ') == 'y':
+            driver.get(wenku_home)
+            sleep(30)
+            exit(0)
 
         # 再退出登录
         driver.get(logout)
@@ -65,8 +69,8 @@ if __name__ == '__main__':
             EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__submit'))
         )
 
-        username_input.send_keys(baidu_username)
-        password_input.send_keys(baidu_password)
+        username_input.send_keys(baidu_account.username)
+        password_input.send_keys(baidu_account.password)
         login_button.click()
         # 等待跳转进百度云
         sleep(5)
@@ -78,13 +82,14 @@ if __name__ == '__main__':
             ).text.strip()
         except TimeoutException:
             nickname = None
-        if nickname == baidu_nickname:
+        if nickname == baidu_account.nickname:
             baidu_cookies = driver.get_cookies()
             baidu_cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'baidu_cookies.json')
-            with open(baidu_cookies_file, 'w') as f:
-                baidu_cookies_str = json.dumps(baidu_cookies)
-                f.write(baidu_cookies_str)
+            baidu_cookies_str = json.dumps(baidu_cookies)
+            baidu_account.cookies = baidu_cookies_str
+            baidu_account.save()
+            print('ok')
         else:
-            print(nickname)
+            print('error')
     finally:
         driver.close()
