@@ -129,7 +129,6 @@ def register(request):
 
 
 @swagger_auto_schema(method='get', manual_parameters=[params.email, params.code])
-@ratelimit(key='ip', rate='5/m', block=True)
 @api_view(['GET'])
 def activate(request):
     """

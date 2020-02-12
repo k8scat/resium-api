@@ -20,3 +20,7 @@ AliyunOSS: https://help.aliyun.com/document_detail/85288.html?spm=a2c4g.11186623
 * [千文库](http://a.1000wk.com/)
 * [免积分](http://www.itziy.com/)
 * [QCSDN](http://qcsdn.com/)
+
+## Decorator
+
+https://github.com/GrahamDumpleton/wrapt

@@ -366,10 +366,10 @@ def add_cookie(driver, platform):
     """
 
     if platform == 'csdn':
-        account = random.choice(CsdnAccount.objects.all())
+        account = random.choice(CsdnAccount.objects.filter(is_enabled=True).all())
         cookies = json.loads(account.cookies)
     elif platform == 'baidu':
-        account = random.choice(BaiduAccount.objects.all())
+        account = random.choice(BaiduAccount.objects.filter(is_enabled=True).all())
         cookies = json.loads(account.cookies)
 
     for cookie in cookies:

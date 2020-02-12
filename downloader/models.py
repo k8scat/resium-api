@@ -121,6 +121,7 @@ class CsdnAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
+    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
 
     class Meta:
         db_table = 'csdn_account'
@@ -133,6 +134,7 @@ class BaiduAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
+    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
 
     class Meta:
         db_table = 'baidu_account'

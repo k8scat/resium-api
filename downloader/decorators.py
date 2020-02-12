@@ -12,6 +12,8 @@ https://foofish.net/python-decorator.html
 *args and **kwargs:
 https://book.pythontips.com/en/latest/args_and_kwargs.html
 
+@auth必须放在@ratelimit后面，因为@ratelimit用的是HttpRequest，而@auth用的是WSGIRequest
+
 """
 import logging
 from functools import wraps
@@ -21,9 +23,9 @@ from django.conf import settings
 from django.http import JsonResponse
 
 
-def auth(func):
-    @wraps(func)
-    def wrapper(request):
+def auth(fn):
+    @wraps(fn)
+    def _wrapper(request):
         logging.info(f'Auth: {request.path}')
         token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
         if token is None:
@@ -42,6 +44,5 @@ def auth(func):
             request.session['email'] = email
         else:
             return JsonResponse(dict(code=401, msg='未认证'))
-        return func(request)
-
-    return wrapper
+        return fn(request)
+    return _wrapper
