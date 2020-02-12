@@ -44,7 +44,7 @@ class DownloadRecord(Base):
     resource_url = models.CharField(max_length=200, verbose_name='资源地址')
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
     title = models.CharField(max_length=100, verbose_name='资源名称')
-    account = models.EmailField(verbose_name='使用的会员账号')
+    account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
 
     class Meta:
         db_table = 'download_record'
