@@ -61,6 +61,9 @@ def download(request):
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url)
             if oss_resource:
+                if not dr and user.valid_count <= 0:
+                    return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+
                 file = aliyun_oss_get_file(oss_resource.key)
                 response = FileResponse(file)
                 response['Content-Type'] = 'application/octet-stream'

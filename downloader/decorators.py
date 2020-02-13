@@ -26,7 +26,8 @@ from django.http import JsonResponse
 def auth(fn):
     @wraps(fn)
     def _wrapper(request):
-        logging.info(f'Auth: {request.path}')
+        # path vs. path_info: https://docs.djangoproject.com/en/3.0/ref/request-response/
+        logging.info(f'Auth: {request.path_info}')
         token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
         if token is None:
             return JsonResponse(dict(code=401, msg='未认证'))
@@ -42,6 +43,7 @@ def auth(fn):
         email = payload.get('sub', None)
         if email is not None:
             request.session['email'] = email
+            logging.info(f'Request by {email}: {request.get_full_path()}')
         else:
             return JsonResponse(dict(code=401, msg='未认证'))
         return fn(request)

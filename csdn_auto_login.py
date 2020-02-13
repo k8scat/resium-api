@@ -100,7 +100,7 @@ def csdn_auto_login():
 
 
 if __name__ == '__main__':
-    csdn_account = CsdnAccount.objects.get(email='xizhizeze@163.com')
+    csdn_account = CsdnAccount.objects.get(email='17770040362@163.com')
     cookies = csdn_auto_login()
     cookies_str = json.dumps(cookies)
     cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csdn_cookies.json')

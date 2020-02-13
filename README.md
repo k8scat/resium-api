@@ -2,7 +2,7 @@
 
 基础镜像: https://git.ncucoder.com/hsowan/python37-django
 
-
+OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 

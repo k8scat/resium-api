@@ -49,15 +49,15 @@ class CouponAdmin(admin.ModelAdmin):
 
 
 @admin.register(CsdnAccount)
-class CouponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'phone', 'github_username', 'username', 'used_count', 'update_time')
+class CsdnAccountAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_enabled', 'email', 'phone', 'github_username', 'username', 'used_count', 'update_time')
     list_per_page = 50
     search_fields = ['email', 'github_username', 'phone', 'username']
 
 
 @admin.register(BaiduAccount)
-class CouponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'username', 'nickname', 'used_count', 'update_time')
+class BaiduAccountAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_enabled', 'email', 'username', 'nickname', 'used_count', 'update_time')
     list_per_page = 50
     search_fields = ['email', 'nickname', 'username']
 
