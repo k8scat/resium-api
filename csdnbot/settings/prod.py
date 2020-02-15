@@ -24,6 +24,6 @@ DATABASES = {
 
 SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 
-CSDNBOT_UI = 'https://csdnbot.com'
+CSDNBOT_UI = 'https://resium.ncucoder.com'
 
 CSDNBOT_API = 'https://api.csdnbot.ncucoder.com'

@@ -6,7 +6,7 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, download, pay
+from downloader.apis import user, service, download, pay, resource
 
 urlpatterns = [
     path('login/', user.login),
@@ -31,4 +31,7 @@ urlpatterns = [
     path('resource_count/', download.resource_count),
     path('resource_download/', download.oss_download),
     path('download/', download.download),
+    path('upload/', resource.upload),
+    re_path(r'^check_file/?$', resource.check_file),
+    path('uploaded_resources/', resource.list_uploaded_resources)
 ]

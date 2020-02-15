@@ -205,14 +205,9 @@ def download(request):
                     if doc_tag not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
                         return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
 
-                    if user.has_subscribed:
-                        if not has_downloaded and doc_tag != 'VIP免费文档':
-                            if user.valid_count <= 0:
-                                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
-                    else:
-                        if not has_downloaded:
-                            if user.valid_count <= 0:
-                                return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+                    if not has_downloaded and doc_tag != 'VIP免费文档':
+                        if user.valid_count <= 0:
+                            return JsonResponse(dict(code=400, msg='可用下载数已用完'))
 
                     # 文档标题
                     title = WebDriverWait(driver, 10).until(
@@ -226,7 +221,8 @@ def download(request):
                         dr.save()
                     else:
                         # 保存下载记录
-                        dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title, account=account.email)
+                        dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title,
+                                                           account=account.email)
 
                     # 文档标签，可能不存在
                     # find_elements_by_xpath 返回的是一个List
@@ -283,22 +279,13 @@ def download(request):
                     response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
                                                                                             safe=string.printable) + '"'
 
-                    if user.has_subscribed:
-                        if not has_downloaded and doc_tag != 'VIP免费文档':
-                            user.valid_count -= 1
-                            user.used_count += 1
-                            user.save()
-                            # 更新账号使用下载数
-                            account.used_count += 1
-                            account.save()
-                    else:
-                        if not has_downloaded:
-                            user.valid_count -= 1
-                            user.used_count += 1
-                            user.save()
-                            # 更新账号使用下载数
-                            account.used_count += 1
-                            account.save()
+                    if not has_downloaded and doc_tag != 'VIP免费文档':
+                        user.valid_count -= 1
+                        user.used_count += 1
+                        user.save()
+                        # 更新账号使用下载数
+                        account.used_count += 1
+                        account.save()
 
                     return response
 
@@ -338,11 +325,12 @@ def download_record(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
-        download_records = DownloadRecord.objects.filter(user=user, is_deleted=False).all()
+        download_records = DownloadRecord.objects.order_by('-update_time').filter(user=user, is_deleted=False).all()
         return JsonResponse(dict(code=200, msg='获取下载记录成功',
                                  download_records=DownloadRecordSerializers(download_records, many=True).data))
 
 
+@auth
 @swagger_auto_schema(method='get', manual_parameters=[params.page, params.key])
 @api_view(['GET'])
 def resource(request):
@@ -358,11 +346,14 @@ def resource(request):
         start = 5 * (page - 1)
         end = start + 5
         # https://cloud.tencent.com/developer/ask/81558
-        resources = Resource.objects.order_by('-create_time').filter(
-            Q(title__icontains=key) | Q(desc__icontains=key) | Q(tags__icontains=key)).all()[start:end]
+        resources = Resource.objects.order_by('-create_time').filter(Q(is_audited=1),
+                                                                     Q(title__icontains=key) |
+                                                                     Q(desc__icontains=key) |
+                                                                     Q(tags__icontains=key)).all()[start:end]
         return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
 
 
+@auth
 @swagger_auto_schema(method='get', manual_parameters=[params.key])
 @api_view(['GET'])
 def resource_count(request):
@@ -371,10 +362,13 @@ def resource_count(request):
     """
     if request.method == 'GET':
         key = request.GET.get('key', '')
-        return JsonResponse(dict(code=200, count=Resource.objects.filter(
-            Q(title__icontains=key) | Q(desc__icontains=key) | Q(tags__icontains=key)).count()))
+        return JsonResponse(dict(code=200, count=Resource.objects.filter(Q(is_audited=1),
+                                                                         Q(title__icontains=key) |
+                                                                         Q(desc__icontains=key) |
+                                                                         Q(tags__icontains=key)).count()))
 
 
+@auth
 @swagger_auto_schema(method='get')
 @api_view(['GET'])
 def resource_tags(request):
@@ -391,7 +385,7 @@ def resource_tags(request):
         return JsonResponse(dict(code=200, tags='#sep#'.join(ret_tags)))
 
 
-@ratelimit(key='ip', rate='3/m', block=True)
+@ratelimit(key='ip', rate='1/m', block=True)
 @auth
 @swagger_auto_schema(method='get', manual_parameters=[params.resource_key])
 @api_view(['GET'])
@@ -410,8 +404,6 @@ def oss_download(request):
         email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
-            if not user.has_subscribed:
-                return JsonResponse(dict(code=4000, msg='关注微信公众号即可免费下载'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -424,11 +416,11 @@ def oss_download(request):
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         try:
-            dr = DownloadRecord.objects.get(user=user, resource_url=oss_resource.url, is_deleted=False)
+            dr = DownloadRecord.objects.get(Q(resource_url=oss_resource.url) | Q(resource=oss_resource), user=user, is_deleted=False)
             dr.update_time = datetime.datetime.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
-            DownloadRecord.objects.create(user=user, resource_url=oss_resource.url, title=oss_resource.title)
+            DownloadRecord.objects.create(user=user, resource_url=oss_resource.url, resource=oss_resource, title=oss_resource.title)
 
         file = aliyun_oss_get_file(oss_resource.key)
         response = FileResponse(file)
@@ -466,4 +458,3 @@ def refresh_baidu_cookies(request):
             t = Thread(target=baidu_auto_login)
             t.start()
         return HttpResponse('')
-

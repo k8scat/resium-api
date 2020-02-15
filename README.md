@@ -11,6 +11,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 爬取CSDN已下载资源
 * [ ] 上传资源
 * [ ] 下载进度条
+    * https://help.aliyun.com/document_detail/88435.html?spm=a2c4g.11186623.6.850.8e9b543fhIEQ1V
 
 ## 部署流程
 
@@ -31,3 +32,13 @@ https://github.com/GrahamDumpleton/wrapt
 ## 阿里云OSS文档
 
 https://help.aliyun.com/document_detail/85288.html?spm=a2c4g.11186623.6.826.71481695EDNlhM
+
+## CSDN资源共享规范
+
+https://download.csdn.net/help
+
+## 百度文库协议
+
+https://wenku.baidu.com/portal/browse/help#help/24
+
+严禁用户以任何方式转让、出售自己的百度文库账号与积分，一经发现，百度有权立即封禁该账号；

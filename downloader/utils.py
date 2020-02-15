@@ -6,6 +6,7 @@
 
 """
 import datetime
+import hashlib
 import json
 import logging
 import random
@@ -18,6 +19,8 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 
 import os
+
+from django.core.files import File
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
@@ -67,17 +70,13 @@ def aliyun_oss_upload(file, key):
 
     参考: https://help.aliyun.com/document_detail/88434.html?spm=a2c4g.11186623.6.849.de955fffeknceQ
 
-    :param file: 文件路径
+    :param file: 文件路径/ django.core.files.uploadedfile.InMemoryUploadedFile
     :param key: 保存在oss上的文件名
     :return:
     """
 
     try:
         bucket = get_aliyun_oss_bucket()
-
-        total_size = os.path.getsize(file)
-        # determine_part_size方法用来确定分片大小。100KB
-        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
 
         # 初始化分片。
         # 如果需要在初始化分片时设置文件存储类型，请在init_multipart_upload中设置相关headers，参考如下。
@@ -87,33 +86,52 @@ def aliyun_oss_upload(file, key):
         upload_id = bucket.init_multipart_upload(key).upload_id
         parts = []
 
-        # 逐个上传分片。
-        with open(file, 'rb') as fileobj:
+        def upload(f):
             part_number = 1
             offset = 0
             while offset < total_size:
                 logging.info('Uploading')
                 num_to_upload = min(part_size, total_size - offset)
-                # SizedFileAdapter(fileobj, size)方法会生成一个新的文件对象，重新计算起始追加位置。
+                # SizedFileAdapter(f, size)方法会生成一个新的文件对象，重新计算起始追加位置。
                 result = bucket.upload_part(key, upload_id, part_number,
-                                            SizedFileAdapter(fileobj, num_to_upload))
+                                            SizedFileAdapter(f, num_to_upload))
                 parts.append(PartInfo(part_number, result.etag))
-
                 offset += num_to_upload
                 part_number += 1
+            logging.info('Upload ok')
 
-        logging.info('Upload ok')
+        if isinstance(file, str):
+            total_size = os.path.getsize(file)
+            # determine_part_size方法用来确定分片大小。100KB
+            part_size = determine_part_size(total_size, preferred_size=100 * 1024)
 
-        # 完成分片上传。
-        # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
-        # headers = dict()
-        # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
-        # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
-        bucket.complete_multipart_upload(key, upload_id, parts)
+            # 逐个上传分片。
+            with open(file, 'rb') as fileobj:
+                upload(fileobj)
+                # 完成分片上传。
+                # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
+                # headers = dict()
+                # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
+                # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
+                bucket.complete_multipart_upload(key, upload_id, parts)
 
-        # 验证分片上传。
-        with open(file, 'rb') as fileobj:
-            return bucket.get_object(key).read() == fileobj.read()
+                # 修改文件指针，重新读文件
+                fileobj.seek(0)
+                # 验证分片上传。
+                return bucket.get_object(key).read() == fileobj.read()
+
+        elif isinstance(file, File):
+            total_size = file.size
+            part_size = determine_part_size(total_size, preferred_size=100 * 1024)
+            upload(file.open('rb'))
+            # 完成分片上传。
+            # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
+            # headers = dict()
+            # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
+            # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
+            bucket.complete_multipart_upload(key, upload_id, parts)
+
+            return bucket.get_object(key).read() == file.open('rb').read()
 
     except Exception as e:
         logging.error(e)
@@ -502,4 +520,13 @@ def save_wenku_resource(resource_url, filename, file, title, tags, category):
         logging.error(e)
         ding('资源信息保存失败 ' + str(e))
 
+
+def get_file_md5(f):
+    m = hashlib.md5()
+    while True:
+        data = f.read(1024)
+        if not data:
+            break
+        m.update(data)
+    return m.hexdigest()
 

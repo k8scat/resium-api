@@ -9,7 +9,6 @@ import datetime
 import hashlib
 import logging
 import random
-import re
 import string
 import uuid
 from urllib.parse import quote
@@ -27,9 +26,9 @@ from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
-from wechatpy.events import SubscribeEvent, UnsubscribeEvent
+from wechatpy.events import UnsubscribeEvent, SubscribeEvent
 from wechatpy.messages import TextMessage
-from wechatpy.replies import EmptyReply, TextReply
+from wechatpy.replies import TextReply, EmptyReply
 
 from downloader import params
 from downloader.decorators import auth
@@ -77,30 +76,20 @@ def register(request):
     if request.method == 'POST':
         email = request.data.get('email', '')
         password = request.data.get('password', '')
-        invited_code = request.data.get('invited_code', '')
+        code = request.data.get('code', '')
 
-        if email == '' or password == '' or invited_code == '':
+        if email == '' or password == '' or code == '':
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         # 检查邮箱是否已注册以及邀请码是否有效
         if User.objects.filter(email=email, is_active=True).count() != 0:
             return JsonResponse(dict(code=400, msg='邮箱已注册'))
-        if User.objects.filter(invite_code=invited_code, is_active=True).count() != 1:
+        if code != settings.REGISTER_CODE:
             return JsonResponse(dict(code=400, msg='邀请码无效'))
 
         encrypted_password = make_password(password)
         code = ''.join(random.sample(string.digits, 6))
-
-        # 结合uuid和数据库生成唯一邀请码
-        invite_code = ''.join(random.sample(string.digits, 6))
-        while True:
-            if User.objects.filter(invite_code=invite_code).count():
-                invite_code = ''.join(random.sample(string.digits, 6))
-                continue
-            else:
-                break
-        user = User.objects.create(email=email, password=encrypted_password, invited_code=invited_code, code=code,
-                                   invite_code=invite_code)
+        user = User.objects.create(email=email, password=encrypted_password, code=code)
 
         activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
@@ -294,13 +283,13 @@ def wx(request):
         """
         接入微信公众平台开发
         https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/Access_Overview.html
-        
+
         请求参数
         signature	微信加密签名，signature结合了开发者填写的token参数和请求中的timestamp参数、nonce参数。
         timestamp	时间戳
         nonce	随机数
         echostr	随机字符串
-        
+
         请求示例
         /wx/?signature=c047ea9c3b369811f237ef4145a0092b03e53149&echostr=4106217736181366575&timestamp=1580479503&nonce=14640658
         """
@@ -350,7 +339,7 @@ def wx(request):
 
         示例请求
         POST /wx/?signature=78b016334f993e6701897e0dec278ea731af7d72&timestamp=1580552507&nonce=1302514634&openid=oc5rb00oVXaRUTRvvbIpCvDNSoFA&encrypt_type=aes&msg_signature=73ef0f95249e268641de2dc87761f234ca9d6db0
-        
+
         路径参数
         signature
         timestamp
@@ -358,7 +347,7 @@ def wx(request):
         openid
         encrypt_type
         msg_signature
-        
+
         :return xml
         """
 
@@ -391,49 +380,20 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '感谢关注华隐科技公众号！\n\n/:li公众号内回复注册CSDNBot的邮箱获取百度文库#VIP免费文档#下载特权！\n\n/:liQQ交流群：399244715'
+            content = '感谢关注华隐科技公众号！\n\nQQ交流群：399244715'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
         elif isinstance(msg, UnsubscribeEvent):
             ding('公众号关注 -1')
-            try:
-                user = User.objects.get(wx_openid=msg.source)
-                user.has_subscribed = False
-                user.wx_openid = None
-                user.save()
-            except User.DoesNotExist:
-                pass
 
         # 文本消息
         elif isinstance(msg, TextMessage):
-            email_pattern = re.compile(r'^\w+((\.\w+){0,3})@\w+(\.\w{2,3}){1,3}$')
-            if email_pattern.match(msg.content.strip()):
-                try:
-                    try:
-                        user = User.objects.get(wx_openid=msg.source, has_subscribed=True)
-                        if user.email == msg.content:
-                            content = f'账号{msg.content}已经获取百度文库#VIP免费文档#下载特权，无需重复获取！'
-                            reply = TextReply(content=content, message=msg)
-                        else:
-                            content = f'该微信账号已绑定邮箱{user.email}，如需解绑只需要重新关注公众号即可！'
-                            reply = TextReply(content=content, message=msg)
-                    except User.DoesNotExist:
-                        user = User.objects.get(email=msg.content, is_active=True)
-                        if not user.has_subscribed:
-                            # 保存用户openid
-                            user.wx_openid = msg.source
-                            user.has_subscribed = True
-                            user.save()
-                            content = f'账号{msg.content}成功获取百度文库#VIP免费文档#下载特权！'
-                            reply = TextReply(content=content, message=msg)
-
-                except User.DoesNotExist:
-                    content = '该邮箱尚未注册CSDNBot！'
-                    reply = TextReply(content=content, message=msg)
+            pass
 
         # 转换成 XML
         ret_xml = reply.render()
         # 加密
         encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
         return HttpResponse(encrypted_xml, content_type="text/xml")
+

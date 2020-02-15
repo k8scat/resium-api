@@ -13,7 +13,7 @@ from downloader.models import *
 class UserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'create_time', 'email', 'has_subscribed', 'valid_count', 'used_count', 'invite_code']
+        fields = ['id', 'create_time', 'email', 'valid_count', 'used_count']
 
 
 class DownloadRecordSerializers(serializers.ModelSerializer):

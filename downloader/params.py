@@ -14,3 +14,4 @@ resource_key = openapi.Parameter('key', openapi.IN_QUERY, description='资源存
 email = openapi.Parameter('email', openapi.IN_QUERY, description='邮箱', required=True, type=openapi.TYPE_STRING)
 code = openapi.Parameter('code', openapi.IN_QUERY, description='验证码', required=True, type=openapi.TYPE_STRING)
 temp_password = openapi.Parameter('token', openapi.IN_QUERY, description='加密的临时密码', required=True, type=openapi.TYPE_STRING)
+file_md5 = openapi.Parameter('hash', openapi.IN_QUERY, description='文件的md5值', required=True, type=openapi.TYPE_STRING)

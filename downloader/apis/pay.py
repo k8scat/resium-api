@@ -45,17 +45,6 @@ def alipay_notify(request):
 
                 user = User.objects.get(id=o.user_id)
                 user.valid_count += o.purchase_count
-
-                if not user.return_invitor:
-                    user.return_invitor = True
-                    # 优惠券
-                    comment = '邀请新用户'
-                    code = str(uuid.uuid1()).replace('-', '')
-                    # 获取邀请人
-                    u = User.objects.get(invite_code=user.invited_code)
-                    Coupon(user=u, total_amount=0.8, purchase_count=1, comment=comment,
-                           code=code).save()
-
                 user.save()
 
                 ding('收入+' + str(total_amount))

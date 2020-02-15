@@ -108,7 +108,7 @@ def list_orders(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
-        orders = Order.objects.filter(user=user).all()
+        orders = Order.objects.order_by('-create_time').filter(user=user).all()
         return JsonResponse(dict(code=200, msg='获取购买记录成功', orders=OrderSerializers(orders, many=True).data))
 
 
