@@ -5,3 +5,5 @@ download/*
 !download/.gitkeep
 __pycache__
 ENV
+upload/*
+!upload/.gitkeep
