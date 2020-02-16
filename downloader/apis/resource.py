@@ -6,8 +6,11 @@
 
 """
 import logging
+import os
 import uuid
+from threading import Thread
 
+from django.conf import settings
 from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import api_view
@@ -42,15 +45,25 @@ def upload(request):
 
                 key = f'{str(uuid.uuid1())}-{file.name}'
                 logging.info(f'Upload resource: {key}')
-                if aliyun_oss_upload(file, key):
-                    Resource(title=title, desc=desc, tags=tags,
-                             category=category, filename=file.name, size=file.size,
-                             is_audited=False, key=key, user=user, file_md5=file_md5,
-                             download_count=0).save()
-                    ding(f'有新的资源上传 {file.name}')
-                    return JsonResponse(dict(code=200, msg='资源上传成功'))
-                else:
-                    return JsonResponse(dict(code=500, msg='资源上传失败'))
+                save_file = os.path.join(settings.UPLOAD_DIR, key)
+                with open(save_file, 'wb') as f:
+                    while True:
+                        chunk = file.chunks()
+                        if chunk:
+                            f.write(chunk)
+                        else:
+                            break
+                Resource(title=title, desc=desc, tags=tags,
+                         category=category, filename=file.name, size=file.size,
+                         is_audited=False, key=key, user=user, file_md5=file_md5,
+                         download_count=0).save()
+
+                # 开线程上传资源到OSS
+                t = Thread(target=aliyun_oss_upload, args=(save_file, key))
+                t.start()
+
+                ding(f'有新的资源上传 {file.name}')
+                return JsonResponse(dict(code=200, msg='资源上传成功'))
             except Exception as e:
                 logging.error(e)
                 return JsonResponse(dict(code=500, msg='资源上传失败'))
@@ -62,6 +75,13 @@ def upload(request):
 @swagger_auto_schema(method='get', manual_parameters=[params.file_md5])
 @api_view(['GET'])
 def check_file(request):
+    """
+    根据md5值判断资源是否存在
+
+    :param request:
+    :return:
+    """
+
     if request.method == 'GET':
         file_md5 = request.GET.get('hash', None)
         if Resource.objects.filter(file_md5=file_md5).count():
@@ -71,6 +91,13 @@ def check_file(request):
 
 @auth
 def list_uploaded_resources(request):
+    """
+    获取用户上传资源
+
+    :param request:
+    :return:
+    """
+
     if request.method == 'GET':
         email = request.session.get('email')
         try:

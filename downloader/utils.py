@@ -20,7 +20,6 @@ from django.conf import settings
 
 import os
 
-from django.core.files import File
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
@@ -70,7 +69,7 @@ def aliyun_oss_upload(file, key):
 
     参考: https://help.aliyun.com/document_detail/88434.html?spm=a2c4g.11186623.6.849.de955fffeknceQ
 
-    :param file: 文件路径/ django.core.files.uploadedfile.InMemoryUploadedFile
+    :param file: 文件路径
     :param key: 保存在oss上的文件名
     :return:
     """
@@ -86,7 +85,12 @@ def aliyun_oss_upload(file, key):
         upload_id = bucket.init_multipart_upload(key).upload_id
         parts = []
 
-        def upload(f):
+        total_size = os.path.getsize(file)
+        # determine_part_size方法用来确定分片大小。100KB
+        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
+
+        # 逐个上传分片。
+        with open(file, 'rb') as f:
             part_number = 1
             offset = 0
             while offset < total_size:
@@ -99,31 +103,6 @@ def aliyun_oss_upload(file, key):
                 offset += num_to_upload
                 part_number += 1
             logging.info('Upload ok')
-
-        if isinstance(file, str):
-            total_size = os.path.getsize(file)
-            # determine_part_size方法用来确定分片大小。100KB
-            part_size = determine_part_size(total_size, preferred_size=100 * 1024)
-
-            # 逐个上传分片。
-            with open(file, 'rb') as fileobj:
-                upload(fileobj)
-                # 完成分片上传。
-                # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
-                # headers = dict()
-                # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
-                # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
-                bucket.complete_multipart_upload(key, upload_id, parts)
-
-                # 修改文件指针，重新读文件
-                fileobj.seek(0)
-                # 验证分片上传。
-                return bucket.get_object(key).read() == fileobj.read()
-
-        elif isinstance(file, File):
-            total_size = file.size
-            part_size = determine_part_size(total_size, preferred_size=100 * 1024)
-            upload(file.open('rb'))
             # 完成分片上传。
             # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
             # headers = dict()
@@ -131,10 +110,19 @@ def aliyun_oss_upload(file, key):
             # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
             bucket.complete_multipart_upload(key, upload_id, parts)
 
-            return bucket.get_object(key).read() == file.open('rb').read()
+            # 修改文件指针，重新读文件
+            f.seek(0)
+            # 验证分片上传。
+            if bucket.get_object(key).read() == f.read():
+                ding('资源成功上传OSS')
+                return True
+            else:
+                ding(f'资源({file})上传OSS失败，没有异常')
+                return False
 
     except Exception as e:
         logging.error(e)
+        ding(f'资源({file})上传OSS失败，请检查OSS上传代码 ' + str(e))
         return False
 
 
@@ -408,7 +396,7 @@ def get_driver(unique_folder):
     options = webdriver.ChromeOptions()
     prefs = {
         "download.prompt_for_download": False,
-        'download.default_directory': '/download/' + unique_folder,  # 下载目录
+        'download.default_directory': '/download/' + unique_folder,  # 下载目录, 需要在docker做映射
         "plugins.always_open_pdf_externally": True,
         'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
         'profile.default_content_setting_values.images': 2,  # 禁止图片加载

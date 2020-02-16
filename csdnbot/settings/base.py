@@ -148,6 +148,8 @@ REQUEST_TOKEN_PREFIX = 'Bearer '
 
 # 下载文件的存放目录
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download')
+# 上传资源的存放目录
+UPLOAD_DIR = os.path.join(BASE_DIR, 'upload')
 
 JWT_SECRET = 'yJzb21lIjoicGF5bG9hZCJ'
 
@@ -238,3 +240,4 @@ WX_SECRET = '9ca164fe2412185440691412207e917f'
 WX_ENCODING_AES_KEY = 'KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi'
 
 REGISTER_CODE = '155750df'
+
