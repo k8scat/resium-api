@@ -54,7 +54,7 @@ class Resource(Base):
     # 上传资源的用户
     user = models.ForeignKey(User, null=True, default=None, on_delete=models.DO_NOTHING)
     # 是否通过审核 1审核通过 0正在审核 -1已删除
-    is_audited = models.SmallIntegerField(default=1)
+    is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
     # 文件的md5值
     file_md5 = models.CharField(max_length=100)
 

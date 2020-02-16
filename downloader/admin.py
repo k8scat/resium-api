@@ -35,9 +35,10 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'key', 'create_time')
+    list_display = ('id', 'is_audited', 'user', 'title', 'filename', 'category', 'tags', 'key', 'create_time')
     list_per_page = 50
-    search_fields = ['title']
+    list_filter = ('is_audited',)
+    search_fields = ['title', 'key']
 
 
 @admin.register(Coupon)
