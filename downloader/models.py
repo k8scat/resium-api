@@ -10,6 +10,7 @@ class Base(models.Model):
 
 
 class User(Base):
+    nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     email = models.EmailField(verbose_name='邮箱')
     password = models.CharField(max_length=100, verbose_name='密码')
     # 修改密码时保存的临时密码
@@ -136,5 +137,14 @@ class BaiduAccount(Base):
 
     class Meta:
         db_table = 'baidu_account'
+
+
+class ResourceComment(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    content = models.CharField(max_length=240)
+
+    class Meta:
+        db_table = 'resource_comment'
 
 

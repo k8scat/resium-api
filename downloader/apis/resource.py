@@ -7,22 +7,28 @@
 """
 import logging
 import os
+import random
 import uuid
+from itertools import chain
 from threading import Thread
 
 from django.conf import settings
+from django.db.models import Q
 from django.http import JsonResponse
 from drf_yasg.utils import swagger_auto_schema
+from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
+from rest_framework.request import Request
 
 from downloader import params
 from downloader.decorators import auth
-from downloader.models import Resource, User
-from downloader.serializers import ResourceSerializers
+from downloader.models import Resource, User, ResourceComment
+from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding
 
 
 @auth
+@api_view(['POST'])
 def upload(request):
     if request.method == 'POST':
         file = request.FILES.get('file', None)
@@ -87,6 +93,7 @@ def check_file(request):
 
 
 @auth
+@api_view(['GET'])
 def list_uploaded_resources(request):
     """
     获取用户上传资源
@@ -102,4 +109,84 @@ def list_uploaded_resources(request):
             resources = Resource.objects.order_by('-create_time').filter(user=user).all()
             return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
         except User.DoesNotExist:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@auth
+@api_view(['GET'])
+def get_resource_by_id(request):
+    if request.method == 'GET':
+        resource_id = request.GET.get('id', None)
+        if resource_id:
+            try:
+                resource = Resource.objects.get(id=resource_id, is_audited=1)
+                return JsonResponse(dict(code=200, resource=ResourceSerializers(resource).data))
+            except Resource.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='资源不存在'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@auth
+@api_view(['GET'])
+def list_comments(request):
+    if request.method == 'GET':
+        resource_id = request.GET.get('resource_id', None)
+        if resource_id:
+            try:
+                comments = ResourceComment.objects.filter(resource_id=resource_id).all()
+                return JsonResponse(dict(code=200, comments=ResourceCommentSerializers(comments, many=True).data))
+            except Resource.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='资源不存在'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@ratelimit(key='ip', rate='1/5m', block=True)
+@auth
+@api_view(['POST'])
+def create_comment(request):
+    if request.method == 'POST':
+        content = request.data.get('content', None)
+        resource_id = request.data.get('resource_id', None)
+        user_id = request.data.get('user_id', None)
+        if content and resource_id and user_id:
+            try:
+                resource = Resource.objects.get(id=resource_id, is_audited=1)
+                user = User.objects.get(id=user_id)
+                ResourceComment(user=user, resource=resource, content=content).save()
+                return JsonResponse(dict(code=200, msg='评论成功'))
+            except (User.DoesNotExist, Resource.DoesNotExist):
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@auth
+@api_view(['GET'])
+def list_related_resources(request: Request):
+    if request.method == 'GET':
+        # 这个id好像不需要转换成int类型的，查询没有报错
+        resource_id = request.GET.get('resource_id', None)
+        if resource_id:
+            try:
+                resource = Resource.objects.get(id=resource_id)
+                tags = resource.tags.split(settings.TAG_SEP)
+                if resource.tags and len(tags):
+                    tag = random.choice(tags)
+                    resources = Resource.objects.filter(~Q(id=resource_id), Q(is_audited=1),
+                                                        Q(tags__icontains=tag) |
+                                                        Q(title__icontains=tag) |
+                                                        Q(desc__icontains=tag)).all()[:10]
+                    resources_count = len(resources)
+                    if resources_count != 10:
+                        # 使用chain合并多个queryset
+                        resources = chain(resources, Resource.objects.order_by('-download_count').filter(~Q(id=resource_id), Q(is_audited=1)).all()[:10-resources_count])
+
+                else:
+                    resources = Resource.objects.order_by('-download_count').filter(~Q(id=resource_id), Q(is_audited=1)).all()[:10]
+                return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
+            except Resource.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='资源不存在'))
+        else:
             return JsonResponse(dict(code=400, msg='错误的请求'))

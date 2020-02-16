@@ -333,7 +333,7 @@ def download_record(request):
 @auth
 @swagger_auto_schema(method='get', manual_parameters=[params.page, params.key])
 @api_view(['GET'])
-def resource(request):
+def list_resources(request):
     """
     分页获取资源
     """

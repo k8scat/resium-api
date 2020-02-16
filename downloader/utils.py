@@ -32,7 +32,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -466,8 +466,11 @@ def save_csdn_resource(resource_url, filename, file, title):
             tags = settings.TAG_SEP.join(
                 [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
 
-            Resource.objects.create(title=title, filename=filename, size=size, desc=desc,
-                                    url=resource_url, category=category, key=key, tags=tags)
+            # 由默认用户上传
+            user = User.objects.get(email='hsowan.me@gmail.com', is_active=True)
+            Resource.objects.create(title=title, filename=filename, size=size,
+                                    desc=desc, url=resource_url, category=category,
+                                    key=key, tags=tags, user=user)
         except Exception as e:
             logging.error(e)
             ding('资源信息保存失败 ' + str(e))
@@ -502,8 +505,11 @@ def save_wenku_resource(resource_url, filename, file, title, tags, category):
     try:
         # 资源文件大小
         size = os.path.getsize(file)
+        # 由默认用户上传
+        user = User.objects.get(email='hsowan.me@gmail.com', is_active=True)
         Resource.objects.create(title=title, filename=filename, size=size,
-                                url=resource_url, category=category, key=key, tags=tags)
+                                url=resource_url, category=category, key=key,
+                                tags=tags, user=user)
     except Exception as e:
         logging.error(e)
         ding('资源信息保存失败 ' + str(e))

@@ -13,3 +13,4 @@ oss2==2.9.1
 cryptography==2.8
 wechatpy==1.8.6
 django-ratelimit==2.0.0
+Faker==4.0.0

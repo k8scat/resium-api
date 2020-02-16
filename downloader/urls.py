@@ -16,6 +16,7 @@ urlpatterns = [
     re_path(r'^forget_password/?$', user.forget_password),
     re_path(r'^reset_email/?$', user.send_forget_password_email),
     re_path(r'^wx/?$', user.wx),
+    path('change_nickname/', user.change_nickname),
 
     path('service/', service.list_services),
     path('order/', service.list_orders),
@@ -27,11 +28,15 @@ urlpatterns = [
     re_path(r'^refresh_csdn_cookies/?$', download.refresh_csdn_cookies),
     path('resource_tags/', download.resource_tags),
     path('download_record/', download.download_record),
-    re_path(r'^resource/?$', download.resource),
+    re_path(r'^list_resources/?$', download.list_resources),
     path('resource_count/', download.resource_count),
     path('resource_download/', download.oss_download),
     path('download/', download.download),
     path('upload/', resource.upload),
     re_path(r'^check_file/?$', resource.check_file),
-    path('uploaded_resources/', resource.list_uploaded_resources)
+    path('uploaded_resources/', resource.list_uploaded_resources),
+    re_path(r'^get_resource/?$', resource.get_resource_by_id),
+    re_path(r'^list_comments/?$', resource.list_comments),
+    path('create_comment/', resource.create_comment),
+    re_path(r'^related_resources/?$', resource.list_related_resources)
 ]

@@ -13,7 +13,7 @@ from downloader.models import *
 class UserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'create_time', 'email', 'valid_count', 'used_count']
+        fields = ['id', 'create_time', 'email', 'valid_count', 'used_count', 'nickname']
 
 
 class DownloadRecordSerializers(serializers.ModelSerializer):
@@ -35,6 +35,8 @@ class ServiceSerializers(serializers.ModelSerializer):
 
 
 class ResourceSerializers(serializers.ModelSerializer):
+    nickname = serializers.CharField(source='user.nickname')
+
     class Meta:
         model = Resource
         fields = '__all__'
@@ -46,24 +48,46 @@ class CouponSerializers(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ResourceCommentSerializers(serializers.ModelSerializer):
+    email = serializers.CharField(source='user.email')
+    nickname = serializers.CharField(source='user.nickname')
+
+    class Meta:
+        model = ResourceComment
+        fields = ['id', 'content', 'email', 'nickname', 'create_time']
+
+
 class LoginSerializers(serializers.Serializer):
+    """
+    swagger
+    """
     email = serializers.EmailField()
     password = serializers.CharField(max_length=100)
 
 
 class PurchaseSerializers(serializers.Serializer):
+    """
+    swagger
+    """
     total_amount = serializers.FloatField()
     purchase_count = serializers.IntegerField()
     code = serializers.CharField(max_length=50)
 
 
 class RegisterSerializers(serializers.Serializer):
+    """
+    swagger
+    """
     email = serializers.EmailField()
     password = serializers.CharField(max_length=100)
     invited_code = serializers.CharField(max_length=6)
 
 
 class ResetPasswordSerializers(serializers.Serializer):
+    """
+    swagger
+    """
     old_password = serializers.CharField(max_length=100)
     new_password = serializers.CharField(max_length=100)
+
 

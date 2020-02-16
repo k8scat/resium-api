@@ -22,6 +22,7 @@ from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from drf_yasg.utils import swagger_auto_schema
+from faker import Faker
 from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
@@ -37,14 +38,32 @@ from downloader.serializers import UserSerializers, LoginSerializers, RegisterSe
 from downloader.utils import ding
 
 
+@auth
+@api_view(['POST'])
+def change_nickname(request):
+    if request.method == 'POST':
+        user_id = request.data.get('user_id', None)
+        nickname = request.data.get('nickname', None)
+        if user_id and nickname:
+            try:
+                user = User.objects.get(id=user_id, is_active=True)
+                user.nickname = nickname
+                user.save()
+                return JsonResponse(dict(code=200, msg='昵称修改成功', user=UserSerializers(user).data))
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
 @swagger_auto_schema(method='post', request_body=LoginSerializers)
 @api_view(['POST'])
 def login(request):
     """
     用户登录
     """
-
     if request.method == 'POST':
+        logging.info(type(request))
         email = request.data.get('email', '')
         password = request.data.get('password', '')
         if email == '' or password == '':
@@ -89,7 +108,9 @@ def register(request):
 
         encrypted_password = make_password(password)
         code = ''.join(random.sample(string.digits, 6))
-        user = User.objects.create(email=email, password=encrypted_password, code=code)
+        fake = Faker('zh_CN')
+        nickname = fake.name()
+        user = User.objects.create(email=email, password=encrypted_password, code=code, nickname=nickname)
 
         activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
