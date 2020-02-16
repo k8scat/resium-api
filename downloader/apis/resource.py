@@ -46,13 +46,10 @@ def upload(request):
                 key = f'{str(uuid.uuid1())}-{file.name}'
                 logging.info(f'Upload resource: {key}')
                 save_file = os.path.join(settings.UPLOAD_DIR, key)
+                # 写入文件，之后使用线程进行上传
                 with open(save_file, 'wb') as f:
-                    while True:
-                        chunk = file.chunks()
-                        if chunk:
-                            f.write(chunk)
-                        else:
-                            break
+                    for chunk in file.chunks():
+                        f.write(chunk)
                 Resource(title=title, desc=desc, tags=tags,
                          category=category, filename=file.name, size=file.size,
                          is_audited=False, key=key, user=user, file_md5=file_md5,
