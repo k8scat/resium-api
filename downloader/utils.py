@@ -23,6 +23,7 @@ from django.conf import settings
 
 import os
 
+from django.db.models import Q
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
@@ -462,8 +463,11 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
     :param csdn_account:
     :return:
     """
+
+    with open(filepath, 'rb') as f:
+        file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter(url=resource_url).count():
+    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
         return
 
     # 存储在oss中的key
@@ -483,13 +487,11 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
             tags = settings.TAG_SEP.join(
                 [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
 
-            with open(filepath, 'rb') as f:
-                file_md5 = get_file_md5(f)
-
             resource = Resource.objects.create(title=title, filename=filename, size=size,
                                                desc=desc, url=resource_url, category=category,
                                                key=key, tags=tags, user=user, file_md5=file_md5)
-            DownloadRecord(user=user, resource=resource, account=csdn_account.email, resource_url=resource_url, title=title).save()
+            DownloadRecord(user=user, resource=resource, account=csdn_account.email, resource_url=resource_url,
+                           title=title).save()
         except Exception as e:
             logging.error(e)
             ding(f'资源信息保存失败：{str(e)}，资源已上传 {key}')
@@ -512,8 +514,10 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
     :return:
     """
 
+    with open(filepath, 'rb') as f:
+        file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter(url=resource_url).count():
+    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
         return
 
     # 存储在oss中的key
@@ -526,13 +530,11 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
         # 资源文件大小
         size = os.path.getsize(filepath)
 
-        with open(filepath, 'rb') as f:
-            file_md5 = get_file_md5(f)
-
         resource = Resource.objects.create(title=title, filename=filename, size=size,
-                                url=resource_url, category=category, key=key,
-                                tags=tags, user=user, file_md5=file_md5)
-        DownloadRecord(user=user, resource=resource, account=baidu_account.email, resource_url=resource_url, title=title).save()
+                                           url=resource_url, category=category, key=key,
+                                           tags=tags, user=user, file_md5=file_md5)
+        DownloadRecord(user=user, resource=resource, account=baidu_account.email, resource_url=resource_url,
+                       title=title).save()
     except Exception as e:
         logging.error(e)
         ding('资源信息保存失败 ' + str(e))
