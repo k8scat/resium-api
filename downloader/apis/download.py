@@ -48,36 +48,26 @@ def download(request):
             # 去除资源地址参数
             resource_url = resource_url.split('?')[0]
 
-            dr = None
-            has_downloaded = False  # 用于后面判断是否需要扣除用户可用下载数
-            try:
-                # 判断用户是否存在下载记录
-                dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, has_done=True)
-                has_downloaded = True
-            except DownloadRecord.DoesNotExist:
-                pass
-
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url)
             if oss_resource:
-                if not dr and user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
+                # dr如果存在，则直接更新update_time，而不会在数据库里插入新的记录
+                # 如果不存在，则会插入新的记录
+                try:
+                    # 判断用户是否存在下载记录，且未删除
+                    dr = DownloadRecord.objects.get(user=user, resource=oss_resource, is_deleted=False)
+                    dr.update_time = datetime.datetime.now()
+                    dr.save()
+                except DownloadRecord.DoesNotExist:
+                    DownloadRecord(user=user, resource=oss_resource).save()
 
-                file = aliyun_oss_get_file(oss_resource.key)
-                response = FileResponse(file)
-                response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
-                                                                                        safe=string.printable) + '"'
+                url = aliyun_oss_sign_url(oss_resource.key)
+
                 # 更新资源的下载次数
                 oss_resource.download_count += 1
                 oss_resource.save()
 
-                # 更新下载时间
-                dr.update_time = datetime.datetime.now()
-                dr.save()
-                return response
-            else:
-                logging.error('OSS没有找到资源')
+                return JsonResponse(dict(code=200, url=url))
 
             # 生成资源存放的唯一子目录
             uuid_str = str(uuid.uuid1())
@@ -93,12 +83,12 @@ def download(request):
             if resource_url.startswith('https://download.csdn.net/download/'):
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
-                # 无下载记录且可用下载数不足
-                if not dr and user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数已用完'))
-
                 if not check_csdn():
                     return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
+
+                # 无下载记录且可用下载数不足
+                if user.valid_count <= 0:
+                    return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
 
                 r = requests.get(resource_url)
                 title = None
@@ -115,44 +105,47 @@ def download(request):
                         ding('资源名称获取失败 ' + str(e))
                         return JsonResponse(dict(code=500, msg='下载失败'))
 
-                # 可能出现存在下载记录，但OSS上没有存储资源
-                if isinstance(dr, DownloadRecord):
-                    dr.update_time = datetime.datetime.now()
-                    dr.save()
-                else:
-                    # 保存下载记录
-                    dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title)
-
                 driver = get_driver(uuid_str)
+                csdn_account = None
                 try:
                     # 先请求，再添加cookies
                     # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
                     driver.get('https://download.csdn.net')
-                    # 添加cookies
-                    account = add_cookie(driver, 'csdn')
-                    # 保存所使用的会员账号信息
-                    dr.account = account.email
-                    dr.save()
-
+                    # 添加cookies，并返回使用的会员账号
+                    csdn_account = add_cookie(driver, 'csdn')
                     # 访问资源地址
                     driver.get(resource_url)
 
-                    # 点击VIP下载按钮
-                    el = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
-                    )
-                    el.click()
+                    try:
+                        # 点击VIP下载按钮
+                        el = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
+                        )
+                        el.click()
 
-                    # 点击弹框中的VIP下载
-                    el = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH,
-                                                        "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
-                    )
-                    el.click()
+                        # 点击弹框中的VIP下载
+                        el = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.XPATH,
+                                                            "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
+                        )
+                        el.click()
+                    except TimeoutException as e:
+                        logging.error(e)
+                        ding(f'CSDN资源下载失败：{str(e)}')
+                        return JsonResponse(dict(code=500, msg='下载失败'))
+
+                    # 点击了VIP下载后一定要更新用户下载数和会员账号下载数，不管后面是否成功
+                    # 更新用户的可用下载数和已用下载数
+                    user.valid_count -= 1
+                    user.used_count += 1
+                    user.save()
+                    # 更新账号使用下载数
+                    csdn_account.used_count += 1
+                    csdn_account.save()
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title, user))
+                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title, user, csdn_account))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -161,23 +154,11 @@ def download(request):
                     response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
                                                                                             safe=string.printable) + '"'
 
-                    if not has_downloaded:
-                        # 更新用户的可用下载数和已用下载数
-                        user.valid_count -= 1
-                        user.used_count += 1
-                        user.save()
-                        # 更新账号使用下载数
-                        account.used_count += 1
-                        account.save()
-
                     return response
 
                 except Exception as e:
-                    if dr:
-                        dr.has_done = False
-                        dr.save()
                     logging.error(e)
-                    ding(f'下载出现未知错误（{resource_url}） ' + str(e))
+                    ding(f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{csdn_account.email if csdn_account else "无"}，资源地址：{resource_url}')
                     return JsonResponse(dict(code=500, msg='下载失败'))
 
                 finally:
@@ -186,12 +167,12 @@ def download(request):
             elif resource_url.startswith('https://wenku.baidu.com/view/'):
                 logging.info(f'百度文库资源下载: {resource_url}')
 
-                dr = None
                 driver = get_driver(uuid_str)
+                baidu_account = None
                 try:
                     driver.get('https://www.baidu.com/')
                     # 添加cookies
-                    account = add_cookie(driver, 'baidu')
+                    baidu_account = add_cookie(driver, 'baidu')
 
                     driver.get(resource_url)
 
@@ -204,24 +185,22 @@ def download(request):
                     if doc_tag not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
                         return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
 
-                    if not has_downloaded and doc_tag != 'VIP免费文档':
+                    if doc_tag != 'VIP免费文档':
                         if user.valid_count <= 0:
-                            return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+                            return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
+
+                        user.valid_count -= 1
+                        user.used_count += 1
+                        user.save()
+                        # 更新账号使用下载数
+                        baidu_account.used_count += 1
+                        baidu_account.save()
 
                     # 文档标题
                     title = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located(
                             (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
                     ).text
-
-                    # 可能出现存在下载记录，但OSS上没有存储资源
-                    if isinstance(dr, DownloadRecord):
-                        dr.update_time = datetime.datetime.now()
-                        dr.save()
-                    else:
-                        # 保存下载记录
-                        dr = DownloadRecord.objects.create(user=user, resource_url=resource_url, title=title,
-                                                           account=account.email)
 
                     # 文档标签，可能不存在
                     # find_elements_by_xpath 返回的是一个List
@@ -269,7 +248,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats, user))
+                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats, user, baidu_account))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -278,22 +257,11 @@ def download(request):
                     response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
                                                                                             safe=string.printable) + '"'
 
-                    if not has_downloaded and doc_tag != 'VIP免费文档':
-                        user.valid_count -= 1
-                        user.used_count += 1
-                        user.save()
-                        # 更新账号使用下载数
-                        account.used_count += 1
-                        account.save()
-
                     return response
 
                 except Exception as e:
-                    if dr:
-                        dr.has_done = False
-                        dr.save()
                     logging.error(e)
-                    ding(f'下载出现未知错误（{resource_url}） ' + str(e))
+                    ding(f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{baidu_account.email if baidu_account else "无"}，资源地址：{resource_url}')
                     return JsonResponse(dict(code=500, msg='下载失败'))
 
                 finally:
@@ -409,29 +377,26 @@ def oss_download(request):
         try:
             oss_resource = Resource.objects.get(key=key)
             if not aliyun_oss_check_file(oss_resource.key):
-                oss_resource.delete()
-                return JsonResponse(dict(code=400, msg='资源已被删除'))
+                logging.error(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
+                oss_resource.is_audited = 0
+                oss_resource.save()
+                return JsonResponse(dict(code=400, msg='该资源暂时无法下载'))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         try:
-            dr = DownloadRecord.objects.get(Q(resource_url=oss_resource.url) |
-                                            Q(resource=oss_resource),
+            dr = DownloadRecord.objects.get(Q(resource=oss_resource),
                                             user=user,
-                                            has_done=True)
+                                            is_deleted=False)
             dr.update_time = datetime.datetime.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
-            DownloadRecord.objects.create(user=user, resource_url=oss_resource.url, resource=oss_resource, title=oss_resource.title)
+            DownloadRecord.objects.create(user=user, resource=oss_resource, title=oss_resource.title)
 
-        file = aliyun_oss_get_file(oss_resource.key)
-        response = FileResponse(file)
-        response['Content-Type'] = 'application/octet-stream'
-        response['Content-Disposition'] = 'attachment;filename="' + parse.quote(oss_resource.filename,
-                                                                                safe=string.printable) + '"'
+        url = aliyun_oss_sign_url(oss_resource.key)
         oss_resource.download_count += 1
         oss_resource.save()
-        return response
+        return JsonResponse(dict(code=200, url=url))
 
 
 @swagger_auto_schema(method='get')

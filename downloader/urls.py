@@ -33,7 +33,7 @@ urlpatterns = [
     re_path(r'^delete_download_record/?$', download.delete_download_record),
     re_path(r'^list_resources/?$', download.list_resources),
     path('resource_count/', download.resource_count),
-    path('resource_download/', download.oss_download),
+    path('oss_download/', download.oss_download),
     path('download/', download.download),
     path('upload/', resource.upload),
     re_path(r'^check_file/?$', resource.check_file),

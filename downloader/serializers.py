@@ -16,6 +16,14 @@ class UserSerializers(serializers.ModelSerializer):
         fields = ['id', 'create_time', 'email', 'valid_count', 'used_count', 'nickname']
 
 
+class ResourceSerializers(serializers.ModelSerializer):
+    nickname = serializers.CharField(source='user.nickname')
+
+    class Meta:
+        model = Resource
+        fields = '__all__'
+
+
 class DownloadRecordSerializers(serializers.ModelSerializer):
     class Meta:
         model = DownloadRecord
@@ -32,14 +40,6 @@ class ServiceSerializers(serializers.ModelSerializer):
     class Meta:
         model = Service
         fields = ['id', 'total_amount', 'purchase_count']
-
-
-class ResourceSerializers(serializers.ModelSerializer):
-    nickname = serializers.CharField(source='user.nickname')
-
-    class Meta:
-        model = Resource
-        fields = '__all__'
 
 
 class CouponSerializers(serializers.ModelSerializer):

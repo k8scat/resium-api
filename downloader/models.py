@@ -71,7 +71,6 @@ class DownloadRecord(Base):
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
     title = models.CharField(max_length=100, verbose_name='资源名称')
     account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
-    has_done = models.BooleanField(default=True, verbose_name='是否下载成功')
 
     class Meta:
         db_table = 'download_record'

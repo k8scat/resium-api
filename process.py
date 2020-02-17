@@ -13,20 +13,20 @@ import os
 import django
 from faker import Faker
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
 django.setup()
 
-from downloader.models import Resource, User
-from downloader.utils import aliyun_oss_get_file, get_file_md5
+from downloader.models import Resource
+from downloader.utils import aliyun_oss_delete_files
 
 
 if __name__ == '__main__':
 
-    resources = Resource.objects.filter(file_md5='').all()
-    for resource in resources:
-        file_md5 = get_file_md5(aliyun_oss_get_file(resource.key))
-        resource.file_md5 = file_md5
-        resource.save()
+    resources = Resource.objects.all()
+    keys = [resource.key for resource in resources]
+    aliyun_oss_delete_files(keys)
+    Resource.objects.all().delete()
+
 
 
 

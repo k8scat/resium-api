@@ -337,12 +337,14 @@ def check_oss(resource_url):
     """
 
     try:
-        resource = Resource.objects.get(url=resource_url)
+        resource = Resource.objects.get(url=resource_url, is_audited=1)
         # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
-        # 如果oss上没有存储资源，则将resource删除
+        # 如果oss上没有存储资源，则提醒管理员检查资源
         if not aliyun_oss_check_file(resource.key):
-            resource.delete()
-            resource = None
+            resource.is_audited = 0
+            resource.save()
+            ding(f'OSS资源未找到，请及时检查资源 {resource.key}')
+            return None
         return resource
     except Resource.DoesNotExist:
         return None
@@ -440,13 +442,15 @@ def check_csdn():
 
     # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
     today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
-                                                         is_deleted=False, resource_url__startswith='https://download.csdn.net/download/').values('resource_url').distinct().count()
+                                                         is_deleted=False,
+                                                         resource_url__startswith='https://download.csdn.net/download/').values(
+        'resource_url').distinct().count()
     if today_download_count == 20:
         return False
     return True
 
 
-def save_csdn_resource(resource_url, filename, filepath, title, user):
+def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_account):
     """
     保存CSDN资源记录并上传到oss
 
@@ -455,6 +459,7 @@ def save_csdn_resource(resource_url, filename, filepath, title, user):
     :param filepath:
     :param title:
     :param user:
+    :param csdn_account:
     :return:
     """
     # 判断资源记录是否已存在，如果已存在则直接返回
@@ -481,17 +486,18 @@ def save_csdn_resource(resource_url, filename, filepath, title, user):
             with open(filepath, 'rb') as f:
                 file_md5 = get_file_md5(f)
 
-            Resource.objects.create(title=title, filename=filename, size=size,
-                                    desc=desc, url=resource_url, category=category,
-                                    key=key, tags=tags, user=user, file_md5=file_md5)
+            resource = Resource.objects.create(title=title, filename=filename, size=size,
+                                               desc=desc, url=resource_url, category=category,
+                                               key=key, tags=tags, user=user, file_md5=file_md5)
+            DownloadRecord(user=user, resource=resource, account=csdn_account.email, resource_url=resource_url, title=title).save()
         except Exception as e:
             logging.error(e)
-            ding(f'资源信息保存失败：{str(e)}，资源已上传，')
+            ding(f'资源信息保存失败：{str(e)}，资源已上传 {key}')
     else:
         ding(f'资源信息保存失败，资源请求失败，资源已上传 {key}')
 
 
-def save_wenku_resource(resource_url, filename, filepath, title, tags, category, user):
+def save_wenku_resource(resource_url, filename, filepath, title, tags, category, user, baidu_account):
     """
     保存百度文库资源记录并上传到oss
 
@@ -502,6 +508,7 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
     :param tags:
     :param category:
     :param user:
+    :param baidu_account:
     :return:
     """
 
@@ -522,9 +529,10 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
         with open(filepath, 'rb') as f:
             file_md5 = get_file_md5(f)
 
-        Resource.objects.create(title=title, filename=filename, size=size,
+        resource = Resource.objects.create(title=title, filename=filename, size=size,
                                 url=resource_url, category=category, key=key,
                                 tags=tags, user=user, file_md5=file_md5)
+        DownloadRecord(user=user, resource=resource, account=baidu_account.email, resource_url=resource_url, title=title).save()
     except Exception as e:
         logging.error(e)
         ding('资源信息保存失败 ' + str(e))
@@ -546,3 +554,17 @@ def get_file_md5(f):
         m.update(data)
     return m.hexdigest()
 
+
+def aliyun_oss_delete_files(keys: list):
+    """
+    批量删除OSS上的文件
+
+    :param keys:
+    :return:
+    """
+
+    bucket = get_aliyun_oss_bucket()
+    # 批量删除3个文件。每次最多删除1000个文件。
+    result = bucket.batch_delete_objects(keys)
+    # 打印成功删除的文件名。
+    print('\n'.join(result.deleted_keys))
