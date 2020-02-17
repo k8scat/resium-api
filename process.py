@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     resources = Resource.objects.filter(file_md5='').all()
     for resource in resources:
-        file_md5 = get_file_md5(aliyun_oss_get_file(resource))
+        file_md5 = get_file_md5(aliyun_oss_get_file(resource.key))
         resource.file_md5 = file_md5
         resource.save()
 
