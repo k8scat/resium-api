@@ -6,7 +6,7 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, download, pay, resource
+from downloader.apis import user, service, download, pay, resource, advert
 
 urlpatterns = [
     path('login/', user.login),
@@ -17,17 +17,20 @@ urlpatterns = [
     re_path(r'^reset_email/?$', user.send_forget_password_email),
     re_path(r'^wx/?$', user.wx),
     path('change_nickname/', user.change_nickname),
+    path('get_user/', user.get_user),
 
     path('service/', service.list_services),
-    path('order/', service.list_orders),
+    path('list_orders/', service.list_orders),
     path('create_order/', service.create_order),
     path('alipay_notify/', pay.alipay_notify),
-    path('coupon/', service.list_coupons),
+    path('list_coupons/', service.list_coupons),
+    re_path(r'^delete_order/?$', service.delete_order),
 
     re_path(r'^refresh_baidu_cookies/?$', download.refresh_baidu_cookies),
     re_path(r'^refresh_csdn_cookies/?$', download.refresh_csdn_cookies),
     path('resource_tags/', download.resource_tags),
-    path('download_record/', download.download_record),
+    path('list_download_records/', download.list_download_records),
+    re_path(r'^delete_download_record/?$', download.delete_download_record),
     re_path(r'^list_resources/?$', download.list_resources),
     path('resource_count/', download.resource_count),
     path('resource_download/', download.oss_download),
@@ -38,5 +41,7 @@ urlpatterns = [
     re_path(r'^get_resource/?$', resource.get_resource_by_id),
     re_path(r'^list_comments/?$', resource.list_comments),
     path('create_comment/', resource.create_comment),
-    re_path(r'^related_resources/?$', resource.list_related_resources)
+    re_path(r'^related_resources/?$', resource.list_related_resources),
+
+    re_path(r'^get_random_advert/?$', advert.get_random_advert)
 ]

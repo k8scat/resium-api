@@ -19,13 +19,13 @@ class UserSerializers(serializers.ModelSerializer):
 class DownloadRecordSerializers(serializers.ModelSerializer):
     class Meta:
         model = DownloadRecord
-        fields = ['update_time', 'resource_url', 'title']
+        fields = ['id', 'update_time', 'resource_url', 'title']
 
 
 class OrderSerializers(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['create_time', 'total_amount', 'pay_url', 'paid_time', 'purchase_count']
+        fields = ['id', 'create_time', 'total_amount', 'pay_url', 'paid_time', 'purchase_count']
 
 
 class ServiceSerializers(serializers.ModelSerializer):
@@ -55,6 +55,12 @@ class ResourceCommentSerializers(serializers.ModelSerializer):
     class Meta:
         model = ResourceComment
         fields = ['id', 'content', 'email', 'nickname', 'create_time']
+
+
+class AdvertSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Advert
+        fields = '__all__'
 
 
 class LoginSerializers(serializers.Serializer):

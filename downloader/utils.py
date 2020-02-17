@@ -5,13 +5,16 @@
 @date: 2020/1/7
 
 """
+import base64
 import datetime
 import hashlib
+import hmac
 import json
 import logging
 import random
 import time
 import uuid
+from urllib import parse
 
 import alipay
 import requests
@@ -36,22 +39,30 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccoun
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
+    timestamp = round(time.time() * 1000)
+    secret_enc = settings.DINGTALK_SECRET.encode('utf-8')
+    string_to_sign = f'{timestamp}\n{settings.DINGTALK_SECRET}'
+    string_to_sign_enc = string_to_sign.encode('utf-8')
+    hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+    sign = parse.quote_plus(base64.b64encode(hmac_code))
+
     if at_mobiles is None:
-        at_mobiles = ['17770040362']
+        at_mobiles = []
     headers = {
         'Content-Type': 'application/json'
     }
     data = {
         'msgtype': 'text',
         'text': {
-            'content': 'CSDNBot: ' + content
+            'content': content
         },
         'at': {
             'atMobiles': at_mobiles,
             'isAtAll': is_at_all
         }
     }
-    requests.post(settings.DINGTALK_API, data=json.dumps(data), headers=headers)
+    dingtalk_api = f'https://oapi.dingtalk.com/robot/send?access_token={settings.DINGTALK_ACCESS_TOKEN}&timestamp={timestamp}&sign={sign}'
+    requests.post(dingtalk_api, data=json.dumps(data), headers=headers)
 
 
 def get_aliyun_oss_bucket():
@@ -63,13 +74,13 @@ def get_aliyun_oss_bucket():
     return bucket
 
 
-def aliyun_oss_upload(file, key):
+def aliyun_oss_upload(filepath: str, key: str) -> bool:
     """
     阿里云 OSS 上传
 
     参考: https://help.aliyun.com/document_detail/88434.html?spm=a2c4g.11186623.6.849.de955fffeknceQ
 
-    :param file: 文件路径
+    :param filepath: 文件路径
     :param key: 保存在oss上的文件名
     :return:
     """
@@ -85,12 +96,12 @@ def aliyun_oss_upload(file, key):
         upload_id = bucket.init_multipart_upload(key).upload_id
         parts = []
 
-        total_size = os.path.getsize(file)
+        total_size = os.path.getsize(filepath)
         # determine_part_size方法用来确定分片大小。100KB
         part_size = determine_part_size(total_size, preferred_size=100 * 1024)
 
         # 逐个上传分片。
-        with open(file, 'rb') as f:
+        with open(filepath, 'rb') as f:
             part_number = 1
             offset = 0
             while offset < total_size:
@@ -114,15 +125,15 @@ def aliyun_oss_upload(file, key):
             f.seek(0)
             # 验证分片上传。
             if bucket.get_object(key).read() == f.read():
-                ding('资源成功上传OSS')
+                ding(f'资源成功上传OSS {filepath.split("/")[-1]}')
                 return True
             else:
-                ding(f'资源({file})上传OSS失败，没有异常')
+                ding(f'资源({filepath})上传OSS失败，没有异常')
                 return False
 
     except Exception as e:
         logging.error(e)
-        ding(f'资源({file})上传OSS失败，请检查OSS上传代码 ' + str(e))
+        ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码 ' + str(e))
         return False
 
 
@@ -157,18 +168,19 @@ def aliyun_oss_check_file(key):
         return None
 
 
-def aliyun_oss_sign_url(key):
+def aliyun_oss_sign_url(key, expire=600):
     """
     获取文件临时下载链接，使用签名URL进行临时授权
 
     参考: https://help.aliyun.com/document_detail/32033.html?spm=a2c4g.11186623.6.881.603f16950kd10U
 
     :param key:
+    :param expire: 默认10*60, 即10分钟后过期
     :return:
     """
 
     bucket = get_aliyun_oss_bucket()
-    return bucket.sign_url('GET', key, 60 * 60)
+    return bucket.sign_url('GET', key, expire)
 
 
 def baidu_auto_login():
@@ -434,14 +446,15 @@ def check_csdn():
     return True
 
 
-def save_csdn_resource(resource_url, filename, file, title):
+def save_csdn_resource(resource_url, filename, filepath, title, user):
     """
     保存CSDN资源记录并上传到oss
 
     :param resource_url:
     :param filename:
-    :param file:
+    :param filepath:
     :param title:
+    :param user:
     :return:
     """
     # 判断资源记录是否已存在，如果已存在则直接返回
@@ -450,44 +463,45 @@ def save_csdn_resource(resource_url, filename, file, title):
 
     # 存储在oss中的key
     key = str(uuid.uuid1()) + '-' + filename
-    upload_success = aliyun_oss_upload(file, key)
+    upload_success = aliyun_oss_upload(filepath, key)
     if not upload_success:
-        ding('阿里云OSS上传资源失败')
         return
 
     r = requests.get(resource_url)
     if r.status_code == 200:
         try:
             # 资源文件大小
-            size = os.path.getsize(file)
+            size = os.path.getsize(filepath)
             soup = BeautifulSoup(r.text, 'lxml')
             desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
             category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
             tags = settings.TAG_SEP.join(
                 [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
 
-            # 由默认用户上传
-            user = User.objects.get(email='hsowan.me@gmail.com', is_active=True)
+            with open(filepath, 'rb') as f:
+                file_md5 = get_file_md5(f)
+
             Resource.objects.create(title=title, filename=filename, size=size,
                                     desc=desc, url=resource_url, category=category,
-                                    key=key, tags=tags, user=user)
+                                    key=key, tags=tags, user=user, file_md5=file_md5)
         except Exception as e:
             logging.error(e)
-            ding('资源信息保存失败 ' + str(e))
+            ding(f'资源信息保存失败：{str(e)}，资源已上传，')
     else:
-        ding('资源信息保存失败 - 资源请求失败')
+        ding(f'资源信息保存失败，资源请求失败，资源已上传 {key}')
 
 
-def save_wenku_resource(resource_url, filename, file, title, tags, category):
+def save_wenku_resource(resource_url, filename, filepath, title, tags, category, user):
     """
     保存百度文库资源记录并上传到oss
 
     :param resource_url:
     :param filename:
-    :param file:
+    :param filepath:
     :param title:
     :param tags:
     :param category:
+    :param user:
     :return:
     """
 
@@ -497,25 +511,33 @@ def save_wenku_resource(resource_url, filename, file, title, tags, category):
 
     # 存储在oss中的key
     key = str(uuid.uuid1()) + '-' + filename
-    upload_success = aliyun_oss_upload(file, key)
+    upload_success = aliyun_oss_upload(filepath, key)
     if not upload_success:
-        ding('阿里云OSS上传资源失败')
         return
 
     try:
         # 资源文件大小
-        size = os.path.getsize(file)
-        # 由默认用户上传
-        user = User.objects.get(email='hsowan.me@gmail.com', is_active=True)
+        size = os.path.getsize(filepath)
+
+        with open(filepath, 'rb') as f:
+            file_md5 = get_file_md5(f)
+
         Resource.objects.create(title=title, filename=filename, size=size,
                                 url=resource_url, category=category, key=key,
-                                tags=tags, user=user)
+                                tags=tags, user=user, file_md5=file_md5)
     except Exception as e:
         logging.error(e)
         ding('资源信息保存失败 ' + str(e))
 
 
 def get_file_md5(f):
+    """
+    获取文件的MD5值
+
+    :param f:
+    :return:
+    """
+
     m = hashlib.md5()
     while True:
         data = f.read(1024)

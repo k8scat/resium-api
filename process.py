@@ -22,16 +22,10 @@ from downloader.utils import aliyun_oss_get_file, get_file_md5
 
 if __name__ == '__main__':
 
-    users = User.objects.all()
-    fake = Faker('zh_CN')
-    for user in users:
-        user.nickname = fake.name()
-        user.save()
-
-    resources = Resource.objects.all()
-    user = User.objects.get(email='hsowan.me@gmail.com', is_active=True)
+    resources = Resource.objects.filter(file_md5='').all()
     for resource in resources:
-        resource.user = user
+        file_md5 = get_file_md5(aliyun_oss_get_file(resource))
+        resource.file_md5 = file_md5
         resource.save()
 
 

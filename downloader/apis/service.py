@@ -108,7 +108,7 @@ def list_orders(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
-        orders = Order.objects.order_by('-create_time').filter(user=user).all()
+        orders = Order.objects.order_by('-create_time').filter(user=user, is_deleted=False).all()
         return JsonResponse(dict(code=200, msg='获取购买记录成功', orders=OrderSerializers(orders, many=True).data))
 
 
@@ -129,3 +129,21 @@ def list_coupons(request):
             return JsonResponse(dict(code=404, msg='用户不存在'))
         coupons = Coupon.objects.filter(user=user).all()
         return JsonResponse(dict(code=200, coupons=CouponSerializers(coupons, many=True).data))
+
+
+@auth
+@api_view(['GET'])
+def delete_order(request):
+    if request.method == 'GET':
+        order_id = request.GET.get('id', None)
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id, is_deleted=False)
+                order.is_deleted = True
+                order.save()
+                return JsonResponse(dict(code=200, msg='订单删除成功'))
+            except Order.DoesNotExist:
+                return JsonResponse(dict(code=400, msg='订单不存在'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+

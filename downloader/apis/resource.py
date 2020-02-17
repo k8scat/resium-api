@@ -7,7 +7,6 @@
 """
 import logging
 import os
-import random
 import uuid
 from itertools import chain
 from threading import Thread
@@ -32,6 +31,11 @@ from downloader.utils import aliyun_oss_upload, get_file_md5, ding
 def upload(request):
     if request.method == 'POST':
         file = request.FILES.get('file', None)
+
+        # 向上扩大一点
+        if file.size > (2 * 100 + 10) * 1024 * 1024:
+            return JsonResponse(dict(code=400, msg='上传资源大小不能超过200MB'))
+
         file_md5 = get_file_md5(file.open('rb'))
         if Resource.objects.filter(file_md5=file_md5).count():
             return JsonResponse(dict(code=400, msg='资源已存在'))
@@ -51,9 +55,9 @@ def upload(request):
 
                 key = f'{str(uuid.uuid1())}-{file.name}'
                 logging.info(f'Upload resource: {key}')
-                save_file = os.path.join(settings.UPLOAD_DIR, key)
+                filepath = os.path.join(settings.UPLOAD_DIR, key)
                 # 写入文件，之后使用线程进行上传
-                with open(save_file, 'wb') as f:
+                with open(filepath, 'wb') as f:
                     for chunk in file.chunks():
                         f.write(chunk)
                 Resource(title=title, desc=desc, tags=tags,
@@ -62,7 +66,7 @@ def upload(request):
                          download_count=0).save()
 
                 # 开线程上传资源到OSS
-                t = Thread(target=aliyun_oss_upload, args=(save_file, key))
+                t = Thread(target=aliyun_oss_upload, args=(filepath, key))
                 t.start()
 
                 ding(f'有新的资源上传 {file.name}')
@@ -173,18 +177,24 @@ def list_related_resources(request: Request):
                 resource = Resource.objects.get(id=resource_id)
                 tags = resource.tags.split(settings.TAG_SEP)
                 if resource.tags and len(tags):
-                    tag = random.choice(tags)
-                    resources = Resource.objects.filter(~Q(id=resource_id), Q(is_audited=1),
-                                                        Q(tags__icontains=tag) |
-                                                        Q(title__icontains=tag) |
-                                                        Q(desc__icontains=tag)).all()[:10]
+                    resources = []
+                    for tag in tags:
+                        resources = list(chain(resources, Resource.objects.filter(~Q(id=resource_id), Q(is_audited=1),
+                                                                             Q(tags__icontains=tag) |
+                                                                             Q(title__icontains=tag) |
+                                                                             Q(desc__icontains=tag)).all()[:10]))
+
+                    # 调用list后，resources变为空了
                     resources_count = len(resources)
                     if resources_count != 10:
                         # 使用chain合并多个queryset
-                        resources = chain(resources, Resource.objects.order_by('-download_count').filter(~Q(id=resource_id), Q(is_audited=1)).all()[:10-resources_count])
+                        resources = chain(resources,
+                                          Resource.objects.order_by('-download_count').filter(~Q(id=resource_id),
+                                                                                              Q(is_audited=1)).all()[:10-resources_count])
 
                 else:
-                    resources = Resource.objects.order_by('-download_count').filter(~Q(id=resource_id), Q(is_audited=1)).all()[:10]
+                    resources = Resource.objects.order_by('-download_count').filter(~Q(id=resource_id),
+                                                                                    Q(is_audited=1)).all()[:10]
                 return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
             except Resource.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='资源不存在'))

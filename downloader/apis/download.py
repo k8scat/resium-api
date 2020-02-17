@@ -7,7 +7,6 @@
 """
 import string
 from threading import Thread
-from urllib import parse
 
 from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
@@ -53,7 +52,7 @@ def download(request):
             has_downloaded = False  # 用于后面判断是否需要扣除用户可用下载数
             try:
                 # 判断用户是否存在下载记录
-                dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, is_deleted=False)
+                dr = DownloadRecord.objects.get(user=user, resource_url=resource_url, has_done=True)
                 has_downloaded = True
             except DownloadRecord.DoesNotExist:
                 pass
@@ -62,7 +61,7 @@ def download(request):
             oss_resource = check_oss(resource_url)
             if oss_resource:
                 if not dr and user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数已用完'))
+                    return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
 
                 file = aliyun_oss_get_file(oss_resource.key)
                 response = FileResponse(file)
@@ -153,7 +152,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title))
+                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title, user))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -175,7 +174,7 @@ def download(request):
 
                 except Exception as e:
                     if dr:
-                        dr.is_deleted = True
+                        dr.has_done = False
                         dr.save()
                     logging.error(e)
                     ding(f'下载出现未知错误（{resource_url}） ' + str(e))
@@ -270,7 +269,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats))
+                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats, user))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -291,7 +290,7 @@ def download(request):
 
                 except Exception as e:
                     if dr:
-                        dr.is_deleted = True
+                        dr.has_done = False
                         dr.save()
                     logging.error(e)
                     ding(f'下载出现未知错误（{resource_url}） ' + str(e))
@@ -311,7 +310,7 @@ def download(request):
 @auth
 @swagger_auto_schema(method='get')
 @api_view(['GET'])
-def download_record(request):
+def list_download_records(request):
     """
     获取用户所有的下载记录
 
@@ -385,7 +384,7 @@ def resource_tags(request):
         return JsonResponse(dict(code=200, tags='#sep#'.join(ret_tags)))
 
 
-@ratelimit(key='ip', rate='1/m', block=True)
+@ratelimit(key='ip', rate='1/10m', block=True)
 @auth
 @swagger_auto_schema(method='get', manual_parameters=[params.resource_key])
 @api_view(['GET'])
@@ -416,7 +415,10 @@ def oss_download(request):
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         try:
-            dr = DownloadRecord.objects.get(Q(resource_url=oss_resource.url) | Q(resource=oss_resource), user=user, is_deleted=False)
+            dr = DownloadRecord.objects.get(Q(resource_url=oss_resource.url) |
+                                            Q(resource=oss_resource),
+                                            user=user,
+                                            has_done=True)
             dr.update_time = datetime.datetime.now()
             dr.save()
         except DownloadRecord.DoesNotExist:
@@ -458,3 +460,20 @@ def refresh_baidu_cookies(request):
             t = Thread(target=baidu_auto_login)
             t.start()
         return HttpResponse('')
+
+
+@auth
+@api_view(['GET'])
+def delete_download_record(request):
+    if request.method == 'GET':
+        download_record_id = request.GET.get('id', None)
+        if download_record_id:
+            try:
+                download_record = DownloadRecord.objects.get(id=download_record_id, is_deleted=False)
+                download_record.is_deleted = True
+                download_record.save()
+                return JsonResponse(dict(code=200, msg='下载记录删除成功'))
+            except DownloadRecord.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='下载记录不存在'))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))

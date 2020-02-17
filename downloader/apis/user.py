@@ -56,6 +56,18 @@ def change_nickname(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
+@auth
+@api_view(['GET'])
+def get_user(request):
+    if request.method == 'GET':
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            return JsonResponse(dict(code=200, user=UserSerializers(user).data))
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
 @swagger_auto_schema(method='post', request_body=LoginSerializers)
 @api_view(['POST'])
 def login(request):

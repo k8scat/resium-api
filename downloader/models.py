@@ -71,6 +71,7 @@ class DownloadRecord(Base):
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
     title = models.CharField(max_length=100, verbose_name='资源名称')
     account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
+    has_done = models.BooleanField(default=True, verbose_name='是否下载成功')
 
     class Meta:
         db_table = 'download_record'
@@ -106,7 +107,8 @@ class Order(Base):
     pay_url = models.TextField(verbose_name='支付地址')
     # 购买次数
     purchase_count = models.IntegerField(verbose_name='下载次数')
-    coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True)
+    coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True, verbose_name='使用的优惠券')
+    is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
 
     class Meta:
         db_table = 'order'
@@ -146,5 +148,14 @@ class ResourceComment(Base):
 
     class Meta:
         db_table = 'resource_comment'
+
+
+class Advert(Base):
+    link = models.CharField(max_length=240, verbose_name='推广链接')
+    image = models.CharField(max_length=240, verbose_name='推广图片')
+    title = models.CharField(max_length=100, verbose_name='推广标题')
+
+    class Meta:
+        db_table = 'advert'
 
 

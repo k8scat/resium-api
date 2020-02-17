@@ -15,7 +15,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(DownloadRecord)
 class DownloadRecordAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'user', 'create_time', 'is_deleted')
+    list_display = ('id', 'is_deleted', 'title', 'user', 'create_time')
     list_filter = ('is_deleted',)
     search_fields = ['title']
     list_per_page = 50
@@ -23,7 +23,7 @@ class DownloadRecordAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'subject', 'purchase_count', 'total_amount', 'paid_time', 'create_time')
+    list_display = ('id', 'is_deleted', 'paid_time', 'user', 'subject', 'purchase_count', 'total_amount', 'create_time')
     list_filter = ('purchase_count',)
     list_per_page = 50
 
