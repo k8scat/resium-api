@@ -489,7 +489,7 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
 
             resource = Resource.objects.create(title=title, filename=filename, size=size,
                                                desc=desc, url=resource_url, category=category,
-                                               key=key, tags=tags, user=user, file_md5=file_md5)
+                                               key=key, tags=tags, user_id=1, file_md5=file_md5)
             DownloadRecord(user=user, resource=resource, account=csdn_account.email, resource_url=resource_url,
                            title=title).save()
         except Exception as e:
@@ -532,7 +532,7 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
 
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
-                                           tags=tags, user=user, file_md5=file_md5)
+                                           tags=tags, user_id=1, file_md5=file_md5)
         DownloadRecord(user=user, resource=resource, account=baidu_account.email, resource_url=resource_url,
                        title=title).save()
     except Exception as e:
