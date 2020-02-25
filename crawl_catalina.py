@@ -5,6 +5,7 @@
 @date: 2020/2/20
 
 """
+import logging
 import os
 import django
 from django.conf import settings
@@ -81,7 +82,7 @@ def download(resource_id):
     with requests.get(download_base_url + resource_id, headers=headers, cookies=cookies) as r:
         if r.status_code == requests.codes.OK:
             oss_url = r.content.decode()
-            print(oss_url)
+            logging.info(f'OSS 地址: {oss_url}')
             if re.match(r'^http://sheldonbucket\.oss-cn-shanghai\.aliyuncs\.com/.+', oss_url):
                 with requests.get(oss_url, stream=True) as resp:
                     save_dir = os.path.join(base.DOWNLOAD_DIR, str(uuid.uuid1()))
@@ -96,7 +97,7 @@ def download(resource_id):
                     except KeyError:
                         filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
 
-                    print(filename)
+                    logging.info(f'文件名: {filename}')
 
                     # 文件大小
                     size = int(resp.headers['Content-Length'])
@@ -165,8 +166,9 @@ def parse_resources():
                     try:
                         resource_id = re.findall(r'\d+', content[1]['href'])[0]
                         resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
+                        logging.info(f'资源地址: {resource_url}')
                         if Resource.objects.filter(url=resource_url).count():
-                            print('资源已爬取, 跳过')
+                            logging.info('资源已爬取, 跳过')
                             continue
 
                         title = content[1].string
@@ -180,7 +182,7 @@ def parse_resources():
                         with open(filepath, 'rb') as f:
                             file_md5 = get_file_md5(f)
                             if Resource.objects.filter(file_md5=file_md5).count():
-                                print('资源已存在, 跳过')
+                                logging.info('资源已存在, 跳过')
                                 continue
 
                         tags = settings.TAG_SEP.join(parse_tags(resource_url))
@@ -202,8 +204,10 @@ def parse_resources():
 
             p += 1
         else:
+            ding('爬取Catalina结束')
             break
 
 
 if __name__ == '__main__':
+    ding('爬取Catalina开始')
     parse_resources()
