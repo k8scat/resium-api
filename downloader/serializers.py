@@ -27,10 +27,11 @@ class ResourceSerializers(serializers.ModelSerializer):
 class DownloadRecordSerializers(serializers.ModelSerializer):
     resource_url = serializers.CharField(source='resource.url')
     title = serializers.CharField(source='resource.title')
+    resource_id = serializers.IntegerField(source='resource.id')
 
     class Meta:
         model = DownloadRecord
-        fields = ['id', 'update_time', 'resource_url', 'title']
+        fields = ['id', 'update_time', 'resource_url', 'title', 'resource_id']
 
 
 class OrderSerializers(serializers.ModelSerializer):

@@ -483,7 +483,11 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
             resource = Resource.objects.create(title=title, filename=filename, size=size,
                                                desc=desc, url=resource_url, category=category,
                                                key=key, tags=tags, user_id=1, file_md5=file_md5)
-            DownloadRecord(user=user, resource=resource, account=csdn_account.email).save()
+            DownloadRecord(user=user,
+                           resource=resource,
+                           account=csdn_account.email,
+                           download_device=user.login_device,
+                           download_ip=user.login_ip).save()
         except Exception as e:
             logging.error(e)
             ding(f'资源信息保存失败: {str(e)}，资源已上传: {key}')
@@ -525,7 +529,11 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
                                            tags=tags, user_id=1, file_md5=file_md5)
-        DownloadRecord(user=user, resource=resource, account=baidu_account.email).save()
+        DownloadRecord(user=user,
+                       resource=resource,
+                       account=baidu_account.email,
+                       download_device=user.login_device,
+                       download_ip=user.login_ip).save()
     except Exception as e:
         logging.error(e)
         ding(f'资源信息保存失败 {str(e)}, 资源已上传: {key}')

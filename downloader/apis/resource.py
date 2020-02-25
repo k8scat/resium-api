@@ -8,6 +8,7 @@
 import datetime
 import logging
 import os
+import random
 import string
 import uuid
 from itertools import chain
@@ -265,7 +266,8 @@ def list_resource_tags(request):
             for t in tag[0].split(settings.TAG_SEP):
                 if t not in ret_tags and t != '':
                     ret_tags.append(t)
-        return JsonResponse(dict(code=200, tags='#sep#'.join(ret_tags)))
+
+        return JsonResponse(dict(code=200, tags='#sep#'.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
 
 
 @auth
@@ -299,7 +301,10 @@ def download(request):
             oss_resource = check_oss(resource_url)
             if oss_resource:
                 # 新增下载记录
-                DownloadRecord(user=user, resource=oss_resource).save()
+                DownloadRecord(user=user,
+                               resource=oss_resource,
+                               download_device=user.login_device,
+                               download_ip=user.login_ip).save()
                 # 生成临时下载地址
                 url = aliyun_oss_sign_url(oss_resource.key)
 
@@ -555,7 +560,10 @@ def oss_download(request):
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
-        DownloadRecord.objects.create(user=user, resource=oss_resource)
+        DownloadRecord.objects.create(user=user,
+                                      resource=oss_resource,
+                                      download_device=user.login_device,
+                                      download_ip=user.login_ip)
 
         url = aliyun_oss_sign_url(oss_resource.key)
         oss_resource.download_count += 1

@@ -70,6 +70,8 @@ class DownloadRecord(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     resource = models.ForeignKey(Resource, null=True, default=None, on_delete=models.CASCADE)
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
+    download_device = models.CharField(max_length=200, null=True, default=None, verbose_name='下载资源时使用的设备')
+    download_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='下载资源时的ip地址')
     account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
 
     class Meta:
