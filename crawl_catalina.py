@@ -9,7 +9,7 @@ import os
 import django
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
 django.setup()
 
 import re
@@ -107,7 +107,7 @@ def download(resource_id):
                         return filename, size, filepath, save_dir
                     except Exception as e:
                         print(e)
-                        print(resp.content)
+                        print(resp.text)
 
 
 def parse_tags(resource_url):
