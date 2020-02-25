@@ -109,7 +109,7 @@ def download(resource_id):
                         for chunk in resp.iter_content(chunk_size):
                             f.write(chunk)
                             write_count += len(chunk)
-                            print(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
+                            # print(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
 
                     return filename, size, filepath, save_dir
 
