@@ -84,38 +84,34 @@ def download(resource_id):
             print(oss_url)
             if re.match(r'^http://sheldonbucket\.oss-cn-shanghai\.aliyuncs\.com/.+', oss_url):
                 with requests.get(oss_url, stream=True) as resp:
+                    save_dir = os.path.join(base.DOWNLOAD_DIR, str(uuid.uuid1()))
+                    os.mkdir(save_dir)
+
                     try:
-                        save_dir = os.path.join(base.DOWNLOAD_DIR, str(uuid.uuid1()))
-                        os.mkdir(save_dir)
+                        # 文件名
+                        # 解决中文编码问题
+                        # 'è¯­é³è¯å«åèçè¿æ¥mainactivity .java.txt'.encode('ISO-8859-1').decode('utf-8')
+                        filename = str(resp.headers['Content-Disposition'].split('=')[1].encode('ISO-8859-1'),
+                                       encoding='utf-8')
+                    except KeyError:
+                        filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
 
-                        try:
-                            # 文件名
-                            # 解决中文编码问题
-                            # 'è¯­é³è¯å«åèçè¿æ¥mainactivity .java.txt'.encode('ISO-8859-1').decode('utf-8')
-                            filename = str(resp.headers['Content-Disposition'].split('=')[1].encode('ISO-8859-1'),
-                                           encoding='utf-8')
-                        except KeyError:
-                            filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
+                    print(filename)
 
-                        print(filename)
+                    # 文件大小
+                    size = int(resp.headers['Content-Length'])
+                    # 文件存储路径
+                    filepath = os.path.join(save_dir, filename)
 
-                        # 文件大小
-                        size = int(resp.headers['Content-Length'])
-                        # 文件存储路径
-                        filepath = os.path.join(save_dir, filename)
+                    chunk_size = 1024
+                    write_count = 0
+                    with open(filepath, 'wb') as f:
+                        for chunk in resp.iter_content(chunk_size):
+                            f.write(chunk)
+                            write_count += len(chunk)
+                            print(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
 
-                        chunk_size = 1024
-                        write_count = 0
-                        with open(filepath, 'wb') as f:
-                            for chunk in resp.iter_content(chunk_size):
-                                f.write(chunk)
-                                write_count += len(chunk)
-                                print(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
-
-                        return filename, size, filepath, save_dir
-                    except Exception as e:
-                        print(e)
-                        print(resp.headers)
+                    return filename, size, filepath, save_dir
 
 
 def parse_tags(resource_url):
