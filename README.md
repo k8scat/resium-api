@@ -7,10 +7,11 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 ## Todo
 
 * [ ] mq
+* [ ] redis
 * [ ] 重复保存资源的问题
 * [ ] uWSGI
 * [ ] 爬取CSDN已下载资源
-* [ ] 上传资源
+* [ ] 检查csdn当天下载数
 
 ## 广告接入
 

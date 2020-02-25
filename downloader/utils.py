@@ -115,6 +115,7 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
                 offset += num_to_upload
                 part_number += 1
             logging.info('Upload ok')
+
             # 完成分片上传。
             # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
             # headers = dict()
