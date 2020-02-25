@@ -107,7 +107,7 @@ def download(resource_id):
                         return filename, size, filepath, save_dir
                     except Exception as e:
                         print(e)
-                        print(resp.text)
+                        print(resp.headers)
 
 
 def parse_tags(resource_url):
