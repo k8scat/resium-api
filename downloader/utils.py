@@ -430,7 +430,7 @@ def get_driver(unique_folder):
 
 def check_csdn():
     """
-    检查csdn 当天是否可下载
+    Todo: 检查csdn会员账号 当天是否可下载
 
     上传下载相关问题
     https://blog.csdn.net/blogdevteam/article/details/103487272
@@ -441,13 +441,6 @@ def check_csdn():
     :return: bool
     """
 
-    # 这个今日资源下载数计算可能包含了以前下载过的资源，所以存在误差，偏大
-    today_download_count = DownloadRecord.objects.filter(create_time__day=datetime.date.today().day,
-                                                         is_deleted=False,
-                                                         resource_url__startswith='https://download.csdn.net/download/').values(
-        'resource_url').distinct().count()
-    if today_download_count == 20:
-        return False
     return True
 
 
@@ -471,7 +464,7 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
         return
 
     # 存储在oss中的key
-    key = str(uuid.uuid1()) + '-' + filename
+    key = f'{str(uuid.uuid1())}-{filename}'
     upload_success = aliyun_oss_upload(filepath, key)
     if not upload_success:
         return
@@ -490,13 +483,12 @@ def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_accou
             resource = Resource.objects.create(title=title, filename=filename, size=size,
                                                desc=desc, url=resource_url, category=category,
                                                key=key, tags=tags, user_id=1, file_md5=file_md5)
-            DownloadRecord(user=user, resource=resource, account=csdn_account.email, resource_url=resource_url,
-                           title=title).save()
+            DownloadRecord(user=user, resource=resource, account=csdn_account.email).save()
         except Exception as e:
             logging.error(e)
-            ding(f'资源信息保存失败：{str(e)}，资源已上传 {key}')
+            ding(f'资源信息保存失败: {str(e)}，资源已上传: {key}')
     else:
-        ding(f'资源信息保存失败，资源请求失败，资源已上传 {key}')
+        ding(f'资源信息保存失败, 资源请求失败, 资源已上传: {key}')
 
 
 def save_wenku_resource(resource_url, filename, filepath, title, tags, category, user, baidu_account):
@@ -533,11 +525,10 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
                                            tags=tags, user_id=1, file_md5=file_md5)
-        DownloadRecord(user=user, resource=resource, account=baidu_account.email, resource_url=resource_url,
-                       title=title).save()
+        DownloadRecord(user=user, resource=resource, account=baidu_account.email).save()
     except Exception as e:
         logging.error(e)
-        ding('资源信息保存失败 ' + str(e))
+        ding(f'资源信息保存失败 {str(e)}, 资源已上传: {key}')
 
 
 def get_file_md5(f):

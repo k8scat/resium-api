@@ -25,6 +25,9 @@ class User(Base):
     used_count = models.IntegerField(default=0, verbose_name='已用下载数')
     # 防止统一账号同时下载多个资源
     is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
+    login_device = models.CharField(max_length=200, null=True, default=None, verbose_name='登录设备')
+    login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
+    login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
 
     class Meta:
         db_table = 'user'
@@ -65,11 +68,8 @@ class Resource(Base):
 
 class DownloadRecord(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # 资源地址
-    resource_url = models.CharField(max_length=200, null=True, verbose_name='资源地址')
     resource = models.ForeignKey(Resource, null=True, default=None, on_delete=models.CASCADE)
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
-    title = models.CharField(max_length=100, verbose_name='资源名称')
     account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
 
     class Meta:
@@ -156,5 +156,3 @@ class Advert(Base):
 
     class Meta:
         db_table = 'advert'
-
-

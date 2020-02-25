@@ -31,10 +31,9 @@ from wechatpy.events import UnsubscribeEvent, SubscribeEvent
 from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
-from downloader import params
 from downloader.decorators import auth
 from downloader.models import User, Coupon
-from downloader.serializers import UserSerializers, LoginSerializers, RegisterSerializers, ResetPasswordSerializers
+from downloader.serializers import UserSerializers
 from downloader.utils import ding
 
 
@@ -68,22 +67,30 @@ def get_user(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@swagger_auto_schema(method='post', request_body=LoginSerializers)
 @api_view(['POST'])
 def login(request):
     """
     用户登录
     """
     if request.method == 'POST':
-        logging.info(type(request))
-        email = request.data.get('email', '')
-        password = request.data.get('password', '')
-        if email == '' or password == '':
+        email = request.data.get('email', None)
+        password = request.data.get('password', None)
+        if not email or not password:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         try:
             user = User.objects.get(email=email, is_active=True)
             if check_password(password, user.password):
+                login_device = request.META.get('HTTP_USER_AGENT', None)
+                login_ip = request.META.get('REMOTE_ADDR', None)
+
+                if login_device and login_ip:
+                    user.login_device = login_device
+                    user.login_ip = login_ip
+                    user.login_time = datetime.datetime.now()
+                    user.save()
+                else:
+                    return JsonResponse(dict(code=400, msg='登录失败'))
                 # 设置token过期时间
                 exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
                 payload = {
@@ -98,18 +105,17 @@ def login(request):
             return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
 
 
-@swagger_auto_schema(method='post', request_body=RegisterSerializers)
 @api_view(['POST'])
 def register(request):
     """
     用户注册
     """
     if request.method == 'POST':
-        email = request.data.get('email', '')
-        password = request.data.get('password', '')
-        code = request.data.get('code', '')
+        email = request.data.get('email', None)
+        password = request.data.get('password', None)
+        code = request.data.get('code', None)
 
-        if email == '' or password == '' or code == '':
+        if not email or not password or not code:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         # 检查邮箱是否已注册以及邀请码是否有效
@@ -150,7 +156,6 @@ def register(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@swagger_auto_schema(method='get', manual_parameters=[params.email, params.code])
 @api_view(['GET'])
 def activate(request):
     """
@@ -188,7 +193,6 @@ def activate(request):
 
 
 @ratelimit(key='ip', rate='5/m', block=True)
-@swagger_auto_schema(method='get', manual_parameters=[params.email])
 @api_view(['GET'])
 def send_forget_password_email(request):
     """
@@ -233,7 +237,6 @@ def send_forget_password_email(request):
 
 
 @ratelimit(key='ip', rate='5/m', block=True)
-@swagger_auto_schema(method='get', manual_parameters=[params.email, params.code, params.temp_password])
 @api_view(['GET'])
 def forget_password(request):
     """
@@ -264,7 +267,6 @@ def forget_password(request):
 
 
 @auth
-@swagger_auto_schema(method='post', request_body=ResetPasswordSerializers)
 @api_view(['POST'])
 def reset_password(request):
     """

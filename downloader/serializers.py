@@ -25,6 +25,9 @@ class ResourceSerializers(serializers.ModelSerializer):
 
 
 class DownloadRecordSerializers(serializers.ModelSerializer):
+    resource_url = serializers.CharField(source='resource.url')
+    title = serializers.CharField(source='resource.title')
+
     class Meta:
         model = DownloadRecord
         fields = ['id', 'update_time', 'resource_url', 'title']
@@ -61,39 +64,5 @@ class AdvertSerializers(serializers.ModelSerializer):
     class Meta:
         model = Advert
         fields = '__all__'
-
-
-class LoginSerializers(serializers.Serializer):
-    """
-    swagger
-    """
-    email = serializers.EmailField()
-    password = serializers.CharField(max_length=100)
-
-
-class PurchaseSerializers(serializers.Serializer):
-    """
-    swagger
-    """
-    total_amount = serializers.FloatField()
-    purchase_count = serializers.IntegerField()
-    code = serializers.CharField(max_length=50)
-
-
-class RegisterSerializers(serializers.Serializer):
-    """
-    swagger
-    """
-    email = serializers.EmailField()
-    password = serializers.CharField(max_length=100)
-    invited_code = serializers.CharField(max_length=6)
-
-
-class ResetPasswordSerializers(serializers.Serializer):
-    """
-    swagger
-    """
-    old_password = serializers.CharField(max_length=100)
-    new_password = serializers.CharField(max_length=100)
 
 
