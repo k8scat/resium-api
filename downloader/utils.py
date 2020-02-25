@@ -36,7 +36,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User, Coupon
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -569,3 +569,17 @@ def aliyun_oss_delete_files(keys: list):
     result = bucket.batch_delete_objects(keys)
     # 打印成功删除的文件名。
     print('\n'.join(result.deleted_keys))
+
+
+def create_coupon(user, comment, total_amount=0.8, purchase_count=1):
+    try:
+        code = str(uuid.uuid1()).replace('-', '')
+        Coupon(user=user,
+               total_amount=total_amount,
+               purchase_count=purchase_count,
+               comment=comment,
+               code=code).save()
+        return True
+    except Exception as e:
+        logging.error(e)
+        return False

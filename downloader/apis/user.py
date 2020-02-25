@@ -10,7 +10,6 @@ import hashlib
 import logging
 import random
 import string
-import uuid
 from urllib.parse import quote
 
 import jwt
@@ -21,7 +20,6 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from drf_yasg.utils import swagger_auto_schema
 from faker import Faker
 from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
@@ -34,7 +32,7 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User, Coupon
 from downloader.serializers import UserSerializers
-from downloader.utils import ding
+from downloader.utils import ding, create_coupon
 
 
 @auth
@@ -177,10 +175,8 @@ def activate(request):
             user.save()
 
             # 优惠券
-            comment = '新用户注册'
-            code = str(uuid.uuid1()).replace('-', '')
-            Coupon(user=user, total_amount=0.8, purchase_count=1, comment=comment,
-                   code=code).save()
+            if not create_coupon(user, '新用户注册'):
+                return JsonResponse(dict(code=500, msg='注册失败'))
 
             User.objects.filter(email=email, is_active=False).delete()
             return redirect(settings.CSDNBOT_UI + '/login?msg=激活成功')
