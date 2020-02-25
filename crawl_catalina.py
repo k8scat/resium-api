@@ -81,6 +81,7 @@ def download(resource_id):
     with requests.get(download_base_url + resource_id, headers=headers, cookies=cookies) as r:
         if r.status_code == requests.codes.OK:
             oss_url = r.content.decode()
+            print(oss_url)
             if re.match(r'^http://sheldonbucket\.oss-cn-shanghai\.aliyuncs\.com/.+', oss_url):
                 with requests.get(oss_url, stream=True) as resp:
                     try:
@@ -89,8 +90,14 @@ def download(resource_id):
                         # 文件名
                         # 解决中文编码问题
                         # 'è¯­é³è¯å«åèçè¿æ¥mainactivity .java.txt'.encode('ISO-8859-1').decode('utf-8')
-                        filename = str(resp.headers['Content-Disposition'].split('=')[1].encode('ISO-8859-1'),
-                                       encoding='utf-8')
+                        try:
+                            filename = str(resp.headers['Content-Disposition'].split('=')[1].encode('ISO-8859-1'),
+                                           encoding='utf-8')
+                        except KeyError:
+                            filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
+
+                        print(filename)
+
                         # 文件大小
                         size = int(resp.headers['Content-Length'])
                         # 文件存储路径
@@ -202,4 +209,5 @@ def parse_resources():
 
 
 if __name__ == '__main__':
-    parse_resources()
+    # parse_resources()
+    download('13988')
