@@ -210,5 +210,4 @@ def parse_resources():
 
 
 if __name__ == '__main__':
-    # parse_resources()
-    download('13988')
+    parse_resources()
