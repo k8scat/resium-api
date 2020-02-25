@@ -87,10 +87,11 @@ def download(resource_id):
                     try:
                         save_dir = os.path.join(base.DOWNLOAD_DIR, str(uuid.uuid1()))
                         os.mkdir(save_dir)
-                        # 文件名
-                        # 解决中文编码问题
-                        # 'è¯­é³è¯å«åèçè¿æ¥mainactivity .java.txt'.encode('ISO-8859-1').decode('utf-8')
+
                         try:
+                            # 文件名
+                            # 解决中文编码问题
+                            # 'è¯­é³è¯å«åèçè¿æ¥mainactivity .java.txt'.encode('ISO-8859-1').decode('utf-8')
                             filename = str(resp.headers['Content-Disposition'].split('=')[1].encode('ISO-8859-1'),
                                            encoding='utf-8')
                         except KeyError:
