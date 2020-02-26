@@ -156,20 +156,23 @@ def parse_tags(resource_url):
     :return:
     """
 
-    all_tags = []
-    r = requests.get(resource_url)
-    if r.status_code == requests.codes.OK:
-        soup = BeautifulSoup(r.text, 'lxml')
-        tags = soup.find('div', class_='divTags').find_all('span')
-        for tag in tags:
-            tag = tag.string.strip()
-            if tag.count(' '):
-                all_tags.extend(tag.split(' '))
-            else:
-                all_tags.append(tag)
-        return all_tags
-    else:
-        return '获取资源标签失败'
+    with requests.get(resource_url) as r:
+        all_tags = []
+        if r.status_code == requests.codes.OK:
+            if r.text.count('所需积分'):
+                return '非免费下载资源'
+
+            soup = BeautifulSoup(r.text, 'lxml')
+            tags = soup.find('div', class_='divTags').find_all('span')
+            for tag in tags:
+                tag = tag.string.strip()
+                if tag.count(' '):
+                    all_tags.extend(tag.split(' '))
+                else:
+                    all_tags.append(tag)
+            return all_tags
+        else:
+            return '获取资源标签失败'
 
 
 def parse_resources():
@@ -211,7 +214,7 @@ def parse_resources():
                                         continue
 
                                     tags = settings.TAG_SEP.join(parse_tags(resource_url))
-                                    if tags == '获取资源标签失败':
+                                    if tags == '获取资源标签失败' or tags == '非免费下载资源':
                                         ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
                                         return
                                     title = content[1].string
