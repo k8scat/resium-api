@@ -159,6 +159,7 @@ def parse_tags(resource_url):
     with requests.get(resource_url) as r:
         all_tags = []
         if r.status_code == requests.codes.OK:
+            # 进一步检测是否是免费下载资源
             if r.text.count('所需积分'):
                 return '非免费下载资源'
 
