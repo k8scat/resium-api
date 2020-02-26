@@ -97,6 +97,8 @@ def check_cookies():
             return True
         else:
             return False
+    else:
+        return False
 
 
 def download(resource_id):
@@ -184,6 +186,10 @@ def parse_resources():
 
     :return:
     """
+    # 不可下载的资源
+    err_resources = [
+        'http://www.catalina.com.cn/info_337968.html'
+    ]
 
     for top_class, sub_classes in parse_types():
         for sub_class in sub_classes:
@@ -212,6 +218,10 @@ def parse_resources():
                                     resource_id = re.findall(r'\d+', content[1]['href'])[0]
                                     resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
                                     logging.info(f'资源地址: {resource_url} in {url}')
+                                    if err_resources.count(resource_url):
+                                        logging.info('该资源不可下载')
+                                        continue
+
                                     if Resource.objects.filter(url=resource_url).count():
                                         logging.info('资源已爬取, 跳过')
                                         continue
