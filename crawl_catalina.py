@@ -166,7 +166,7 @@ def parse_resources():
                     try:
                         resource_id = re.findall(r'\d+', content[1]['href'])[0]
                         resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
-                        logging.info(f'资源地址: {resource_url}')
+                        logging.info(f'资源地址: {resource_url} in {url}')
                         if Resource.objects.filter(url=resource_url).count():
                             logging.info('资源已爬取, 跳过')
                             continue
