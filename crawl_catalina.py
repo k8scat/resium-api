@@ -136,7 +136,7 @@ def parse_tags(resource_url):
                 all_tags.append(tag)
         return all_tags
     else:
-        ding('爬取Catalina: 获取资源标签失败')
+        return '获取资源标签失败'
 
 
 def parse_resources():
@@ -171,12 +171,16 @@ def parse_resources():
                             logging.info('资源已爬取, 跳过')
                             continue
 
+                        tags = settings.TAG_SEP.join(parse_tags(resource_url))
+                        if tags == '获取资源标签失败':
+                            ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
+                            return
                         title = content[1].string
                         desc = content[2].string
                         try:
                             filename, size, filepath, save_dir = download(resource_id)
                         except TypeError:
-                            ding('爬取Catalina: 资源下载失败')
+                            ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
                             return
 
                         with open(filepath, 'rb') as f:
@@ -184,8 +188,6 @@ def parse_resources():
                             if Resource.objects.filter(file_md5=file_md5).count():
                                 logging.info('资源已存在, 跳过')
                                 continue
-
-                        tags = settings.TAG_SEP.join(parse_tags(resource_url))
 
                         key = f'{str(uuid.uuid1())}-{filename}'
                         if aliyun_oss_upload(filepath, key):
@@ -196,7 +198,7 @@ def parse_resources():
                                          user_id=1, url=resource_url).save()
                                 ding(f'爬取Catalina: 资源创建成功: {filename}')
                             except Exception as e:
-                                ding(f'爬取Catalina: 资源创建失败: {str(e)}')
+                                ding(f'爬取Catalina: 资源创建失败: {str(e)}, 资源地址: {resource_url}, 资源所处位置: {url}')
 
                     finally:
                         if save_dir:
