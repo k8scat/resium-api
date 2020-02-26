@@ -13,6 +13,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 爬取CSDN已下载资源
 * [ ] 检查csdn当天下载数
 * [ ] 后端分布式
+* [ ] 删除 文件碎片
 
 ## 广告接入
 

@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/2/20
 
+爬取Catalina站点资源
+
 """
 import logging
 import os
@@ -20,6 +22,37 @@ from csdnbot.settings import base
 from bs4 import BeautifulSoup
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding
 from downloader.models import Resource
+
+
+def parse_types():
+    """
+    解析出不同类别资源的地址
+
+    :return: generator
+    """
+    url = 'http://www.catalina.com.cn/'
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'accept-encoding': 'gzip, deflate',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'connection': 'keep-alive',
+        'host': 'www.catalina.com.cn',
+        'referer': 'http://www.catalina.com.cn/',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36'
+    }
+    with requests.get(url, headers=headers) as r:
+        if r.status_code == requests.codes.OK:
+            soup = BeautifulSoup(r.text, 'lxml')
+            items = soup.select('div.cate-menu')
+            for item in items:
+                # 所有分类
+                all_classes = item.select('a')
+                # 一级分类
+                top_class = all_classes[0].text
+                # 二级分类
+                # tag数组, 获取字符串: tag.text, 获取href: tag['href']
+                sub_classes = all_classes[1:]
+                yield top_class, sub_classes
 
 
 def parse_cookies():
@@ -146,70 +179,76 @@ def parse_resources():
     :return:
     """
 
-    t = 2
-    p = 1
-    while True:
-        if p == 1:
-            # 资源分类
-            url = f'http://www.catalina.com.cn/Access/c-{t}'
-        else:
-            # 分页
-            url = f'http://www.catalina.com.cn/Access/cp-{t}-{p}'
-        r = requests.get(url)
-        if r.status_code == requests.codes.OK:
-            soup = BeautifulSoup(r.text, 'lxml')
-            items = soup.find('ul', class_='list-unstyled jh-library-item').find_all('li', recursive=False)
-            for item in items:
-                content = item.find_all('a')
-                if content[0].string == '【免费】':
-                    save_dir = None
-                    try:
-                        resource_id = re.findall(r'\d+', content[1]['href'])[0]
-                        resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
-                        logging.info(f'资源地址: {resource_url} in {url}')
-                        if Resource.objects.filter(url=resource_url).count():
-                            logging.info('资源已爬取, 跳过')
-                            continue
-
-                        tags = settings.TAG_SEP.join(parse_tags(resource_url))
-                        if tags == '获取资源标签失败':
-                            ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
-                            return
-                        title = content[1].string
-                        desc = content[2].string
-                        try:
-                            filename, size, filepath, save_dir = download(resource_id)
-                        except TypeError:
-                            ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
-                            return
-
-                        with open(filepath, 'rb') as f:
-                            file_md5 = get_file_md5(f)
-                            if Resource.objects.filter(file_md5=file_md5).count():
-                                logging.info('资源已存在, 跳过')
-                                continue
-
-                        key = f'{str(uuid.uuid1())}-{filename}'
-                        if aliyun_oss_upload(filepath, key):
+    for top_class, sub_classes in parse_types():
+        for sub_class in sub_classes:
+            category = f'{top_class}-{sub_class.text}'
+            t = sub_class['href'].split('-')[1]
+            p = 1
+            while True:
+                if p == 1:
+                    # 资源分类
+                    url = f'http://www.catalina.com.cn/Access/c-{t}'
+                else:
+                    # 分页
+                    url = f'http://www.catalina.com.cn/Access/cp-{t}-{p}'
+                r = requests.get(url)
+                if r.status_code == requests.codes.OK:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    items = soup.find('ul', class_='list-unstyled jh-library-item').find_all('li', recursive=False)
+                    if len(items) <= 0:
+                        break
+                    for item in items:
+                        content = item.find_all('a')
+                        if content[0].string == '【免费】':
+                            save_dir = None
                             try:
-                                Resource(title=title, desc=desc, filename=filename,
-                                         size=size, file_md5=file_md5, category='移动开发-Android',
-                                         tags=tags, key=key, download_count=0,
-                                         user_id=1, url=resource_url).save()
-                                ding(f'爬取Catalina: 资源创建成功: {filename}')
-                            except Exception as e:
-                                ding(f'爬取Catalina: 资源创建失败: {str(e)}, 资源地址: {resource_url}, 资源所处位置: {url}')
+                                resource_id = re.findall(r'\d+', content[1]['href'])[0]
+                                resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
+                                logging.info(f'资源地址: {resource_url} in {url}')
+                                if Resource.objects.filter(url=resource_url).count():
+                                    logging.info('资源已爬取, 跳过')
+                                    continue
 
-                    finally:
-                        if save_dir:
-                            os.system(f'rm -rf {save_dir}')
+                                tags = settings.TAG_SEP.join(parse_tags(resource_url))
+                                if tags == '获取资源标签失败':
+                                    ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
+                                    return
+                                title = content[1].string
+                                desc = content[2].string
+                                try:
+                                    filename, size, filepath, save_dir = download(resource_id)
+                                except TypeError:
+                                    ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
+                                    return
 
-            p += 1
-        else:
-            ding('爬取Catalina结束')
-            break
+                                with open(filepath, 'rb') as f:
+                                    file_md5 = get_file_md5(f)
+                                    if Resource.objects.filter(file_md5=file_md5).count():
+                                        logging.info('资源已存在, 跳过')
+                                        continue
+
+                                key = f'{str(uuid.uuid1())}-{filename}'
+                                if aliyun_oss_upload(filepath, key):
+                                    try:
+                                        Resource(title=title, desc=desc, filename=filename,
+                                                 size=size, file_md5=file_md5, category=category,
+                                                 tags=tags, key=key, download_count=0,
+                                                 user_id=1, url=resource_url).save()
+                                        ding(f'爬取Catalina: 资源创建成功: {filename}')
+                                    except Exception as e:
+                                        ding(f'爬取Catalina: 资源创建失败: {str(e)}, 资源地址: {resource_url}, 资源所处位置: {url}')
+
+                            finally:
+                                if save_dir:
+                                    os.system(f'rm -rf {save_dir}')
+
+                    p += 1
+                else:
+                    ding('爬取Catalina结束')
+                    break
 
 
 if __name__ == '__main__':
     ding('爬取Catalina开始')
     parse_resources()
+
