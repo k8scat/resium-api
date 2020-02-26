@@ -171,6 +171,8 @@ def parse_tags(resource_url):
                     all_tags.extend(tag.split(' '))
                 else:
                     all_tags.append(tag)
+
+            all_tags.remove(' ')
             return settings.TAG_SEP.join(all_tags)
         else:
             return '获取资源标签失败'

@@ -6,6 +6,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 
+* [ ] django-cors-headers 并没有返回 Access-Control-Allow-Origin
 * [ ] mq
 * [ ] redis
 * [ ] 重复保存资源的问题
@@ -14,6 +15,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 检查csdn当天下载数
 * [ ] 后端分布式
 * [ ] 删除 文件碎片
+    * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 
 ## 广告接入
 

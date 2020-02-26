@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,7 +25,6 @@ SECRET_KEY = ')_du2k%k)d+hmofh_c071maigkuppa6jszwbm%3_47uw3xu%oc'
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -34,8 +34,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'downloader.apps.DownloaderConfig',
-    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -47,6 +47,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csdnbot.middleware.CorsMiddleware'
 ]
 
 ROOT_URLCONF = 'csdnbot.urls'
@@ -72,7 +73,6 @@ WSGI_APPLICATION = 'csdnbot.wsgi.application'
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -132,7 +132,7 @@ CORS_ALLOW_HEADERS = [
     'origin',
     'user-agent',
     'x-csrftoken',
-    'x-requested-with',
+    'x-requested-with'
 ]
 CORS_ORIGIN_ALLOW_ALL = True
 # 暴露给前端的header
@@ -240,5 +240,5 @@ WX_APP_ID = 'wx77307b155750dfbb'
 WX_SECRET = '9ca164fe2412185440691412207e917f'
 WX_ENCODING_AES_KEY = 'KHh1qYYOoaioXgzHZYla00WSvuCGPlJhUtUNu6NOTIi'
 
-REGISTER_CODE = '155750df'
+REGISTER_CODE = '540zchkg'
 
