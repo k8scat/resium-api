@@ -188,6 +188,7 @@ def parse_resources():
                 if p == 1:
                     # 资源分类
                     url = f'http://www.catalina.com.cn/Access/c-{t}'
+                    ding(f'开始爬取: {url}')
                 else:
                     # 分页
                     url = f'http://www.catalina.com.cn/Access/cp-{t}-{p}'
