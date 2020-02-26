@@ -171,7 +171,7 @@ def parse_tags(resource_url):
                     all_tags.extend(tag.split(' '))
                 else:
                     all_tags.append(tag)
-            return all_tags
+            return settings.TAG_SEP.join(all_tags)
         else:
             return '获取资源标签失败'
 
@@ -214,10 +214,12 @@ def parse_resources():
                                         logging.info('资源已爬取, 跳过')
                                         continue
 
-                                    tags = settings.TAG_SEP.join(parse_tags(resource_url))
-                                    if tags == '获取资源标签失败' or tags == '非免费下载资源':
+                                    tags = parse_tags(resource_url)
+                                    if tags == '获取资源标签失败':
                                         ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
                                         return
+                                    if tags == '非免费下载资源':
+                                        continue
                                     title = content[1].string
                                     desc = content[2].string
                                     try:
@@ -255,4 +257,3 @@ def parse_resources():
 
 if __name__ == '__main__':
     parse_resources()
-
