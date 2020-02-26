@@ -149,6 +149,12 @@ def download(resource_id):
 
                     return filename, size, filepath, save_dir
 
+        else:
+            if r.text.count('远程服务器返回错误: (404) 未找到。'):
+                return 404
+            else:
+                return False
+
 
 def parse_tags(resource_url):
     """
@@ -184,10 +190,6 @@ def parse_resources():
 
     :return:
     """
-    # 不可下载的资源
-    err_resources = [
-        'http://www.catalina.com.cn/info_337968.html'
-    ]
 
     for top_class, sub_classes in parse_types():
         for sub_class in sub_classes:
@@ -216,27 +218,28 @@ def parse_resources():
                                     resource_id = re.findall(r'\d+', content[1]['href'])[0]
                                     resource_url = f'http://www.catalina.com.cn/info_{resource_id}.html'
                                     logging.info(f'资源地址: {resource_url} in {url}')
-                                    if err_resources.count(resource_url):
-                                        logging.info('该资源不可下载')
-                                        continue
-
                                     if Resource.objects.filter(url=resource_url).count():
                                         logging.info('资源已爬取, 跳过')
                                         continue
 
                                     tags = parse_tags(resource_url)
                                     if tags == '获取资源标签失败':
-                                        ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
+                                        ding(f'爬取Catalina: 获取资源标签失败 {resource_url}, 资源所处位置: {url}')
                                         return
                                     if tags == '非免费下载资源':
                                         continue
                                     title = content[1].string
                                     desc = content[2].string
-                                    try:
-                                        filename, size, filepath, save_dir = download(resource_id)
-                                    except TypeError:
+
+                                    download_result = download(resource_id)
+                                    if download_result == 404:
+                                        logging.info('该资源不可下载: 404')
+                                        continue
+                                    elif download_result is False:
                                         ding(f'爬取Catalina: 资源下载失败 {resource_url}, 资源所处位置: {url}')
                                         return
+                                    else:
+                                        filename, size, filepath, save_dir = download_result
 
                                     with open(filepath, 'rb') as f:
                                         file_md5 = get_file_md5(f)
