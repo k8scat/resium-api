@@ -250,6 +250,5 @@ def parse_resources():
 
 
 if __name__ == '__main__':
-    ding('爬取Catalina开始')
     parse_resources()
 
