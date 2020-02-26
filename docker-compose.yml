@@ -6,7 +6,7 @@ services:
     ports:
       - 8055:8000
     networks:
-      - mysql_net
+      - csdnbot_net
     volumes:
       - /srv/csdnbot/download:/csdnbot/download
     container_name: csdnbot
@@ -16,7 +16,7 @@ services:
       - /dev/shm:/dev/shm
       - /srv/csdnbot/download:/download
     networks:
-      - mysql_net
+      - csdnbot_net
     ports:
       - 6666:4444
     restart: always
@@ -24,5 +24,4 @@ services:
     container_name: csdnbot-selenium
 
 networks:
-  mysql_net:
-    external: true
+  csdnbot_net:

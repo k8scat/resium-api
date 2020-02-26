@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/2/17
 
+手动上传资源
+
 """
 
 import os

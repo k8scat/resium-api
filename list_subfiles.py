@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/2/18
 
+获取目录下子目录下的文件
+
 """
 import os
 
