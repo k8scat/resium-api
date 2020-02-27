@@ -4,7 +4,7 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/2/20
 
-爬取Catalina站点资源
+爬取Catalina站点资源并上传至OSS
 
 """
 import logging
@@ -131,7 +131,9 @@ def download(resource_id):
                                        encoding='utf-8')
                     except KeyError:
                         filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
-
+                    # 解决无法创建文件的问题: 微信小插件 支持（聊天纪录/微信多开/防撤回/红包提醒）.zip
+                    filename.replace('/', '-')
+                    filename.replace(' ', '-')
                     logging.info(f'文件名: {filename}')
 
                     # 文件大小
@@ -145,7 +147,7 @@ def download(resource_id):
                         for chunk in resp.iter_content(chunk_size):
                             f.write(chunk)
                             write_count += len(chunk)
-                            # print(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
+                            # logging.info(f'{filename} 下载进度: {round(write_count / size * 100, 2)}%')
 
                     return filename, size, filepath, save_dir
 
@@ -256,7 +258,12 @@ def parse_resources():
                                                      user_id=1, url=resource_url).save()
                                             ding(f'爬取Catalina: 资源创建成功: {filename}')
                                         except Exception as e:
+                                            logging.error(e)
                                             ding(f'爬取Catalina: 资源创建失败: {str(e)}, 资源地址: {resource_url}, 资源所处位置: {url}')
+
+                                except Exception as e:
+                                    logging.error(e)
+                                    ding(f'爬取Catalina: 出现未知异常 {str(e)}')
 
                                 finally:
                                     if save_dir:
