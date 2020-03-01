@@ -7,7 +7,6 @@
 """
 import json
 import os
-from time import sleep
 
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
@@ -17,7 +16,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
 django.setup()
 from downloader.models import CsdnAccount
 
@@ -100,10 +99,8 @@ def csdn_auto_login():
 
 
 if __name__ == '__main__':
-    csdn_account = CsdnAccount.objects.get(email='xizhizeze@163.com')
+    csdn_account = CsdnAccount.objects.get(email='17770040362@163.com')
     cookies = csdn_auto_login()
-    cookies_str = json.dumps(cookies)
-    cookies_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csdn_cookies.json')
     # 判断是否登录成功
     for c in cookies:
         if c['value'] == csdn_account.username:

@@ -9,12 +9,14 @@ import datetime
 import hashlib
 import logging
 import random
+import re
 import string
 from urllib.parse import quote
 
 import jwt
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
@@ -32,7 +34,7 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User, Coupon
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, create_coupon
+from downloader.utils import ding, create_coupon, send_message
 
 
 @auth
@@ -292,6 +294,26 @@ def reset_password(request):
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
+@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
+@auth
+@api_view(['POST'])
+def send_phone_code(request):
+    if request.method == 'POST':
+        phone = request.data.get('phone', '')
+        logging.info(request.data)
+        logging.info(phone)
+        if not re.match(r'^1[3456789]\d{9}$', phone):
+            return JsonResponse(dict(code=400, msg='手机号有误'))
+
+        code = ''.join(random.sample(string.digits, 6))
+        if send_message(phone, code):
+            cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
+            return JsonResponse(dict(code=200, msg='验证码发送成功'))
+        else:
+            return JsonResponse(dict(code=500, msg='验证码发送失败'))
 
 
 @api_view(['GET', 'POST'])

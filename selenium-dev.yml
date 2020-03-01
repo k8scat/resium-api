@@ -1,13 +1,13 @@
 version: '3.7'
 services:
   selenium:
-    image: selenium/standalone-chrome  # registry.cn-hangzhou.aliyuncs.com/hsowan/standalone-chrome-debug:latest
+    image: registry.cn-hangzhou.aliyuncs.com/hsowan/standalone-chrome-debug:latest
     volumes:
       - ./download:/download
       - /dev/shm:/dev/shm
     ports:
       - 4444:4444
-#      - 5900:5900
+      - 5900:5900
     restart: always
     user: root
     container_name: selenium

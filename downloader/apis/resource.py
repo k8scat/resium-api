@@ -5,10 +5,13 @@
 @date: 2020/2/15
 
 """
+import datetime
 import logging
 import os
 import random
+import re
 import string
+import time
 import uuid
 from itertools import chain
 from threading import Thread
@@ -30,8 +33,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 from downloader.decorators import auth
 from downloader.models import Resource, User, ResourceComment, DownloadRecord
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
-from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, save_wenku_resource, \
-    check_download, add_cookie, get_driver, save_csdn_resource, check_csdn, check_oss, aliyun_oss_check_file
+from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
+    check_download, add_cookie, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
+    save_resource
 
 
 @auth
@@ -228,8 +232,10 @@ def list_resources(request):
         if page < 1:
             page = 1
 
-        start = 5 * (page - 1)
-        end = start + 5
+        # 单页资源数
+        page_count = 8
+        start = page_count * (page - 1)
+        end = start + page_count
         # https://cloud.tencent.com/developer/ask/81558
         resources = Resource.objects.order_by('-create_time').filter(Q(is_audited=1),
                                                                      Q(title__icontains=key) |
@@ -266,7 +272,7 @@ def list_resource_tags(request):
                 if t not in ret_tags and t != '':
                     ret_tags.append(t)
 
-        return JsonResponse(dict(code=200, tags='#sep#'.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
+        return JsonResponse(dict(code=200, tags=settings.TAG_SEP.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
 
 
 @auth
@@ -325,7 +331,7 @@ def download(request):
                     break
 
             # CSDN资源下载
-            if resource_url.startswith('https://download.csdn.net/download/'):
+            if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
                 if not check_csdn():
@@ -333,25 +339,7 @@ def download(request):
 
                 # 无下载记录且可用下载数不足
                 if user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
-
-                r = requests.get(resource_url)
-                if r.status_code == 200:
-                    try:
-                        soup = BeautifulSoup(r.text, 'lxml')
-                        # 版权受限
-                        # https://download.csdn.net/download/c_baby123/10791185
-                        cannot_download = len(soup.select('div.resource_box a.copty-btn'))
-                        if cannot_download:
-                            return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
-                        # 获取资源标题
-                        title = soup.select('div.resource_box_info span.resource_title')[0].string
-                    except Exception as e:
-                        logging.error(e)
-                        ding('资源名称获取失败 ' + str(e))
-                        return JsonResponse(dict(code=500, msg='下载失败'))
-                else:
-                    return JsonResponse(dict(code=500, msg='下载失败'))
+                    return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
 
                 driver = get_driver(uuid_str)
                 csdn_account = None
@@ -363,6 +351,19 @@ def download(request):
                     csdn_account = add_cookie(driver, 'csdn')
                     # 访问资源地址
                     driver.get(resource_url)
+
+                    soup = BeautifulSoup(driver.page_source, 'lxml')
+                    # 版权受限
+                    # https://download.csdn.net/download/c_baby123/10791185
+                    cannot_download = len(soup.select('div.resource_box a.copty-btn'))
+                    if cannot_download:
+                        return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
+                    # 获取资源标题
+                    title = soup.select('div.resource_box_info span.resource_title')[0].string
+                    desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
+                    category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
+                    tags = settings.TAG_SEP.join([tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
+                    logging.info(tags)
 
                     try:
                         # 点击VIP下载按钮
@@ -392,9 +393,12 @@ def download(request):
                     csdn_account.used_count += 1
                     csdn_account.save()
 
-                    filepath, filename = check_download(save_dir)
+                    try:
+                        filepath, filename = check_download(save_dir)
+                    except TypeError:
+                        return JsonResponse(dict(code=500, msg='下载失败'))
                     # 保存资源
-                    t = Thread(target=save_csdn_resource, args=(resource_url, filename, filepath, title, user, csdn_account))
+                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, desc, user, csdn_account))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -414,7 +418,7 @@ def download(request):
                     driver.quit()
 
             # 百度文库文档下载
-            elif resource_url.startswith('https://wenku.baidu.com/view/'):
+            elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
                 logging.info(f'百度文库资源下载: {resource_url}')
 
                 driver = get_driver(uuid_str)
@@ -426,18 +430,19 @@ def download(request):
 
                     driver.get(resource_url)
 
-                    # VIP免费文档 共享文档 VIP专享文档 付费文档 VIP尊享8折文档
-                    doc_tag = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH,
-                                                        "//div[contains(@class, 'bd doc-reader')]/div/div[contains(@style, 'display: block;')]/span"))
-                    ).text
-                    # ['VIP免费文档', '共享文档', 'VIP专享文档']
-                    if doc_tag not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
-                        return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_tag))
+                    soup = BeautifulSoup(driver.page_source, 'lxml')
+                    title = soup.select('span.doc-header-title')[0].text
+                    tags = settings.TAG_SEP.join([tag.text for tag in soup.select('div.tag-tips a')])
+                    desc = soup.select('span.doc-desc-all')[0].text.strip()
+                    doc_type = soup.find('div', attrs={'style': 'display: block;', 'class': 'doc-tag doc-tag-vip-free'}).find('span').string
+                    cats = '-'.join([item.text for item in soup.select('div.crumbs.ui-crumbs.mb10 li a')[1:]])
 
-                    if doc_tag != 'VIP免费文档':
+                    if doc_type not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
+                        return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_type))
+
+                    if doc_type != 'VIP免费文档':
                         if user.valid_count <= 0:
-                            return JsonResponse(dict(code=400, msg='可用下载数不足，请前往购买'))
+                            return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
                         # 更新用户下载数
                         user.valid_count -= 1
                         user.used_count += 1
@@ -446,29 +451,6 @@ def download(request):
                         # 更新账号使用下载数
                         baidu_account.used_count += 1
                         baidu_account.save()
-
-                    # 文档标题
-                    title = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//h1[contains(@class, 'reader_ab_test with-top-banner')]/span"))
-                    ).text
-
-                    # 文档标签，可能不存在
-                    # find_elements_by_xpath 返回的是一个List
-                    tags = []
-                    tag_els = driver.find_elements_by_xpath("//div[@class='tag-tips']/a")
-                    for tag_el in tag_els:
-                        tags.append(tag_el.text)
-                    tags = settings.TAG_SEP.join(tags)
-
-                    # 文档分类
-                    cat_els = WebDriverWait(driver, 10).until(
-                        EC.presence_of_all_elements_located((By.XPATH, "//div[@id='page-curmbs']/ul//a"))
-                    )[1:]
-                    cats = []
-                    for cat_el in cat_els:
-                        cats.append(cat_el.text)
-                    cats = '-'.join(cats) if len(cats) > 0 else '文档'
 
                     # 显示下载对话框的按钮
                     show_download_modal_button = WebDriverWait(driver, 10).until(
@@ -490,7 +472,7 @@ def download(request):
                         cancel_wp_upload_check.click()
                         download_button.click()
                     except TimeoutException:
-                        if doc_tag != 'VIP专享文档':
+                        if doc_type != 'VIP专享文档':
                             # 已转存过此文档
                             download_button = WebDriverWait(driver, 5).until(
                                 EC.presence_of_element_located((By.ID, 'WkDialogOk'))
@@ -501,7 +483,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_wenku_resource, args=(resource_url, filename, filepath, title, tags, cats, user, baidu_account))
+                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, cats, desc, user, baidu_account))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -515,6 +497,67 @@ def download(request):
                 except Exception as e:
                     logging.error(e)
                     ding(f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{baidu_account.email if baidu_account else "无"}，资源地址：{resource_url}')
+                    return JsonResponse(dict(code=500, msg='下载失败'))
+
+                finally:
+                    driver.quit()
+
+            # 稻壳模板下载
+            elif re.match(r'^(http(s)?://www\.docer\.com/preview/).+$', resource_url):
+                logging.info(f'稻壳模板下载: {resource_url}')
+
+                driver = get_driver(uuid_str)
+                docer_account = None
+                try:
+                    driver.get('https://www.docer.com/')
+
+                    # 添加cookies
+                    docer_account = add_cookie(driver, 'docer')
+
+                    driver.get(resource_url)
+
+                    soup = BeautifulSoup(driver.page_source, 'lxml')
+                    title = soup.find('h1', class_='preview__title').string
+                    tags = [tag.text for tag in soup.select('li.preview__labels-item.g-link a')]
+                    if '展开更多' in tags:
+                        tags = tags[:-1]
+                    tags = settings.TAG_SEP.join(tags)
+                    category = soup.select('span.m-crumbs-path a')[0].text
+
+                    # 获取下载按钮
+                    download_button = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//span[@class='preview__btn preview__primary-btn--large preview__primary-btn']"))
+                    )
+                    download_button.click()
+
+                    # 更新用户下载数
+                    user.valid_count -= 1
+                    user.used_count += 1
+                    user.save()
+
+                    # 更新账号使用下载数
+                    docer_account.used_count += 1
+                    docer_account.save()
+
+                    filepath, filename = check_download(save_dir)
+
+                    # 保存资源
+                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, '', user, docer_account))
+                    t.start()
+
+                    f = open(filepath, 'rb')
+                    response = FileResponse(f)
+                    response['Content-Type'] = 'application/octet-stream'
+                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
+                                                                                            safe=string.printable) + '"'
+
+                    return response
+
+                except Exception as e:
+                    logging.error(e)
+                    ding(
+                        f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{docer_account.email if docer_account else "无"}，资源地址：{resource_url}')
                     return JsonResponse(dict(code=500, msg='下载失败'))
 
                 finally:
@@ -569,3 +612,94 @@ def oss_download(request):
         oss_resource.save()
         return JsonResponse(dict(code=200, url=url))
 
+
+@auth
+def parse_resource(request):
+    """
+    爬取资源信息
+
+    返回资源信息以及相关资源信息
+
+    :param request:
+    :return:
+    """
+
+    if request.method == 'GET':
+        resource_url = request.GET.get('url', None)
+        if not resource_url:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        resource_url = resource_url.split('?')[0]
+
+        # CSDN资源
+        if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
+            headers = {
+                'authority': 'download.csdn.net',
+                'referer': 'https://download.csdn.net/',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
+            }
+            with requests.get(resource_url, headers=headers) as r:
+                if r.status_code == requests.codes.OK:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    resource = {
+                        'title': soup.find('span', class_='resource_title').string,
+                        'desc': soup.select('div.resource_description p')[0].text,
+                        'tags': [tag.text for tag in soup.select('label.resource_tags a')],
+                        'size': soup.select('strong.info_box span:nth-of-type(3) em')[0].text,
+                        'file_type': soup.select('dl.resource_box_dl dt img')[0]['src'].split('/')[-1].split('.')[0]
+                    }
+
+                    return JsonResponse(dict(code=200, resource=resource))
+                else:
+                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+
+        # 百度文库文档
+        elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
+
+            headers = {
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'accept-encoding': 'gzip, deflate, br',
+                'accept-language': 'gzip, deflate, br',
+                'host': 'wenku.baidu.com',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
+            }
+            with requests.get(resource_url, headers=headers) as r:
+                if r.status_code == requests.codes.OK:
+                    soup = BeautifulSoup(r.content.decode('gbk'), 'lxml')
+                    resource = {
+                        'title': soup.select('span.doc-header-title')[0].text,
+                        'tags': [tag.text for tag in soup.select('div.tag-tips a')],
+                        'desc': soup.select('span.doc-desc-all')[0].text.strip(),
+                        'file_type': soup.select('h1.reader_ab_test.with-top-banner b')[0]['class'][1].split('-')[1]
+                    }
+                    return JsonResponse(dict(code=200, resource=resource))
+                else:
+                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+
+        # 稻壳模板
+        elif re.match(r'^(http(s)?://www\.docer\.com/preview/).+$', resource_url):
+            headers = {
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'accept-encoding': 'gzip, deflate, br',
+                'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'host': 'www.docer.com',
+                'referer': 'https://www.docer.com/',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
+            }
+            with requests.get(resource_url, headers=headers) as r:
+                if r.status_code == requests.codes.OK:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    tags = [tag.text for tag in soup.select('li.preview__labels-item.g-link a')]
+                    if '展开更多' in tags:
+                        tags = tags[:-1]
+                    resource = {
+                        'title': soup.find('h1', class_='preview__title').string,
+                        'tags': tags,
+                        'file_type': soup.select('span.m-crumbs-path a')[0].text
+                    }
+                    return JsonResponse(dict(code=200, resource=resource))
+                else:
+                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+
+        else:
+            return JsonResponse(dict(code=400, msg='资源地址有误'))

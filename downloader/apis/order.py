@@ -89,7 +89,7 @@ def list_orders(request):
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
         orders = Order.objects.order_by('-create_time').filter(user=user, is_deleted=False).all()
-        return JsonResponse(dict(code=200, msg='获取购买记录成功', orders=OrderSerializers(orders, many=True).data))
+        return JsonResponse(dict(code=200, orders=OrderSerializers(orders, many=True).data))
 
 
 @auth
@@ -116,13 +116,14 @@ def create_order(request):
             except Coupon.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='优惠券不存在'))
         else:
+            # 判断对应的服务是否存在
             if Service.objects.filter(total_amount=total_amount, purchase_count=purchase_count).count() == 0:
                 return JsonResponse(dict(code=404, msg='服务不存在'))
 
         if total_amount is None or purchase_count is None:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        subject = '购买资源下载服务'
+        subject = '捐赠支持'
 
         ali_pay = get_alipay()
         # 生成唯一订单号
@@ -146,7 +147,7 @@ def create_order(request):
         try:
             o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount,
                                      pay_url=pay_url, purchase_count=purchase_count, coupon=c)
-            return JsonResponse(dict(code=200, msg='订单创建成功', order=OrderSerializers(o).data))
+            return JsonResponse(dict(code=200, order=OrderSerializers(o).data))
         except Exception as e:
             logging.info(e)
             return JsonResponse(dict(code=400, msg='订单创建失败'))

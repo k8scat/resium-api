@@ -18,6 +18,7 @@ urlpatterns = [
     re_path(r'^wx/?$', user.wx),
     path('change_nickname/', user.change_nickname),
     path('get_user/', user.get_user),
+    # path('send_phone_code/', user.send_phone_code),
 
     path('service/', service.list_services),
 
@@ -46,6 +47,7 @@ urlpatterns = [
     path('list_resource_tags/', resource.list_resource_tags),
     re_path(r'^list_resources/?$', resource.list_resources),
     path('get_resource_count/', resource.get_resource_count),
+    re_path(r'^parse_resource/?$', resource.parse_resource),
 
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
 ]

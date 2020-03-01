@@ -6,7 +6,6 @@
 
 """
 import base64
-import datetime
 import hashlib
 import hmac
 import json
@@ -36,7 +35,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User, Coupon
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User, Coupon, DocerAccount
 
 
 def ding(content, at_mobiles=None, is_at_all=False):
@@ -85,7 +84,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
     :param key: 保存在oss上的文件名
     :return:
     """
-
+    logging.info('开始上传资源...')
+    start = time.time()
     try:
         bucket = get_aliyun_oss_bucket()
 
@@ -114,7 +114,6 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
                 parts.append(PartInfo(part_number, result.etag))
                 offset += num_to_upload
                 part_number += 1
-            # logging.info('Upload ok')
 
             # 完成分片上传。
             # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
@@ -122,6 +121,9 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
             # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
             bucket.complete_multipart_upload(key, upload_id, parts)
+
+            end = time.time()
+            logging.info(f'上传成功: {key}, 耗时 {end - start} 秒')
 
             # 修改文件指针，重新读文件
             f.seek(0)
@@ -359,16 +361,24 @@ def check_download(save_dir):
     :param save_dir:
     :return:
     """
-    while True:
+    logging.info('下载开始...')
+    start = time.time()
+    # 5分钟左右下载完成，
+    for i in range(3000):
         files = os.listdir(save_dir)
         if len(files) == 0 or files[0].endswith('.crdownload'):
-            logging.info('Downloading')
+            # logging.info('Downloading')
             time.sleep(0.1)
             continue
         else:
-            time.sleep(0.1)
-            logging.info('Download ok')
+            end = time.time()
+            logging.info(f'下载成功, 耗时 {end - start} 秒')
             break
+
+    else:
+        logging.error('下载失败: 下载超时')
+        ding('下载失败: 下载超时')
+        return False
 
     # 下载完成后，文件夹下存在唯一的文件
     filename = files[0]
@@ -393,6 +403,9 @@ def add_cookie(driver, platform):
     elif platform == 'baidu':
         account = random.choice(BaiduAccount.objects.filter(is_enabled=True).all())
         cookies = json.loads(account.cookies)
+    elif platform == 'docer':
+        account = random.choice(DocerAccount.objects.filter(is_enabled=True).all())
+        cookies = json.loads(account.cookies)
 
     for cookie in cookies:
         if 'expiry' in cookie:
@@ -402,17 +415,17 @@ def add_cookie(driver, platform):
     return account
 
 
-def get_driver(unique_folder):
+def get_driver(folder=''):
     """
     获取driver
 
-    :param unique_folder: 唯一文件夹
+    :param folder: 唯一文件夹
     :return: WebDriver
     """
     options = webdriver.ChromeOptions()
     prefs = {
         "download.prompt_for_download": False,
-        'download.default_directory': '/download/' + unique_folder,  # 下载目录, 需要在docker做映射
+        'download.default_directory': '/download/' + folder,  # 下载目录, 需要在docker做映射
         "plugins.always_open_pdf_externally": True,
         'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
         'profile.default_content_setting_values.images': 2,  # 禁止图片加载
@@ -445,60 +458,9 @@ def check_csdn():
     return True
 
 
-def save_csdn_resource(resource_url, filename, filepath, title, user, csdn_account):
+def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account):
     """
-    保存CSDN资源记录并上传到oss
-
-    :param resource_url:
-    :param filename:
-    :param filepath:
-    :param title:
-    :param user:
-    :param csdn_account:
-    :return:
-    """
-
-    with open(filepath, 'rb') as f:
-        file_md5 = get_file_md5(f)
-    # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
-        return
-
-    # 存储在oss中的key
-    key = f'{str(uuid.uuid1())}-{filename}'
-    upload_success = aliyun_oss_upload(filepath, key)
-    if not upload_success:
-        return
-
-    r = requests.get(resource_url)
-    if r.status_code == 200:
-        try:
-            # 资源文件大小
-            size = os.path.getsize(filepath)
-            soup = BeautifulSoup(r.text, 'lxml')
-            desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
-            category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
-            tags = settings.TAG_SEP.join(
-                [tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
-
-            resource = Resource.objects.create(title=title, filename=filename, size=size,
-                                               desc=desc, url=resource_url, category=category,
-                                               key=key, tags=tags, user_id=1, file_md5=file_md5)
-            DownloadRecord(user=user,
-                           resource=resource,
-                           account=csdn_account.email,
-                           download_device=user.login_device,
-                           download_ip=user.login_ip).save()
-        except Exception as e:
-            logging.error(e)
-            ding(f'资源信息保存失败: {str(e)}，资源已上传: {key}')
-    else:
-        ding(f'资源信息保存失败, 资源请求失败, 资源已上传: {key}')
-
-
-def save_wenku_resource(resource_url, filename, filepath, title, tags, category, user, baidu_account):
-    """
-    保存百度文库资源记录并上传到oss
+    保存资源记录并上传到OSS
 
     :param resource_url:
     :param filename:
@@ -506,8 +468,9 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
     :param title:
     :param tags:
     :param category:
+    :param desc:
     :param user:
-    :param baidu_account:
+    :param account:
     :return:
     """
 
@@ -529,15 +492,15 @@ def save_wenku_resource(resource_url, filename, filepath, title, tags, category,
 
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
-                                           tags=tags, user_id=1, file_md5=file_md5)
+                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc)
         DownloadRecord(user=user,
                        resource=resource,
-                       account=baidu_account.email,
+                       account=account.email,
                        download_device=user.login_device,
                        download_ip=user.login_ip).save()
     except Exception as e:
         logging.error(e)
-        ding(f'资源信息保存失败 {str(e)}, 资源已上传: {key}')
+        ding(f'资源信息保存失败 {str(e)}, 但资源已上传: {key}')
 
 
 def get_file_md5(f):
@@ -584,3 +547,60 @@ def create_coupon(user, comment, total_amount=0.8, purchase_count=1):
     except Exception as e:
         logging.error(e)
         return False
+
+
+def send_message(phone, code):
+    """
+    发送短信
+
+    :param phone: 手机号
+    :param code: 验证码
+    :return:
+    """
+    from aliyunsdkcore.client import AcsClient
+    from aliyunsdkcore.request import CommonRequest
+    client = AcsClient(settings.ALIYUN_ACCESS_KEY_ID,
+                       settings.ALIYUN_ACCESS_KEY_SECRET,
+                       'cn-hangzhou')
+
+    request = CommonRequest()
+    request.set_accept_format('json')
+    request.set_domain('dysmsapi.aliyuncs.com')
+    request.set_method('POST')
+    request.set_protocol_type('https')  # https | http
+    request.set_version('2017-05-25')
+    request.set_action_name('SendSms')
+
+    request.add_query_param('RegionId', "cn-hangzhou")
+    request.add_query_param('PhoneNumbers', phone)
+    request.add_query_param('SignName', settings.ALIYUN_SMS_SIGN_NAME)
+    request.add_query_param('TemplateCode', settings.ALIYUN_SMS_TEMPLATE_CODE)
+    request.add_query_param('TemplateParam', {
+        'code': code
+    })
+
+    if settings.DEBUG:
+        ding(code)
+        return True
+    else:
+        try:
+            client.do_action_with_exception(request)
+            return True
+        except Exception as e:
+            logging.error(e)
+            ding(f'短信验证码发送失败: {str(e)}')
+            return False
+
+
+def parse_cookies(file):
+    with open(file, 'r') as f:
+        cookies = {}
+        try:
+            for cookie in f.read().replace(' ', '').split(';'):
+                cookie = cookie.split('=')
+                cookies.setdefault(cookie[0], cookie[1])
+        except Exception as e:
+            logging.info(e)
+
+        return cookies
+

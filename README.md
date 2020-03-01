@@ -6,9 +6,13 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 
+* [ ] 用户是否正在下载状态: 数据库 -> redis
+* [ ] 集成稻壳模板
+* [ ] 换绑手机号、邮箱
+* [ ] tags 单独创建一个表
 * [ ] django-cors-headers 并没有返回 Access-Control-Allow-Origin
 * [ ] mq
-* [ ] redis
+* [ ] redis 保存验证码 phone=code
 * [ ] 重复保存资源的问题
 * [ ] uWSGI
 * [ ] 爬取CSDN已下载资源
@@ -24,6 +28,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## 部署流程
 
+
+
 ## 资源网站
 
 * [百度文库VIP](https://wenku.baidu.com/ndvipmember/browse/vipprivilege)
@@ -38,6 +44,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * http://www.catalina.com.cn/
 
 * [脚本之家电子书下载](https://www.jb51.net/books/)
+
+## 学生认证
 
 ## Decorator
 

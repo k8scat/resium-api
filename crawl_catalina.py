@@ -95,10 +95,9 @@ def check_cookies():
     if r.status_code == requests.codes.OK:
         if r.text.count(account_username):
             return True
-        else:
-            return False
-    else:
-        return False
+
+    logging.info('cookies无效')
+    return False
 
 
 def download(resource_id):
@@ -277,3 +276,4 @@ def parse_resources():
 
 if __name__ == '__main__':
     parse_resources()
+
