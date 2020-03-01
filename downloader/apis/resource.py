@@ -431,9 +431,10 @@ def download(request):
                     driver.get(resource_url)
 
                     soup = BeautifulSoup(driver.page_source, 'lxml')
+                    desc = soup.select('span.doc-desc-all')
                     title = soup.select('span.doc-header-title')[0].text
                     tags = settings.TAG_SEP.join([tag.text for tag in soup.select('div.tag-tips a')])
-                    desc = soup.select('span.doc-desc-all')[0].text.strip()
+                    desc = desc[0].text.strip() if desc else ''
                     doc_type = soup.find('div', attrs={'style': 'display: block;', 'class': 'doc-tag doc-tag-vip-free'}).find('span').string
                     cats = '-'.join([item.text for item in soup.select('div.crumbs.ui-crumbs.mb10 li a')[1:]])
 
