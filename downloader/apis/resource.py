@@ -666,10 +666,11 @@ def parse_resource(request):
             with requests.get(resource_url, headers=headers) as r:
                 if r.status_code == requests.codes.OK:
                     soup = BeautifulSoup(r.content.decode('gbk'), 'lxml')
+                    desc = soup.select('span.doc-desc-all')
                     resource = {
                         'title': soup.select('span.doc-header-title')[0].text,
                         'tags': [tag.text for tag in soup.select('div.tag-tips a')],
-                        'desc': soup.select('span.doc-desc-all')[0].text.strip(),
+                        'desc': desc[0].text.strip() if desc else '',
                         'file_type': soup.select('h1.reader_ab_test.with-top-banner b')[0]['class'][1].split('-')[1]
                     }
                     return JsonResponse(dict(code=200, resource=resource))
