@@ -12,7 +12,7 @@ import os
 import django
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
 django.setup()
 
 import re
@@ -275,5 +275,5 @@ def parse_resources():
 
 
 if __name__ == '__main__':
-    parse_resources()
-
+    if check_cookies():
+        parse_resources()
