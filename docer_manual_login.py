@@ -12,17 +12,16 @@ from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
 django.setup()
 from downloader.models import DocerAccount
-from django.conf import settings
 
 
 def docer_manual_login():
     docer_home = 'https://www.docer.com/'
 
     caps = DesiredCapabilities.CHROME
-    driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
+    driver = webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', desired_capabilities=caps)
     try:
         driver.get(docer_home)
 

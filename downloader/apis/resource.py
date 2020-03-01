@@ -507,6 +507,9 @@ def download(request):
             elif re.match(r'^(http(s)?://www\.docer\.com/preview/).+$', resource_url):
                 logging.info(f'稻壳模板下载: {resource_url}')
 
+                if user.valid_count <= 0:
+                    return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
+
                 driver = get_driver(uuid_str)
                 docer_account = None
                 try:
