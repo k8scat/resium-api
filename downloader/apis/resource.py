@@ -204,7 +204,8 @@ def list_related_resources(request: Request):
 
                     # 调用list后，resources变为空了
                     resources_count = len(resources)
-                    if resources_count != 10:
+                    # 如果resource_count 小于10
+                    if resources_count < 10:
                         # 使用chain合并多个queryset
                         resources = chain(resources,
                                           Resource.objects.order_by('-download_count').filter(~Q(id=resource_id),

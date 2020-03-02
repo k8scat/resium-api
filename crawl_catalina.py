@@ -131,8 +131,7 @@ def download(resource_id):
                     except KeyError:
                         filename = oss_url.split('?')[0].split('http://sheldonbucket.oss-cn-shanghai.aliyuncs.com/')[1]
                     # 解决无法创建文件的问题: 微信小插件 支持（聊天纪录/微信多开/防撤回/红包提醒）.zip
-                    filename.replace('/', '-')
-                    filename.replace(' ', '-')
+                    filename = filename.replace('/', '-').replace(' ', '-')
                     logging.info(f'文件名: {filename}')
 
                     # 文件大小
