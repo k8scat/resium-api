@@ -388,7 +388,7 @@ def check_download(save_dir):
     return filepath, filename
 
 
-def add_cookie(driver, platform):
+def add_cookies(driver, platform):
     """
     给driver添加cookies
 

@@ -43,7 +43,7 @@ def download(download_url, unique_folder):
         with open(cookies_file, 'r', encoding='utf-8') as f:
             cookies = json.loads(f.read())
         for c in cookies:
-            driver.add_cookie({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
+            driver.add_cookies({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
                                'secure': c['secure']})
         driver.get(download_url)
         time.sleep(1)

@@ -5,13 +5,11 @@
 @date: 2020/2/15
 
 """
-import datetime
 import logging
 import os
 import random
 import re
 import string
-import time
 import uuid
 from itertools import chain
 from threading import Thread
@@ -34,7 +32,7 @@ from downloader.decorators import auth
 from downloader.models import Resource, User, ResourceComment, DownloadRecord
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
-    check_download, add_cookie, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
+    check_download, add_cookies, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
     save_resource
 
 
@@ -349,7 +347,7 @@ def download(request):
                     # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
                     driver.get('https://download.csdn.net')
                     # 添加cookies，并返回使用的会员账号
-                    csdn_account = add_cookie(driver, 'csdn')
+                    csdn_account = add_cookies(driver, 'csdn')
                     # 访问资源地址
                     driver.get(resource_url)
 
@@ -427,7 +425,7 @@ def download(request):
                 try:
                     driver.get('https://www.baidu.com/')
                     # 添加cookies
-                    baidu_account = add_cookie(driver, 'baidu')
+                    baidu_account = add_cookies(driver, 'baidu')
 
                     driver.get(resource_url)
 
@@ -517,7 +515,7 @@ def download(request):
                     driver.get('https://www.docer.com/')
 
                     # 添加cookies
-                    docer_account = add_cookie(driver, 'docer')
+                    docer_account = add_cookies(driver, 'docer')
 
                     driver.get(resource_url)
 

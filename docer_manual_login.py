@@ -9,10 +9,9 @@ import json
 import os
 
 from selenium import webdriver
-from selenium.webdriver import DesiredCapabilities
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
 django.setup()
 from downloader.models import DocerAccount
 
@@ -20,8 +19,7 @@ from downloader.models import DocerAccount
 def docer_manual_login():
     docer_home = 'https://www.docer.com/'
 
-    caps = DesiredCapabilities.CHROME
-    driver = webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', desired_capabilities=caps)
+    driver = webdriver.Chrome()
     try:
         driver.get(docer_home)
 
