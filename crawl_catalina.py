@@ -96,7 +96,7 @@ def check_cookies():
         if r.text.count(account_username):
             return True
 
-    logging.info('cookies无效')
+    ding('爬取Catalina: cookies无效')
     return False
 
 

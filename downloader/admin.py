@@ -15,7 +15,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(DownloadRecord)
 class DownloadRecordAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'create_time')
+    list_display = ('id', 'user', 'resource', 'create_time')
     list_per_page = 50
 
 
@@ -33,10 +33,10 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_audited', 'user', 'title', 'filename', 'category', 'tags', 'key', 'create_time')
+    list_display = ('id', 'is_audited', 'user', 'title', 'url', 'key', 'filename', 'category', 'tags', 'create_time')
     list_per_page = 50
     list_filter = ('is_audited',)
-    search_fields = ['title', 'key']
+    search_fields = ['title', 'key', 'url']
 
 
 @admin.register(Coupon)
@@ -59,6 +59,20 @@ class BaiduAccountAdmin(admin.ModelAdmin):
     list_display = ('id', 'is_enabled', 'email', 'username', 'nickname', 'used_count', 'update_time')
     list_per_page = 50
     search_fields = ['email', 'nickname', 'username']
+
+
+@admin.register(DocerAccount)
+class DocerAccountAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_enabled', 'email', 'used_count', 'update_time')
+    list_per_page = 50
+    search_fields = ['email']
+
+
+@admin.register(Advert)
+class AdvertAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'link', 'image')
+    list_per_page = 50
+    search_fields = ['title']
 
 
 admin.site.site_header = 'CSDNBot Admin'

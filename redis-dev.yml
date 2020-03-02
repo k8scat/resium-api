@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   redis:
+    # https://git.ncucoder.com/hsowan/redis-auth
     image: registry.cn-hangzhou.aliyuncs.com/hsowan/redis-auth:latest
     ports:
       - 6379:6379
