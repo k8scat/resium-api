@@ -435,7 +435,7 @@ def download(request):
                     title = soup.select('span.doc-header-title')[0].text
                     tags = settings.TAG_SEP.join([tag.text for tag in soup.select('div.tag-tips a')])
                     desc = desc[0].text.strip() if desc else ''
-                    doc_type = soup.find('div', attrs={'style': 'display: block;', 'class': 'doc-tag doc-tag-vip-free'}).find('span').string
+                    doc_type = soup.find('div', attrs={'style': 'display: block;', 'class': 'doc-tag'}).find('span').string
                     cats = '-'.join([item.text for item in soup.select('div.crumbs.ui-crumbs.mb10 li a')[1:]])
 
                     if doc_type not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
