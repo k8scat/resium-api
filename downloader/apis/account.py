@@ -9,15 +9,13 @@ import json
 import logging
 from threading import Thread
 from selenium.webdriver.support import expected_conditions as EC
-import requests
 from django.conf import settings
 from django.http import HttpResponse
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import DocerAccount
-from downloader.utils import csdn_auto_login, baidu_auto_login, get_driver, add_cookies, ding
+from downloader.utils import csdn_auto_login, get_driver, add_cookies, ding
 
 
 def refresh_csdn_cookies(request):
@@ -32,15 +30,32 @@ def refresh_csdn_cookies(request):
         return HttpResponse('')
 
 
-def refresh_baidu_cookies(request):
+def check_baidu_cookies(request):
     """
-    更新百度 cookies
+    检查百度 cookies
     """
     if request.method == 'GET':
         token = request.GET.get('token', '')
         if token == settings.ADMIN_TOKEN:
-            t = Thread(target=baidu_auto_login)
-            t.start()
+            driver = get_driver()
+            try:
+                driver.get('https://wenku.baidu.com/')
+                baidu_account = add_cookies(driver, 'baidu')
+                driver.get('https://wenku.baidu.com/')
+                try:
+                    username = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//a[@id='userNameCon']/span[@class='text-dec-under'][1]"))
+                    ).text
+                    logging.info(username)
+                    baidu_account.cookies = json.dumps(driver.get_cookies())
+                    baidu_account.save()
+                    ding('百度文库 cookies 仍有效')
+                except TimeoutException:
+                    ding('百度文库 cookies 已失效，请尽快更新！')
+            finally:
+                driver.close()
+
         return HttpResponse('')
 
 

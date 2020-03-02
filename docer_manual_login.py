@@ -16,28 +16,15 @@ django.setup()
 from downloader.models import DocerAccount
 
 
-def docer_manual_login():
-    docer_home = 'https://www.docer.com/'
-
+if __name__ == '__main__':
+    docer_account = DocerAccount.objects.get(email='17770040362@163.com')
     driver = webdriver.Chrome()
     try:
-        driver.get(docer_home)
+        driver.get('https://www.docer.com/')
 
-        if input('是否登录成功(默认登陆成功): ') == 'n':
-            return []
-
-        return driver.get_cookies()
+        if input('是否登录成功: ') == 'y':
+            docer_account.cookies = json.dumps(driver.get_cookies())
+            docer_account.save()
 
     finally:
         driver.close()
-
-
-if __name__ == '__main__':
-    docer_account = DocerAccount.objects.get(email='17770040362@163.com')
-    cookies = docer_manual_login()
-    if len(cookies):
-        docer_account.cookies = json.dumps(cookies)
-        docer_account.save()
-        print('ok')
-    else:
-        print('error')
