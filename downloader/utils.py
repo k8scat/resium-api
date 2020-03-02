@@ -390,7 +390,7 @@ def check_download(save_dir):
 
 def add_cookies(driver, platform):
     """
-    给driver添加cookies
+    给driver添加cookies, 并返回account
 
     :param driver:
     :param platform: csdn or baidu

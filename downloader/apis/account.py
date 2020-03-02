@@ -54,13 +54,15 @@ def check_docer_cookies(request):
             driver = get_driver()
             try:
                 driver.get('https://www.docer.com/')
-                add_cookies(driver, 'docer')
+                docer_account = add_cookies(driver, 'docer')
                 driver.get('https://my.docer.com/#!/memberCenter')
                 try:
                     vip_id = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.XPATH, "//div[@class='pi_my_div_top']/span[@class='grade_text'][1]"))
                     ).text
                     logging.info(vip_id)
+                    docer_account.cookies = json.dumps(driver.get_cookies())
+                    docer_account.save()
                     ding('稻壳模板 cookies 仍有效')
                 except TimeoutException:
                     ding('稻壳模板 cookies 已失效，请尽快更新！')
