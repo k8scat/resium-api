@@ -192,26 +192,14 @@ def list_related_resources(request: Request):
             try:
                 resource = Resource.objects.get(id=resource_id)
                 tags = resource.tags.split(settings.TAG_SEP)
+                resources = []
                 if resource.tags and len(tags):
-                    resources = []
                     for tag in tags:
                         resources = list(chain(resources, Resource.objects.filter(~Q(id=resource_id), Q(is_audited=1),
                                                                              Q(tags__icontains=tag) |
                                                                              Q(title__icontains=tag) |
-                                                                             Q(desc__icontains=tag)).all()[:10]))
+                                                                             Q(desc__icontains=tag)).all()[:5]))
 
-                    # 调用list后，resources变为空了
-                    resources_count = len(resources)
-                    # 如果resource_count 小于10
-                    if resources_count < 10:
-                        # 使用chain合并多个queryset
-                        resources = chain(resources,
-                                          Resource.objects.order_by('-download_count').filter(~Q(id=resource_id),
-                                                                                              Q(is_audited=1)).all()[:10-resources_count])
-
-                else:
-                    resources = Resource.objects.order_by('-download_count').filter(~Q(id=resource_id),
-                                                                                    Q(is_audited=1)).all()[:10]
                 return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
             except Resource.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='资源不存在'))
