@@ -177,38 +177,6 @@ def create_comment(request):
 
 @auth
 @api_view(['GET'])
-def list_related_resources(request: Request):
-    """
-    获取相关资源
-
-    :param request:
-    :return:
-    """
-
-    if request.method == 'GET':
-        # 这个id好像不需要转换成int类型的，查询没有报错
-        resource_id = request.GET.get('resource_id', None)
-        if resource_id:
-            try:
-                resource = Resource.objects.get(id=resource_id)
-                tags = resource.tags.split(settings.TAG_SEP)
-                resources = []
-                if resource.tags and len(tags):
-                    for tag in tags:
-                        resources = list(chain(resources, Resource.objects.filter(~Q(id=resource_id), Q(is_audited=1),
-                                                                             Q(tags__icontains=tag) |
-                                                                             Q(title__icontains=tag) |
-                                                                             Q(desc__icontains=tag)).all()[:5]))
-
-                return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
-            except Resource.DoesNotExist:
-                return JsonResponse(dict(code=404, msg='资源不存在'))
-        else:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
-
-@auth
-@api_view(['GET'])
 def list_resources(request):
     """
     分页获取资源

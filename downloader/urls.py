@@ -44,7 +44,6 @@ urlpatterns = [
     re_path(r'^get_resource/?$', resource.get_resource),
     re_path(r'^list_comments/?$', resource.list_comments),
     path('create_comment/', resource.create_comment),
-    re_path(r'^related_resources/?$', resource.list_related_resources),
     path('list_resource_tags/', resource.list_resource_tags),
     re_path(r'^list_resources/?$', resource.list_resources),
     path('get_resource_count/', resource.get_resource_count),
