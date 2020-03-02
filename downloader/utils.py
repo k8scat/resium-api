@@ -54,7 +54,7 @@ def ding(content, at_mobiles=None, is_at_all=False):
     data = {
         'msgtype': 'text',
         'text': {
-            'content': content
+            'content': content + '[dev]' if settings.DEBUG else '[prod]'
         },
         'at': {
             'atMobiles': at_mobiles,
