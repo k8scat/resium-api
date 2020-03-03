@@ -459,7 +459,7 @@ def download(request):
                     driver.quit()
 
             # 稻壳模板下载
-            elif re.match(r'^(http(s)?://www\.docer\.com/preview/).+$', resource_url):
+            elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
                 logging.info(f'稻壳模板下载: {resource_url}')
 
                 if user.valid_count <= 0:
@@ -637,7 +637,7 @@ def parse_resource(request):
                     return JsonResponse(dict(code=500, msg='资源获取失败'))
 
         # 稻壳模板
-        elif re.match(r'^(http(s)?://www\.docer\.com/preview/).+$', resource_url):
+        elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                 'accept-encoding': 'gzip, deflate, br',
