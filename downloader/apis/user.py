@@ -296,8 +296,8 @@ def reset_password(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
-@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
+@ratelimit(key='ip', rate='3/h', block=True)
+@ratelimit(key='ip', rate='1/m', block=True)
 @auth
 @api_view(['POST'])
 def send_phone_code(request):
@@ -478,7 +478,7 @@ def ncu_student_auth(request):
                 user.student = student
                 user.phone = phone
                 user.save()
-                return JsonResponse(dict(code=200, msg='认证成功'))
+                return JsonResponse(dict(code=200, user=UserSerializers(user).data))
             except Student.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='认证失败'))
 

@@ -465,7 +465,7 @@ def download(request):
                     if user.point < 1:
                         return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
                 else:
-                    if user.point < 10:
+                    if user.point < 5:
                         return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
                 driver = get_driver(uuid_str)
@@ -498,8 +498,8 @@ def download(request):
                         user.point -= 1
                         user.used_point += 1
                     else:
-                        user.point -= 10
-                        user.used_point += 10
+                        user.point -= 5
+                        user.used_point += 5
                     user.save()
 
                     # 更新账号使用下载数
