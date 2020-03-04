@@ -478,7 +478,7 @@ def ncu_student_auth(request):
                 user.student = student
                 user.phone = phone
                 user.save()
-                return JsonResponse(dict(code=200, user=UserSerializers(user).data))
+                return JsonResponse(dict(code=200, msg='认证成功', user=UserSerializers(user).data))
             except Student.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='认证失败'))
 
