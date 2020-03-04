@@ -33,7 +33,7 @@ class User(Base):
     is_active = models.BooleanField(default=False, verbose_name='是否激活')
     code = models.CharField(max_length=6, verbose_name='验证码')
     point = models.IntegerField(default=0, verbose_name='下载积分')
-    used_point = models.IntegerField(default=0, verbose_name='已积分使用')
+    used_point = models.IntegerField(default=0, verbose_name='已使用积分')
     # 防止统一账号同时下载多个资源
     is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
     login_device = models.CharField(max_length=200, null=True, default=None, verbose_name='登录设备')

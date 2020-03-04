@@ -287,8 +287,11 @@ def download(request):
             if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
+                # 账号冻结
+                return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
+
                 if not check_csdn():
-                    return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
+                    return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
 
                 # 无下载记录且可用下载积分不足
                 if user.point < 10:
