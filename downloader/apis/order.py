@@ -5,7 +5,6 @@
 @date: 2020/2/25
 
 """
-import datetime
 import logging
 import uuid
 
@@ -40,15 +39,15 @@ def alipay_notify(request):
             out_trade_no = data.get('out_trade_no')
             total_amount = data.get('total_amount')
             try:
-                o = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
-                o.paid_time = datetime.datetime.now()
-                o.save()
+                order = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
+                order.has_paid = True
+                order.save()
 
-                user = User.objects.get(id=o.user_id)
-                user.valid_count += o.purchase_count
+                user = User.objects.get(id=order.user_id)
+                user.point += order.point
                 user.save()
 
-                ding('收入+' + str(total_amount))
+                ding(f'收入+{total_amount}, 付费用户: {user.email}')
             except Order.DoesNotExist:
                 return HttpResponse('failure')
             return HttpResponse('success')
@@ -102,28 +101,26 @@ def create_order(request):
     """
 
     if request.method == 'POST':
+        subject = request.data.get('subject', None)
         total_amount = request.data.get('total_amount', None)
-        purchase_count = request.data.get('purchase_count', None)
+        point = request.data.get('point', None)
         code = request.data.get('code', None)
 
-        c = None
+        if not total_amount or not point or not subject:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        coupon = None
         if code:
             try:
-                c = Coupon.objects.get(code=code, total_amount=total_amount, purchase_count=purchase_count,
-                                       is_used=False)
-                c.is_used = True
-                c.save()
+                coupon = Coupon.objects.get(code=code, total_amount=total_amount, point=point, is_used=False)
+                coupon.is_used = True
+                coupon.save()
             except Coupon.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='优惠券不存在'))
         else:
             # 判断对应的服务是否存在
-            if Service.objects.filter(total_amount=total_amount, purchase_count=purchase_count).count() == 0:
+            if Service.objects.filter(total_amount=total_amount, point=point).count() == 0:
                 return JsonResponse(dict(code=404, msg='服务不存在'))
-
-        if total_amount is None or purchase_count is None:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
-        subject = '捐赠支持'
 
         ali_pay = get_alipay()
         # 生成唯一订单号
@@ -145,9 +142,10 @@ def create_order(request):
 
         # 创建订单
         try:
-            o = Order.objects.create(user=user, subject=subject, out_trade_no=out_trade_no, total_amount=total_amount,
-                                     pay_url=pay_url, purchase_count=purchase_count, coupon=c)
-            return JsonResponse(dict(code=200, order=OrderSerializers(o).data))
+            order = Order.objects.create(user=user, subject=subject,
+                                         out_trade_no=out_trade_no, total_amount=total_amount,
+                                         pay_url=pay_url, point=point, coupon=coupon)
+            return JsonResponse(dict(code=200, order=OrderSerializers(order).data))
         except Exception as e:
             logging.info(e)
             return JsonResponse(dict(code=400, msg='订单创建失败'))

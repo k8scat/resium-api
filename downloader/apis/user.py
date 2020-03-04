@@ -32,7 +32,7 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Coupon
+from downloader.models import User, Coupon, Student
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, create_coupon, send_message
 
@@ -118,11 +118,11 @@ def register(request):
         if not email or not password or not code:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        # 检查邮箱是否已注册以及邀请码是否有效
+        # 检查邮箱是否已注册以及注册码是否有效
         if User.objects.filter(email=email, is_active=True).count() != 0:
             return JsonResponse(dict(code=400, msg='邮箱已注册'))
         if code != settings.REGISTER_CODE:
-            return JsonResponse(dict(code=400, msg='邀请码无效'))
+            return JsonResponse(dict(code=400, msg='注册码无效'))
 
         encrypted_password = make_password(password)
         code = ''.join(random.sample(string.digits, 6))
@@ -449,4 +449,40 @@ def wx(request):
         # 加密
         encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
         return HttpResponse(encrypted_xml, content_type="text/xml")
+
+
+@auth
+@api_view(['POST'])
+def ncu_student_auth(request):
+    if request.method == 'POST':
+        sid = request.data.get('sid', None)
+        name = request.data.get('name', None)
+        phone = request.data.get('phone', None)
+        code = request.data.get('code', None)
+        if not sid or not name or not phone or not code:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        if cache.get(phone) != code:
+            return JsonResponse(dict(code=400, msg='短信验证码无效'))
+        else:
+            email = request.session.get('email')
+            try:
+                user = User.objects.get(email=email, is_active=True)
+                if user.student:
+                    return JsonResponse(dict(code=400, msg='已认证'))
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='用户不存在'))
+
+            try:
+                student = Student.objects.get(sid=sid, name=name)
+                user.student = student
+                user.phone = phone
+                user.save()
+                return JsonResponse(dict(code=200, msg='认证成功'))
+            except Student.DoesNotExist:
+                return JsonResponse(dict(code=404, msg='认证失败'))
+
+
+
+
 

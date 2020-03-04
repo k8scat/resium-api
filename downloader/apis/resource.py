@@ -11,7 +11,6 @@ import random
 import re
 import string
 import uuid
-from itertools import chain
 from threading import Thread
 from urllib import parse
 
@@ -22,7 +21,6 @@ from django.db.models import Q
 from django.http import JsonResponse, FileResponse
 from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
-from rest_framework.request import Request
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -42,9 +40,9 @@ def upload(request):
     if request.method == 'POST':
         file = request.FILES.get('file', None)
 
-        # 向上扩大一点
+        # 向上扩大10MiB
         if file.size > (2 * 100 + 10) * 1024 * 1024:
-            return JsonResponse(dict(code=400, msg='上传资源大小不能超过200MB'))
+            return JsonResponse(dict(code=400, msg='上传资源大小不能超过200MiB'))
 
         file_md5 = get_file_md5(file.open('rb'))
         if Resource.objects.filter(file_md5=file_md5).count():
@@ -292,9 +290,9 @@ def download(request):
                 if not check_csdn():
                     return JsonResponse(dict(code=400, msg='本平台CSDN资源今日可下载数已用尽，请明日再来！'))
 
-                # 无下载记录且可用下载数不足
-                if user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
+                # 无下载记录且可用下载积分不足
+                if user.point < 10:
+                    return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
                 driver = get_driver(uuid_str)
                 csdn_account = None
@@ -318,7 +316,7 @@ def download(request):
                     desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
                     category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
                     tags = settings.TAG_SEP.join([tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
-                    logging.info(tags)
+                    # logging.info(tags)
 
                     try:
                         # 点击VIP下载按钮
@@ -335,13 +333,13 @@ def download(request):
                         el.click()
                     except TimeoutException as e:
                         logging.error(e)
-                        ding(f'CSDN资源下载失败：{str(e)}')
+                        ding(f'CSDN资源下载失败: {str(e)}, 资源地址: {resource_url}, 下载用户: {user.email}')
                         return JsonResponse(dict(code=500, msg='下载失败'))
 
-                    # 点击了VIP下载后一定要更新用户下载数和会员账号下载数，不管后面是否成功
-                    # 更新用户的可用下载数和已用下载数
-                    user.valid_count -= 1
-                    user.used_count += 1
+                    # 点击了VIP下载后一定要更新用户下载积分和会员账号使用下载积分，不管后面是否成功
+                    # 更新用户的下载积分和已用下载积分
+                    user.point -= 10
+                    user.used_point += 10
                     user.save()
 
                     # 更新账号使用下载数
@@ -397,11 +395,11 @@ def download(request):
                         return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_type))
 
                     if doc_type != 'VIP免费文档':
-                        if user.valid_count <= 0:
-                            return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
-                        # 更新用户下载数
-                        user.valid_count -= 1
-                        user.used_count += 1
+                        if user.point < 10:
+                            return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                        # 更新用户下载积分
+                        user.point -= 10
+                        user.used_point += 10
                         user.save()
 
                         # 更新账号使用下载数
@@ -435,6 +433,7 @@ def download(request):
                             )
                             download_button.click()
                         else:
+                            ding(f'百度文库下载失败: {doc_type}, 资源地址: {resource_url}, 下载用户: {user.email}')
                             return JsonResponse(dict(code=500, msg='下载失败'))
 
                     filepath, filename = check_download(save_dir)
@@ -462,8 +461,12 @@ def download(request):
             elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
                 logging.info(f'稻壳模板下载: {resource_url}')
 
-                if user.valid_count <= 0:
-                    return JsonResponse(dict(code=400, msg='可用下载数不足，请进行捐赠'))
+                if user.student:
+                    if user.point < 1:
+                        return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                else:
+                    if user.point < 10:
+                        return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
                 driver = get_driver(uuid_str)
                 docer_account = None
@@ -490,9 +493,13 @@ def download(request):
                     )
                     download_button.click()
 
-                    # 更新用户下载数
-                    user.valid_count -= 1
-                    user.used_count += 1
+                    # 更新用户下载积分
+                    if user.student:
+                        user.point -= 1
+                        user.used_point += 1
+                    else:
+                        user.point -= 10
+                        user.used_point += 10
                     user.save()
 
                     # 更新账号使用下载数
@@ -626,11 +633,14 @@ def parse_resource(request):
                 if r.status_code == requests.codes.OK:
                     soup = BeautifulSoup(r.content.decode('gbk'), 'lxml')
                     desc = soup.select('span.doc-desc-all')
+                    logging.info(soup.find_all('div', attrs={'class': 'doc-tag'}))
                     resource = {
                         'title': soup.select('span.doc-header-title')[0].text,
                         'tags': [tag.text for tag in soup.select('div.tag-tips a')],
                         'desc': desc[0].text.strip() if desc else '',
-                        'file_type': soup.select('h1.reader_ab_test.with-top-banner b')[0]['class'][1].split('-')[1]
+                        'file_type': soup.select('h1.reader_ab_test.with-top-banner b')[0]['class'][1].split('-')[1],
+                        # requests拿到的和selenium拿到的源代码是不一样的，requests的没有 style="display: block;"
+                        # 'doc_type': soup.find('div', attrs={'class': 'doc-tag', 'style': 'display: block;'}).find('span').string
                     }
                     return JsonResponse(dict(code=200, resource=resource))
                 else:

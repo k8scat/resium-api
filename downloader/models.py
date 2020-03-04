@@ -29,16 +29,11 @@ class User(Base):
     email = models.EmailField(verbose_name='邮箱')
     phone = models.CharField(max_length=20, null=True, default=None, verbose_name='手机号')
     password = models.CharField(max_length=100, verbose_name='密码')
-    # 修改密码时保存的临时密码
     temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='修改密码时保存的临时密码')
-    # 是否激活
     is_active = models.BooleanField(default=False, verbose_name='是否激活')
-    # 验证码
     code = models.CharField(max_length=6, verbose_name='验证码')
-    # 可用总数
-    valid_count = models.IntegerField(default=0, verbose_name='可用下载数')
-    # 已用总数
-    used_count = models.IntegerField(default=0, verbose_name='已用下载数')
+    point = models.IntegerField(default=0, verbose_name='下载积分')
+    used_point = models.IntegerField(default=0, verbose_name='已积分使用')
     # 防止统一账号同时下载多个资源
     is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
     login_device = models.CharField(max_length=200, null=True, default=None, verbose_name='登录设备')
@@ -51,7 +46,7 @@ class User(Base):
 
 class Service(Base):
     total_amount = models.FloatField(verbose_name='总金额')
-    purchase_count = models.IntegerField(verbose_name='下载次数')
+    point = models.IntegerField(verbose_name='下载积分')
 
     class Meta:
         db_table = 'service'
@@ -101,9 +96,8 @@ class Coupon(Base):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     total_amount = models.FloatField(verbose_name='总金额')
-    purchase_count = models.IntegerField(verbose_name='下载次数')
+    point = models.IntegerField(verbose_name='下载积分')
     is_used = models.BooleanField(default=False, verbose_name='是否使用')
-    # 优惠券唯一编码
     code = models.CharField(max_length=50, verbose_name='优惠券唯一编码')
     comment = models.CharField(max_length=100, null=True, verbose_name='备注')
 
@@ -113,17 +107,12 @@ class Coupon(Base):
 
 class Order(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # 订单名称
     subject = models.CharField(max_length=50, verbose_name='订单名称')
-    # 唯一订单号
     out_trade_no = models.CharField(max_length=50, unique=True, verbose_name='订单号')
-    # 总金额
     total_amount = models.FloatField(verbose_name='总金额')
-    # 支付时间
-    paid_time = models.DateTimeField(null=True, verbose_name='支付时间')
+    has_paid = models.BooleanField(default=False, verbose_name='是否支付')
     pay_url = models.TextField(verbose_name='支付地址')
-    # 购买次数
-    purchase_count = models.IntegerField(verbose_name='下载次数')
+    point = models.IntegerField(verbose_name='下载积分')
     coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True, verbose_name='使用的优惠券')
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
 

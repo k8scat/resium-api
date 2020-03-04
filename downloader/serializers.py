@@ -13,7 +13,7 @@ from downloader.models import *
 class UserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'create_time', 'email', 'valid_count', 'used_count', 'nickname']
+        fields = ['id', 'create_time', 'email', 'point', 'used_point', 'nickname', 'student_id']
 
 
 class ResourceSerializers(serializers.ModelSerializer):
@@ -37,13 +37,13 @@ class DownloadRecordSerializers(serializers.ModelSerializer):
 class OrderSerializers(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'create_time', 'total_amount', 'pay_url', 'paid_time', 'purchase_count']
+        fields = ['id', 'create_time', 'total_amount', 'pay_url', 'has_paid', 'point']
 
 
 class ServiceSerializers(serializers.ModelSerializer):
     class Meta:
         model = Service
-        fields = ['id', 'total_amount', 'purchase_count']
+        fields = ['id', 'total_amount', 'point']
 
 
 class CouponSerializers(serializers.ModelSerializer):

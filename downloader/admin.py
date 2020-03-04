@@ -7,7 +7,7 @@ from downloader.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'is_active', 'valid_count', 'used_count', 'create_time', 'update_time')
+    list_display = ('id', 'email', 'is_active', 'point', 'used_point', 'create_time', 'update_time')
     list_per_page = 50
     list_filter = ('is_active',)
     search_fields = ['email']
@@ -21,14 +21,14 @@ class DownloadRecordAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_deleted', 'paid_time', 'user', 'subject', 'purchase_count', 'total_amount', 'create_time')
-    list_filter = ('purchase_count',)
+    list_display = ('id', 'has_paid', 'user', 'subject', 'point', 'total_amount', 'create_time')
+    list_filter = ('has_paid',)
     list_per_page = 50
 
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'total_amount', 'purchase_count', 'create_time', 'update_time')
+    list_display = ('id', 'total_amount', 'point', 'create_time', 'update_time')
 
 
 @admin.register(Resource)
@@ -41,7 +41,7 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'is_used', 'total_amount', 'purchase_count', 'create_time')
+    list_display = ('id', 'user', 'is_used', 'total_amount', 'point', 'create_time')
     list_per_page = 50
     search_fields = ['title']
     list_filter = ('is_used',)
