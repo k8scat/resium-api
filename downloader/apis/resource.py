@@ -288,7 +288,7 @@ def download(request):
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
                 # 账号冻结
-                return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
+                # return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
 
                 if not check_csdn():
                     return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
