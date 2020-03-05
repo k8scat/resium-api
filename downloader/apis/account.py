@@ -7,7 +7,6 @@
 """
 import json
 import logging
-from threading import Thread
 from selenium.webdriver.support import expected_conditions as EC
 from django.conf import settings
 from django.http import HttpResponse
@@ -15,18 +14,39 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.utils import csdn_auto_login, get_driver, add_cookies, ding
+from downloader.utils import get_driver, add_cookies, ding
 
 
-def refresh_csdn_cookies(request):
+def check_csdn_cookies(request):
     """
     更新CSDN cookies
     """
     if request.method == 'GET':
         token = request.GET.get('token', None)
         if token == settings.ADMIN_TOKEN:
-            t = Thread(target=csdn_auto_login)
-            t.start()
+            driver = get_driver()
+            try:
+                driver.get('https://download.csdn.net/')
+                csdn_account = add_cookies(driver, 'csdn')
+                driver.get('https://download.csdn.net/my/vip')
+                try:
+                    valid_count = int(WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//div[@class='vip_info']/p[1]/span"))
+                    ).text)
+                    if valid_count <= 0:
+                        csdn_account.is_enabled = True
+                        csdn_account.save()
+                        ding(f'CSDN账号({csdn_account.email})的会员下载数已用完')
+                        return HttpResponse('')
+
+                    csdn_account.cookies = json.dumps(driver.get_cookies())
+                    csdn_account.save()
+                    ding('CSDN cookies 仍有效')
+                except TimeoutException:
+                    ding('CSDN cookies 已失效，请尽快更新！')
+            finally:
+                driver.close()
         return HttpResponse('')
 
 

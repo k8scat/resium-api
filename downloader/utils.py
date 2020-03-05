@@ -394,7 +394,7 @@ def add_cookies(driver, platform):
 
     :param driver:
     :param platform: csdn or baidu
-    :return: CsdnAccount or BaiduAccount
+    :return: account
     """
 
     if platform == 'csdn':
@@ -406,6 +406,8 @@ def add_cookies(driver, platform):
     elif platform == 'docer':
         account = random.choice(DocerAccount.objects.filter(is_enabled=True).all())
         cookies = json.loads(account.cookies)
+    else:
+        return None
 
     for cookie in cookies:
         if 'expiry' in cookie:
@@ -592,7 +594,14 @@ def send_message(phone, code):
             return False
 
 
-def parse_cookies(file):
+def parse_cookies_file(file):
+    """
+    解析直接从浏览器保存下来的cookies，给requests使用
+
+    :param file:
+    :return: dict
+    """
+
     with open(file, 'r') as f:
         cookies = {}
         try:
@@ -603,4 +612,23 @@ def parse_cookies(file):
             logging.info(e)
 
         return cookies
+
+
+def parse_cookies(platform):
+    if platform == 'csdn':
+        account = random.choice(CsdnAccount.objects.filter(is_enabled=True).all())
+        cookies = account.cookies
+    elif platform == 'baidu':
+        account = random.choice(BaiduAccount.objects.filter(is_enabled=True).all())
+        cookies = account.cookies
+    elif platform == 'docer':
+        account = random.choice(DocerAccount.objects.filter(is_enabled=True).all())
+        cookies = account.cookies
+    else:
+        return {}
+
+    ret_cookies = {}
+    for cookie in cookies:
+        ret_cookies.setdefault(cookie['name'], cookie['value'])
+    return ret_cookies
 

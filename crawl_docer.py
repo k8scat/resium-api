@@ -20,10 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import requests
-from django.conf import settings
-
-from downloader.utils import parse_cookies, get_driver, check_download
+from downloader.utils import get_driver, check_download
 
 
 def login():

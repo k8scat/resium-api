@@ -16,7 +16,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
 django.setup()
 from downloader.models import CsdnAccount
 
@@ -99,7 +99,7 @@ def csdn_auto_login():
 
 
 if __name__ == '__main__':
-    csdn_account = CsdnAccount.objects.get(email='17770040362@163.com')
+    csdn_account = CsdnAccount.objects.get(email='xizhizeze@163.com')
     cookies = csdn_auto_login()
     # 判断是否登录成功
     for c in cookies:

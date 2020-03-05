@@ -15,5 +15,5 @@ if __name__ == '__main__':
     payload = {
         'token': ADMIN_TOKEN
     }
-    requests.get('http://localhost:8055/refresh_csdn_cookies/', params=payload)
+    requests.get('http://localhost:8055/check_csdn_cookies/', params=payload)
 

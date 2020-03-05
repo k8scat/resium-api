@@ -31,7 +31,7 @@ urlpatterns = [
     path('list_coupons/', coupon.list_coupons),
 
     re_path(r'^check_baidu_cookies/?$', account.check_baidu_cookies),
-    re_path(r'^refresh_csdn_cookies/?$', account.refresh_csdn_cookies),
+    re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
     re_path(r'^check_docer_cookies/?$', account.check_docer_cookies),
 
     path('list_download_records/', download_record.list_download_records),

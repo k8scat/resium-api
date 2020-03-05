@@ -14,10 +14,9 @@ from selenium.webdriver import DesiredCapabilities
 
 if __name__ == '__main__':
     options = webdriver.ChromeOptions()
-    unique_folder = str(uuid.uuid1())
     prefs = {
         "download.prompt_for_download": False,
-        'download.default_directory': '/download/' + unique_folder,  # 下载目录
+        'download.default_directory': '/download/' + folder,  # 下载目录, 需要在docker做映射
         "plugins.always_open_pdf_externally": True,
         'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
         'profile.default_content_setting_values.images': 2,  # 禁止图片加载
@@ -26,7 +25,7 @@ if __name__ == '__main__':
 
     caps = DesiredCapabilities.CHROME
     # 线上使用selenium server
-    driver = webdriver.Remote(command_executor='', desired_capabilities=caps,
+    driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps,
                               options=options)
 
     try:
