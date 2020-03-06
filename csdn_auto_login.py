@@ -4,6 +4,7 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/1/17
 
+使用Selenium模拟自动登录CSDN​
 """
 import json
 import os
@@ -46,7 +47,11 @@ def csdn_auto_login():
         password.send_keys(Keys.ENTER)
 
         def github_login_verify():
-            # GitHub登录设备验证
+            """
+            GitHub异地登录验证
+
+            :return:
+            """
             device_verification_code_input = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, 'otp'))
             )
