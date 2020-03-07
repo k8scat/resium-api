@@ -78,7 +78,7 @@ def upload(request):
                 t.start()
 
                 # 发送邮件通知
-                subject = '[CSDNBot] 资源上传成功'
+                subject = '[源自下载] 资源上传成功'
                 content = '您上传的资源将由管理员审核。如果审核通过，当其他用户下载该资源时，您将获得1积分奖励。'
                 send_email(subject, content, user.email)
 
@@ -353,8 +353,9 @@ def download(request):
 
                     # 点击了VIP下载后一定要更新用户下载积分和会员账号使用下载积分，不管后面是否成功
                     # 更新用户的下载积分和已用下载积分
-                    user.point -= 10
-                    user.used_point += 10
+                    point = settings.CSDN_POINT
+                    user.point -= point
+                    user.used_point += point
                     user.save()
 
                     # 更新账号使用下载数
@@ -398,28 +399,43 @@ def download(request):
 
                     driver.get(resource_url)
 
+                    try:
+                        # 获取百度文库文档类型
+                        doc_type = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.XPATH,
+                                                            "//div[@class='doc-tag-wrap super-vip']/div[contains(@style, 'block')]/span"))
+                        ).text
+                        logging.info(doc_type)
+                    except TimeoutException:
+                        logging.error('百度文库文档类型获取失败')
+                        return JsonResponse(dict(code=500, msg='下载失败，请重新下载'))
+
                     soup = BeautifulSoup(driver.page_source, 'lxml')
                     desc = soup.select('span.doc-desc-all')
                     title = soup.select('span.doc-header-title')[0].text
                     tags = settings.TAG_SEP.join([tag.text for tag in soup.select('div.tag-tips a')])
                     desc = desc[0].text.strip() if desc else ''
-                    doc_type = soup.find('div', attrs={'style': 'display: block;', 'class': 'doc-tag'}).find('span').string
                     cats = '-'.join([item.text for item in soup.select('div.crumbs.ui-crumbs.mb10 li a')[1:]])
 
-                    if doc_type not in ['VIP免费文档', '共享文档', 'VIP专享文档']:
+                    if doc_type == 'VIP免费文档':
+                        point = settings.WENKU_VIP_FREE_DOC_POINT
+                        baidu_account.vip_free_count += 1
+                    elif doc_type == '共享文档':
+                        point = settings.WENKU_SHARE_DOC_POINT
+                        baidu_account.share_doc_count += 1
+                    elif doc_type == 'VIP专项文档':
+                        point = settings.WENKU_SPECIAL_DOC_POINT
+                        baidu_account.special_doc_count += 1
+                    else:
                         return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_type))
 
-                    if doc_type != 'VIP免费文档':
-                        if user.point < 10:
-                            return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
-                        # 更新用户下载积分
-                        user.point -= 10
-                        user.used_point += 10
-                        user.save()
-
-                        # 更新账号使用下载数
-                        baidu_account.used_count += 1
-                        baidu_account.save()
+                    if user.point < point:
+                        return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                    # 更新用户下载积分
+                    user.point -= point
+                    user.used_point += point
+                    user.save()
+                    baidu_account.save()
 
                     # 显示下载对话框的按钮
                     show_download_modal_button = WebDriverWait(driver, 10).until(
@@ -453,7 +469,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, cats, desc, user, baidu_account))
+                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, cats, desc, user, baidu_account, doc_type))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -510,11 +526,11 @@ def download(request):
 
                     # 更新用户下载积分
                     if user.student:
-                        user.point -= 1
-                        user.used_point += 1
+                        point = settings.DOCER_STUDENT_POINT
                     else:
-                        user.point -= 5
-                        user.used_point += 5
+                        point = settings.DOCER_POINT
+                    user.point -= point
+                    user.used_point += point
                     user.save()
 
                     # 更新账号使用下载数

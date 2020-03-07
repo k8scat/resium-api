@@ -461,7 +461,7 @@ def check_csdn():
     return True
 
 
-def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account):
+def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account, wenku_type=None):
     """
     保存资源记录并上传到OSS
 
@@ -474,6 +474,7 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     :param desc:
     :param user:
     :param account:
+    :param wenku_type: 百度文库文档类型
     :return:
     """
 
@@ -495,7 +496,7 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
 
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
-                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc)
+                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc, wenku_type=wenku_type)
         DownloadRecord(user=user,
                        resource=resource,
                        account=account.email,
@@ -642,3 +643,11 @@ def send_email(subject, content, to_addr):
         [to_addr],
         fail_silently=False,
     )
+
+
+def aliyun_oss_delete_file(key):
+    bucket = get_aliyun_oss_bucket()
+
+    # 删除文件。<yourObjectName>表示删除OSS文件时需要指定包含文件后缀在内的完整路径，例如abc/efg/123.jpg。
+    # 如需删除文件夹，请将<yourObjectName>设置为对应的文件夹名称。如果文件夹非空，则需要将文件夹下的所有object删除后才能删除该文件夹。
+    bucket.delete_object(key)

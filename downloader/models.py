@@ -70,11 +70,16 @@ class Resource(Base):
     user = models.ForeignKey(User, null=True, default=None, on_delete=models.DO_NOTHING)
     # 是否通过审核 1审核通过 0正在审核 -1已删除
     is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
-    # 文件的md5值
-    file_md5 = models.CharField(max_length=100)
+    file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
+    wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
 
     class Meta:
         db_table = 'resource'
+
+
+class Tag(Base):
+    name = models.CharField(max_length=100, verbose_name='标签名称')
+    resource = models.ForeignKey(Resource, on_delete=models.DO_NOTHING)
 
 
 class DownloadRecord(Base):
@@ -142,6 +147,9 @@ class BaiduAccount(Base):
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+    vip_free_count = models.IntegerField(default=0, verbose_name='VIP免费文档使用数')
+    share_doc_count = models.IntegerField(default=0, verbose_name='共享文档使用数')
+    special_doc_count = models.IntegerField(default=0, verbose_name='VIP专享文档使用数')
 
     class Meta:
         db_table = 'baidu_account'

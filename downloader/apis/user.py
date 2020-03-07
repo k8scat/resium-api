@@ -34,7 +34,7 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User, Student, Resource
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, create_coupon, send_message, send_email
+from downloader.utils import ding, create_coupon, send_message, send_email, aliyun_oss_delete_file
 
 
 @auth
@@ -132,7 +132,7 @@ def register(request):
 
         activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
-        subject = '[CSDNBot] 用户注册'
+        subject = '[源自下载] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
         plain_message = strip_tags(html_message)
         try:
@@ -209,7 +209,7 @@ def send_forget_password_email(request):
             reset_password_url = quote(settings.CSDNBOT_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
                                        encoding='utf-8',
                                        safe=':/?=&')
-            subject = '[CSDNBot] 密码重置'
+            subject = '[源自下载] 密码重置'
             html_message = render_to_string('downloader/forget_password.html',
                                             {'reset_password_url': reset_password_url, 'password': password})
             plain_message = strip_tags(html_message)
@@ -442,9 +442,9 @@ def wx(request):
 
         # 文本消息
         elif isinstance(msg, TextMessage):
-            content = msg.content
-            if re.match(r'^(resource:).+ (-)?\d$', msg.content):
-                content = content.split('resource:')[1].split(' ')
+            content = msg.content.strip()
+            if re.match(r'^(r_audit: ).+ (-)?\d$', msg.content):
+                content = content.split('r_audit: ')[1].split(' ')
                 key = content[0]
                 is_audited = int(content[1])
                 try:
@@ -453,7 +453,7 @@ def wx(request):
                     resource.save()
 
                     # 发送邮件通知
-                    subject = '[CSDNBot] 资源审核结果通知'
+                    subject = '[源自下载] 资源审核结果通知'
                     email_content = None
                     if is_audited == 1:
                         email_content = f'您上传的资源({resource.title})已经审核通过。'
@@ -465,6 +465,16 @@ def wx(request):
                     content = '资源更新成功'
                 except Resource.DoesNotExist:
                     content = '资源不存在'
+                reply = TextReply(content=content, message=msg)
+            elif re.match(r'^(r_del: ).+$', msg.content):
+                key = content.split('r_del:')[1]
+                try:
+                    Resource.objects.filter(key=key).delete()
+                    aliyun_oss_delete_file(key)
+                    content = f'资源删除成功: {key}'
+                except Exception as e:
+                    ding(f'资源删除失败: {str(e)}')
+                    content = f'资源删除失败: {str(e)}'
                 reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
