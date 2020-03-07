@@ -453,7 +453,7 @@ def wx(request):
                     resource.save()
 
                     # 发送邮件通知
-                    subject = '资源审核结果通知'
+                    subject = '[CSDNBot] 资源审核结果通知'
                     email_content = None
                     if is_audited == 1:
                         email_content = f'您上传的资源({resource.title})已经审核通过。'
