@@ -265,9 +265,10 @@ def download(request):
             if oss_resource:
                 # 判断用户是否下载过该资源
                 # 若没有，则给上传资源的用户赠送下载积分
-                if not DownloadRecord.objects.exclude(user=oss_resource.user).filter(user=user, resource=oss_resource).count():
-                    oss_resource.user.point += 1
-                    oss_resource.user.save()
+                if user != oss_resource.user:
+                    if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
+                        oss_resource.user.point += 1
+                        oss_resource.user.save()
 
                 # 新增下载记录
                 DownloadRecord(user=user,
@@ -584,10 +585,10 @@ def oss_download(request):
 
         # 判断用户是否下载过该资源
         # 若没有，则给上传资源的用户赠送下载积分
-        if not DownloadRecord.objects.exclude(user=oss_resource.user).filter(user=user,
-                                                                             resource=oss_resource).count():
-            oss_resource.user.point += 1
-            oss_resource.user.save()
+        if user != oss_resource.user:
+            if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
+                oss_resource.user.point += 1
+                oss_resource.user.save()
 
         DownloadRecord.objects.create(user=user,
                                       resource=oss_resource,
