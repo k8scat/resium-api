@@ -538,12 +538,12 @@ def aliyun_oss_delete_files(keys: list):
     print('\n'.join(result.deleted_keys))
 
 
-def create_coupon(user, comment, total_amount=0.8, purchase_count=1):
+def create_coupon(user, comment, total_amount=0.8, point=10):
     try:
         code = str(uuid.uuid1()).replace('-', '')
         Coupon(user=user,
                total_amount=total_amount,
-               purchase_count=purchase_count,
+               point=point,
                comment=comment,
                code=code).save()
         return True

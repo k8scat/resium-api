@@ -5,4 +5,5 @@ services:
     image: registry.cn-hangzhou.aliyuncs.com/hsowan/redis-auth:latest
     ports:
       - 6379:6379
+    restart: always
     container_name: redis

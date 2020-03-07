@@ -135,11 +135,10 @@ def register(request):
         subject = '[CSDNBot] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
         plain_message = strip_tags(html_message)
-        from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
         try:
             send_mail(subject=subject,
                       message=plain_message,
-                      from_email=from_email,
+                      from_email=settings.DEFAULT_FROM_EMAIL,
                       recipient_list=[email],
                       html_message=html_message,
                       fail_silently=False)
@@ -214,11 +213,10 @@ def send_forget_password_email(request):
             html_message = render_to_string('downloader/forget_password.html',
                                             {'reset_password_url': reset_password_url, 'password': password})
             plain_message = strip_tags(html_message)
-            from_email = f'CSDNBot <{settings.EMAIL_HOST_USER}>'
             try:
                 send_mail(subject=subject,
                           message=plain_message,
-                          from_email=from_email,
+                          from_email=settings.DEFAULT_FROM_EMAIL,
                           recipient_list=[email],
                           html_message=html_message,
                           fail_silently=False)

@@ -78,8 +78,8 @@ def upload(request):
                 t.start()
 
                 # 发送邮件通知
-                subject = '资源上传成功'
-                content = '您上传的资源将由管理员审核。如果审核通过，其他用户下载该资源，您将获得1积分奖励。'
+                subject = '[CSDNBot] 资源上传成功'
+                content = '您上传的资源将由管理员审核。如果审核通过，当其他用户下载该资源时，您将获得1积分奖励。'
                 send_email(subject, content, user.email)
 
                 ding(f'有新的资源上传 {key}')
@@ -552,7 +552,7 @@ def download(request):
                 user.save()
 
 
-@ratelimit(key='ip', rate='1/10m', block=True)
+@ratelimit(key='ip', rate='1/10m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['GET'])
 def oss_download(request):
