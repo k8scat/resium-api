@@ -22,6 +22,7 @@ from django.conf import settings
 
 import os
 
+from django.core.mail import send_mail
 from django.db.models import Q
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
@@ -632,3 +633,12 @@ def parse_cookies(platform):
         ret_cookies.setdefault(cookie['name'], cookie['value'])
     return ret_cookies
 
+
+def send_email(subject, content, to_addr):
+    send_mail(
+        subject,
+        content,
+        settings.DEFAULT_FROM_EMAIL,
+        [to_addr],
+        fail_silently=False,
+    )

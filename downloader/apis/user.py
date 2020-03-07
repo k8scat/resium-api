@@ -32,9 +32,9 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Coupon, Student
+from downloader.models import User, Student, Resource
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, create_coupon, send_message
+from downloader.utils import ding, create_coupon, send_message, send_email
 
 
 @auth
@@ -444,7 +444,30 @@ def wx(request):
 
         # 文本消息
         elif isinstance(msg, TextMessage):
-            pass
+            content = msg.content
+            if re.match(r'^(resource:).+ (-)?\d$', msg.content):
+                content = content.split('resource:')[1].split(' ')
+                key = content[0]
+                is_audited = int(content[1])
+                try:
+                    resource = Resource.objects.get(key=key)
+                    resource.is_audited = is_audited
+                    resource.save()
+
+                    # 发送邮件通知
+                    subject = '资源审核结果通知'
+                    email_content = None
+                    if is_audited == 1:
+                        email_content = f'您上传的资源({resource.title})已经审核通过。'
+                    elif is_audited == -1:
+                        email_content = f'您上传的资源({resource.title})审核未通过。'
+                    if email_content:
+                        send_email(subject, email_content, resource.user.email)
+
+                    content = '资源更新成功'
+                except Resource.DoesNotExist:
+                    content = '资源不存在'
+                reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
         ret_xml = reply.render()
@@ -467,6 +490,7 @@ def ncu_student_auth(request):
         if cache.get(phone) != code:
             return JsonResponse(dict(code=400, msg='短信验证码无效'))
         else:
+            cache.set(phone, None)
             email = request.session.get('email')
             try:
                 user = User.objects.get(email=email, is_active=True)
@@ -483,8 +507,6 @@ def ncu_student_auth(request):
                 return JsonResponse(dict(code=200, msg='认证成功', user=UserSerializers(user).data))
             except Student.DoesNotExist:
                 return JsonResponse(dict(code=404, msg='认证失败'))
-
-
 
 
 

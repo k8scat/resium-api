@@ -75,6 +75,13 @@ class AdvertAdmin(admin.ModelAdmin):
     search_fields = ['title']
 
 
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'sid', 'cls', 'grade', 'major', 'college')
+    list_per_page = 50
+    search_fields = ['title']
+
+
 admin.site.site_header = 'CSDNBot Admin'
 admin.site.site_title = 'CSDNBot Admin'
 admin.site.site_url = settings.CSDNBOT_UI

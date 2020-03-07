@@ -31,7 +31,7 @@ from downloader.models import Resource, User, ResourceComment, DownloadRecord
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, add_cookies, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
-    save_resource
+    save_resource, send_email
 
 
 @auth
@@ -60,8 +60,8 @@ def upload(request):
                     user = User.objects.get(email=email, is_active=True)
                 except User.DoesNotExist:
                     return JsonResponse(dict(code=400, msg='错误的请求'))
-
-                key = f'{str(uuid.uuid1())}-{file.name}'
+                filename = file.name
+                key = f'{str(uuid.uuid1())}-{filename}'
                 logging.info(f'Upload resource: {key}')
                 filepath = os.path.join(settings.UPLOAD_DIR, key)
                 # 写入文件，之后使用线程进行上传
@@ -69,7 +69,7 @@ def upload(request):
                     for chunk in file.chunks():
                         f.write(chunk)
                 Resource(title=title, desc=desc, tags=tags,
-                         category=category, filename=file.name, size=file.size,
+                         category=category, filename=filename, size=file.size,
                          is_audited=False, key=key, user=user, file_md5=file_md5,
                          download_count=0).save()
 
@@ -77,7 +77,12 @@ def upload(request):
                 t = Thread(target=aliyun_oss_upload, args=(filepath, key))
                 t.start()
 
-                ding(f'有新的资源上传 {file.name}')
+                # 发送邮件通知
+                subject = '资源上传成功'
+                content = '您上传的资源将由管理员审核。如果审核通过，其他用户下载该资源，您将获得1积分奖励。'
+                send_email(subject, content, user.email)
+
+                ding(f'有新的资源上传 {key}')
                 return JsonResponse(dict(code=200, msg='资源上传成功'))
             except Exception as e:
                 logging.error(e)
@@ -258,6 +263,12 @@ def download(request):
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url)
             if oss_resource:
+                # 判断用户是否下载过该资源
+                # 若没有，则给上传资源的用户赠送下载积分
+                if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
+                    oss_resource.user.point += 1
+                    oss_resource.user.save()
+
                 # 新增下载记录
                 DownloadRecord(user=user,
                                resource=oss_resource,
@@ -570,6 +581,12 @@ def oss_download(request):
                 return JsonResponse(dict(code=400, msg='该资源暂时无法下载'))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='资源不存在'))
+
+        # 判断用户是否下载过该资源
+        # 若没有，则给上传资源的用户赠送下载积分
+        if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
+            oss_resource.user.point += 1
+            oss_resource.user.save()
 
         DownloadRecord.objects.create(user=user,
                                       resource=oss_resource,
