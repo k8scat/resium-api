@@ -113,7 +113,7 @@ EMAIL_PORT = '465'
 EMAIL_HOST_USER = 'admin@ncucoder.com'
 EMAIL_HOST_PASSWORD = 'budnubzbonsmbaga'
 EMAIL_USE_SSL = True
-DEFAULT_FROM_EMAIL = f'CSDNBot <{EMAIL_HOST_USER}>'
+DEFAULT_FROM_EMAIL = f'源自下载 <{EMAIL_HOST_USER}>'
 
 # https://github.com/adamchainz/django-cors-headers
 CORS_ALLOW_METHODS = [
