@@ -1,4 +1,4 @@
-# CSDNBot
+# CSDNBot -> Resium
 
 基础镜像: https://git.ncucoder.com/hsowan/python37-django
 

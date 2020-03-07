@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/2/26
 
+https://github.com/adamchainz/django-cors-headers/issues/495
+
 """
 from django.utils.deprecation import MiddlewareMixin
 

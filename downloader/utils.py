@@ -17,7 +17,6 @@ from urllib import parse
 
 import alipay
 import requests
-from bs4 import BeautifulSoup
 from django.conf import settings
 
 import os
