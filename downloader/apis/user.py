@@ -432,8 +432,7 @@ def wx(request):
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
             content = '你好，欢迎关注源自下载！' \
-                      '\n\n不定时更新Python、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享' \
-                      '\n\nQQ交流群：399244715'
+                      '\n\n每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件

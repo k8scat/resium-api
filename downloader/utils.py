@@ -10,14 +10,12 @@ import hashlib
 import hmac
 import json
 import logging
-import random
 import time
 import uuid
 from urllib import parse
 
 import alipay
 import requests
-from bs4 import BeautifulSoup
 from django.conf import settings
 
 import os
