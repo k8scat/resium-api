@@ -11,6 +11,7 @@ import random
 import re
 import string
 import uuid
+from json import JSONDecodeError
 from threading import Thread
 from urllib import parse
 
@@ -27,7 +28,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.decorators import auth
-from downloader.models import Resource, User, ResourceComment, DownloadRecord
+from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, add_cookies, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
@@ -263,7 +264,8 @@ def download(request):
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url)
             if oss_resource:
-                if user.point < settings.OSS_RESOURCE_POINT:
+                point = settings.OSS_RESOURCE_POINT
+                if user.point < point:
                     return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
                 # 判断用户是否下载过该资源
@@ -278,6 +280,11 @@ def download(request):
                                resource=oss_resource,
                                download_device=user.login_device,
                                download_ip=user.login_ip).save()
+                # 更新用户下载积分
+                user.point -= point
+                user.used_point += point
+                user.save()
+
                 # 生成临时下载地址
                 url = aliyun_oss_sign_url(oss_resource.key)
 
@@ -312,19 +319,15 @@ def download(request):
                 if user.point < 10:
                     return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
-                driver = get_driver(uuid_str)
-                csdn_account = None
                 try:
-                    # 先请求，再添加cookies
-                    # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
-                    driver.get('https://download.csdn.net')
-                    # 添加cookies，并返回使用的会员账号
-                    csdn_account = add_cookies(driver, 'csdn')
-                    # 访问资源地址
-                    driver.get(resource_url)
+                    csdn_account = CsdnAccount.objects.get(is_enabled=True)
+                except CsdnAccount.DoesNotExist:
+                    ding('没有可以使用的CSDN会员账号')
+                    return JsonResponse(dict(code=400, msg='下载失败'))
 
-                    soup = BeautifulSoup(driver.page_source, 'lxml')
-                    # 版权受限
+                with requests.get(resource_url) as r:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    # 版权受限，无法下载
                     # https://download.csdn.net/download/c_baby123/10791185
                     cannot_download = len(soup.select('div.resource_box a.copty-btn'))
                     if cannot_download:
@@ -334,60 +337,52 @@ def download(request):
                     desc = soup.select('div.resource_box_desc div.resource_description p')[0].contents[0].string
                     category = '-'.join([cat.string for cat in soup.select('div.csdn_dl_bread a')[1:3]])
                     tags = settings.TAG_SEP.join([tag.string for tag in soup.select('div.resource_box_b label.resource_tags a')])
-                    # logging.info(tags)
 
-                    try:
-                        # 点击VIP下载按钮
-                        el = WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located((By.LINK_TEXT, "VIP下载"))
-                        )
-                        el.click()
+                resource_id = resource_url.split('/')[-1]
+                headers = {
+                    'cookie': csdn_account.cookies,
+                    # 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
+                    'referer': resource_url  # OSS下载时需要这个请求头，获取资源下载链接时可以不需要
+                }
+                with requests.get(f'https://download.csdn.net/source/download?source_id={resource_id}',
+                                  headers=headers) as r:
+                    resp = r.json()
+                    if resp['code'] == 200:
+                        # 更新用户的剩余下载积分和已用下载积分
+                        point = settings.CSDN_POINT
+                        user.point -= point
+                        user.used_point += point
+                        user.save()
+                        # 更新账号使用下载数
+                        csdn_account.used_count += 1
+                        csdn_account.save()
+                        with requests.get(resp['data'], headers=headers, stream=True) as _:
+                            if _.status_code == requests.codes.OK:
+                                filename = parse.unquote(_.headers['Content-Disposition'].split('"')[1])
+                                filepath = os.path.join(save_dir, filename)
+                                # 写入文件，用于线程上传资源到OSS
+                                with open(filepath, 'wb') as f:
+                                    for chunk in _.iter_content(chunk_size=1024):
+                                        if chunk:
+                                            f.write(chunk)
+                                # 上传资源到OSS并保存记录到数据库
+                                t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, desc, user, csdn_account))
+                                t.start()
 
-                        # 点击弹框中的VIP下载
-                        el = WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located((By.XPATH,
-                                                            "(.//*[normalize-space(text()) and normalize-space(.)='为了良好体验，不建议使用迅雷下载'])[1]/following::a[1]"))
-                        )
-                        el.click()
-                    except TimeoutException as e:
-                        logging.error(e)
-                        ding(f'CSDN资源下载失败: {str(e)}, 资源地址: {resource_url}, 下载用户: {user.email}')
-                        return JsonResponse(dict(code=500, msg='下载失败'))
-
-                    # 点击了VIP下载后一定要更新用户下载积分和会员账号使用下载积分，不管后面是否成功
-                    # 更新用户的下载积分和已用下载积分
-                    point = settings.CSDN_POINT
-                    user.point -= point
-                    user.used_point += point
-                    user.save()
-
-                    # 更新账号使用下载数
-                    csdn_account.used_count += 1
-                    csdn_account.save()
-
-                    try:
-                        filepath, filename = check_download(save_dir)
-                    except TypeError:
-                        return JsonResponse(dict(code=500, msg='下载失败'))
-                    # 保存资源
-                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, desc, user, csdn_account))
-                    t.start()
-
-                    f = open(filepath, 'rb')
-                    response = FileResponse(f)
-                    response['Content-Type'] = 'application/octet-stream'
-                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
-                                                                                            safe=string.printable) + '"'
-
-                    return response
-
-                except Exception as e:
-                    logging.error(e)
-                    ding(f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{csdn_account.email if csdn_account else "无"}，资源地址：{resource_url}')
-                    return JsonResponse(dict(code=500, msg='下载失败'))
-
-                finally:
-                    driver.quit()
+                                f = open(filepath, 'rb')
+                                response = FileResponse(f)
+                                response['Content-Type'] = 'application/octet-stream'
+                                response['Content-Disposition'] = _.headers['Content-Disposition']  # 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
+                                return response
+                            else:
+                                # 只要加了referer，正常来讲不会进入到这里
+                                logging.error(f'CSDN资源下载失败: {_.content.decode()}, 用户: {user.email}, 资源地址: {resource_url}')
+                                ding(f'CSDN资源下载失败: {_.content.decode()}, 用户: {user.email}, 资源地址: {resource_url}')
+                                return JsonResponse(dict(code=500, msg='下载失败'))
+                    else:
+                        logging.error(f'CSDN会员账号cookies失效: {str(resp)}, 用户: {user.email}, 资源地址: {resource_url}')
+                        ding(f'CSDN会员账号cookies失效: {str(resp)}, 用户: {user.email}, 资源地址: {resource_url}')
+                        return JsonResponse(dict(code=400, msg='下载失败'))
 
             # 百度文库文档下载
             elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
@@ -496,23 +491,21 @@ def download(request):
                 logging.info(f'稻壳模板下载: {resource_url}')
 
                 if user.student:
-                    if user.point < 1:
+                    if user.point < settings.DOCER_STUDENT_POINT:
                         return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
                 else:
-                    if user.point < 5:
+                    if user.point < settings.DOCER_POINT:
                         return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
-                driver = get_driver(uuid_str)
-                docer_account = None
                 try:
-                    driver.get('https://www.docer.com/')
+                    docer_account = DocerAccount.objects.get(is_enabled=True)
+                except DocerAccount.DoesNotExist:
+                    ding('没有可以使用的稻壳模板会员账号')
+                    return JsonResponse(dict(code=500, msg='下载失败'))
 
-                    # 添加cookies
-                    docer_account = add_cookies(driver, 'docer')
-
-                    driver.get(resource_url)
-
-                    soup = BeautifulSoup(driver.page_source, 'lxml')
+                # 爬取模板资源的信息
+                with requests.get(resource_url) as r:
+                    soup = BeautifulSoup(r.text, 'lxml')
                     title = soup.find('h1', class_='preview__title').string
                     tags = [tag.text for tag in soup.select('li.preview__labels-item.g-link a')]
                     if '展开更多' in tags:
@@ -520,48 +513,61 @@ def download(request):
                     tags = settings.TAG_SEP.join(tags)
                     category = soup.select('span.m-crumbs-path a')[0].text
 
-                    # 获取下载按钮
-                    download_button = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//span[@class='preview__btn preview__primary-btn--large preview__primary-btn']"))
-                    )
-                    download_button.click()
+                # 下载资源
+                resource_id = resource_url.split('/')[-1]
+                parse_url = f'https://www.docer.com/detail/dl?id={resource_id}'
+                headers = {
+                    'cookie': docer_account.cookies,
+                }
+                # 如果cookies失效，r.json()会抛出异常
+                with requests.get(parse_url, headers=headers) as r:
+                    try:
+                        resp = r.json()
+                        if resp['result'] == 'ok':
+                            # 更新用户下载积分
+                            if user.student:
+                                point = settings.DOCER_STUDENT_POINT
+                            else:
+                                point = settings.DOCER_POINT
+                            user.point -= point
+                            user.used_point += point
+                            user.save()
+                            # 更新账号使用下载数
+                            docer_account.used_count += 1
+                            docer_account.save()
 
-                    # 更新用户下载积分
-                    if user.student:
-                        point = settings.DOCER_STUDENT_POINT
-                    else:
-                        point = settings.DOCER_POINT
-                    user.point -= point
-                    user.used_point += point
-                    user.save()
+                            download_url = resp['data']
+                            filename = download_url.split('/')[-1]
+                            filepath = os.path.join(save_dir, filename)
+                            with requests.get(download_url, stream=True) as _:
+                                if _.status_code == requests.codes.OK:
+                                    with open(filepath, 'wb') as f:
+                                        for chunk in _.iter_content(chunk_size=1024):
+                                            if chunk:
+                                                f.write(chunk)
 
-                    # 更新账号使用下载数
-                    docer_account.used_count += 1
-                    docer_account.save()
+                                    # 保存资源
+                                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, '', user, docer_account))
+                                    t.start()
 
-                    filepath, filename = check_download(save_dir)
+                                    f = open(filepath, 'rb')
+                                    response = FileResponse(f)
+                                    response['Content-Type'] = 'application/octet-stream'
+                                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
 
-                    # 保存资源
-                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, '', user, docer_account))
-                    t.start()
-
-                    f = open(filepath, 'rb')
-                    response = FileResponse(f)
-                    response['Content-Type'] = 'application/octet-stream'
-                    response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename,
-                                                                                            safe=string.printable) + '"'
-
-                    return response
-
-                except Exception as e:
-                    logging.error(e)
-                    ding(
-                        f'下载出现未知错误：{str(e)}，用户：{user.email}，会员账号：{docer_account.email if docer_account else "无"}，资源地址：{resource_url}')
-                    return JsonResponse(dict(code=500, msg='下载失败'))
-
-                finally:
-                    driver.quit()
+                                    return response
+                                else:
+                                    logging.error(f'稻壳模板下载失败: {_.content.decode()}, 用户: {user.email}, 资源地址: {resource_url}')
+                                    ding(f'稻壳模板下载失败: {_.content.decode()}, 用户: {user.email}, 资源地址: {resource_url}')
+                                    return JsonResponse(dict(code=500, msg='下载失败'))
+                        else:
+                            logging.error(f'稻壳模板下载失败: {str(resp)}, 用户: {user.email}, 资源地址: {resource_url}')
+                            ding(f'稻壳模板下载失败: {str(resp)}, 用户: {user.email}, 资源地址: {resource_url}')
+                            return JsonResponse(dict(code=500, msg='下载失败'))
+                    except JSONDecodeError:
+                        logging.error(f'稻壳模板cookies失效, 用户: {user.email}, 资源地址: {resource_url}')
+                        ding(f'稻壳模板cookies失效, 用户: {user.email}, 资源地址: {resource_url}')
+                        return JsonResponse(dict(code=500, msg='下载失败'))
 
             else:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -589,7 +595,8 @@ def oss_download(request):
         email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
-            if user.point < settings.OSS_RESOURCE_POINT:
+            point = settings.OSS_RESOURCE_POINT
+            if user.point < point:
                 return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
@@ -617,6 +624,11 @@ def oss_download(request):
                                       resource=oss_resource,
                                       download_device=user.login_device,
                                       download_ip=user.login_ip)
+
+        # 更新用户下载积分
+        user.point -= point
+        user.used_point += point
+        user.save()
 
         url = aliyun_oss_sign_url(oss_resource.key)
         oss_resource.download_count += 1

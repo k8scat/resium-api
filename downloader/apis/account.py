@@ -7,6 +7,9 @@
 """
 import json
 import logging
+
+import requests
+from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
 from django.conf import settings
 from django.http import HttpResponse
@@ -14,6 +17,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+from downloader.models import DocerAccount, CsdnAccount
 from downloader.utils import get_driver, add_cookies, ding
 
 
@@ -24,29 +28,22 @@ def check_csdn_cookies(request):
     if request.method == 'GET':
         token = request.GET.get('token', None)
         if token == settings.ADMIN_TOKEN:
-            driver = get_driver()
             try:
-                driver.get('https://download.csdn.net/')
-                csdn_account = add_cookies(driver, 'csdn')
-                driver.get('https://download.csdn.net/my/vip')
-                try:
-                    valid_count = int(WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//div[@class='vip_info']/p[1]/span"))
-                    ).text)
-                    if valid_count <= 0:
-                        csdn_account.is_enabled = True
-                        csdn_account.save()
-                        ding(f'CSDN账号({csdn_account.email})的会员下载数已用完')
-                        return HttpResponse('')
+                csdn_account = CsdnAccount.objects.get(is_enabled=True)
+                headers = {
+                    'cookie': csdn_account.cookies
+                }
+                with requests.get('https://download.csdn.net/my/vip', headers=headers) as r:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    el = soup.select('div.vip_info p:nth-of-type(1) span')
+                    if el:
+                        ding(f'CSDN会员账号剩余下载个数: {el[0].text}')
+                    else:
+                        ding('CSDN会员账号的cookies已失效')
 
-                    csdn_account.cookies = json.dumps(driver.get_cookies())
-                    csdn_account.save()
-                    ding('CSDN cookies 仍有效')
-                except TimeoutException:
-                    ding('CSDN cookies 已失效，请尽快更新！')
-            finally:
-                driver.close()
+            except CsdnAccount.DoesNotExist:
+                ding('没有可以使用的CSDN会员账号')
+
         return HttpResponse('')
 
 
@@ -86,22 +83,19 @@ def check_docer_cookies(request):
     if request.method == 'GET':
         token = request.GET.get('token', '')
         if token == settings.ADMIN_TOKEN:
-            driver = get_driver()
             try:
-                driver.get('https://www.docer.com/')
-                docer_account = add_cookies(driver, 'docer')
-                driver.get('https://my.docer.com/#!/memberCenter')
-                try:
-                    vip_id = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH, "//div[@class='pi_my_div_top']/span[@class='grade_text'][1]"))
-                    ).text
-                    logging.info(vip_id)
-                    docer_account.cookies = json.dumps(driver.get_cookies())
-                    docer_account.save()
-                    ding('稻壳模板 cookies 仍有效')
-                except TimeoutException:
-                    ding('稻壳模板 cookies 已失效，请尽快更新！')
-            finally:
-                driver.close()
+                docer_account = DocerAccount.objects.get(is_enabled=True)
+                headers = {
+                    'cookie': docer_account.cookies
+                }
+                url = 'https://www.docer.com/proxy-docer/v4.php/api/user/allinfo'
+                with requests.get(url, headers=headers) as r:
+                    if r.json()['result'] == 'ok':
+                        logging.info(r.json())
+                        ding('稻壳模板cookies仍有效')
+                    else:
+                        ding('稻壳模板cookies已失效，请尽快更新')
+            except DocerAccount.DoesNotExist:
+                ding('没有可以使用的稻壳模板会员账号')
 
-            return HttpResponse('')
+        return HttpResponse('')
