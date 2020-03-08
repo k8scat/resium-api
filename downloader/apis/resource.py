@@ -5,6 +5,7 @@
 @date: 2020/2/15
 
 """
+import json
 import logging
 import os
 import random
@@ -28,10 +29,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.decorators import auth
-from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount
+from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount, BaiduAccount
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
-    check_download, add_cookies, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
+    check_download, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
     save_resource, send_email
 
 
@@ -393,7 +394,16 @@ def download(request):
                 try:
                     driver.get('https://www.baidu.com/')
                     # 添加cookies
-                    baidu_account = add_cookies(driver, 'baidu')
+                    try:
+                        baidu_account = BaiduAccount.objects.get(is_enabled=True)
+                    except BaiduAccount.DoesNotExist:
+                        ding('没有可用的百度文库会员账号')
+                        return JsonResponse(dict(code=500, msg='下载失败'))
+                    cookies = json.loads(baidu_account.cookies)
+                    for cookie in cookies:
+                        if 'expiry' in cookie:
+                            del cookie['expiry']
+                        driver.add_cookie(cookie)
 
                     driver.get(resource_url)
 
@@ -690,7 +700,6 @@ def parse_resource(request):
                 if r.status_code == requests.codes.OK:
                     soup = BeautifulSoup(r.content.decode('gbk'), 'lxml')
                     desc = soup.select('span.doc-desc-all')
-                    logging.info(soup.find_all('div', attrs={'class': 'doc-tag'}))
                     resource = {
                         'title': soup.select('span.doc-header-title')[0].text,
                         'tags': [tag.text for tag in soup.select('div.tag-tips a')],

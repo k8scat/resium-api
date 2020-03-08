@@ -56,7 +56,7 @@ class CsdnAccountAdmin(admin.ModelAdmin):
 
 @admin.register(BaiduAccount)
 class BaiduAccountAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_enabled', 'email', 'username', 'nickname', 'used_count', 'update_time')
+    list_display = ('id', 'is_enabled', 'email', 'update_time')
     list_per_page = 50
     search_fields = ['email', 'nickname', 'username']
 

@@ -364,7 +364,7 @@ def check_download(save_dir):
     """
     logging.info('下载开始...')
     start = time.time()
-    # 5分钟左右下载完成，
+    # 5分钟左右下载完成
     for i in range(3000):
         files = os.listdir(save_dir)
         if len(files) == 0 or files[0].endswith('.crdownload'):
@@ -387,35 +387,6 @@ def check_download(save_dir):
     filepath = os.path.join(save_dir, filename)
 
     return filepath, filename
-
-
-def add_cookies(driver, platform):
-    """
-    给driver添加cookies, 并返回account
-
-    :param driver:
-    :param platform: csdn or baidu
-    :return: account
-    """
-
-    if platform == 'csdn':
-        account = random.choice(CsdnAccount.objects.filter(is_enabled=True).all())
-        cookies = json.loads(account.cookies)
-    elif platform == 'baidu':
-        account = random.choice(BaiduAccount.objects.filter(is_enabled=True).all())
-        cookies = json.loads(account.cookies)
-    elif platform == 'docer':
-        account = random.choice(DocerAccount.objects.filter(is_enabled=True).all())
-        cookies = json.loads(account.cookies)
-    else:
-        return None
-
-    for cookie in cookies:
-        if 'expiry' in cookie:
-            del cookie['expiry']
-        driver.add_cookie(cookie)
-
-    return account
 
 
 def get_driver(folder=''):
@@ -594,45 +565,6 @@ def send_message(phone, code):
             logging.error(e)
             ding(f'短信验证码发送失败: {str(e)}')
             return False
-
-
-def parse_cookies_file(file):
-    """
-    解析直接从浏览器保存下来的cookies，给requests使用
-
-    :param file:
-    :return: dict
-    """
-
-    with open(file, 'r') as f:
-        cookies = {}
-        try:
-            for cookie in f.read().replace(' ', '').split(';'):
-                cookie = cookie.split('=')
-                cookies.setdefault(cookie[0], cookie[1])
-        except Exception as e:
-            logging.info(e)
-
-        return cookies
-
-
-def parse_cookies(platform):
-    if platform == 'csdn':
-        account = random.choice(CsdnAccount.objects.filter(is_enabled=True).all())
-        cookies = account.cookies
-    elif platform == 'baidu':
-        account = random.choice(BaiduAccount.objects.filter(is_enabled=True).all())
-        cookies = account.cookies
-    elif platform == 'docer':
-        account = random.choice(DocerAccount.objects.filter(is_enabled=True).all())
-        cookies = account.cookies
-    else:
-        return {}
-
-    ret_cookies = {}
-    for cookie in cookies:
-        ret_cookies.setdefault(cookie['name'], cookie['value'])
-    return ret_cookies
 
 
 def send_email(subject, content, to_addr):

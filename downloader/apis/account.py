@@ -12,13 +12,13 @@ import requests
 from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import DocerAccount, CsdnAccount
-from downloader.utils import get_driver, add_cookies, ding
+from downloader.models import DocerAccount, CsdnAccount, BaiduAccount
+from downloader.utils import get_driver, ding
 
 
 def check_csdn_cookies(request):
@@ -57,7 +57,19 @@ def check_baidu_cookies(request):
             driver = get_driver()
             try:
                 driver.get('https://wenku.baidu.com/')
-                baidu_account = add_cookies(driver, 'baidu')
+
+                # 添加cookies
+                try:
+                    baidu_account = BaiduAccount.objects.get(is_enabled=True)
+                except BaiduAccount.DoesNotExist:
+                    ding('没有可用的百度文库会员账号')
+                    return JsonResponse(dict(code=500, msg='下载失败'))
+                cookies = json.loads(baidu_account.cookies)
+                for cookie in cookies:
+                    if 'expiry' in cookie:
+                        del cookie['expiry']
+                    driver.add_cookie(cookie)
+
                 driver.get('https://wenku.baidu.com/')
                 try:
                     username = WebDriverWait(driver, 10).until(

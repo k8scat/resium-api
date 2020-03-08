@@ -23,6 +23,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 集成知网
 * [ ] 上传奖励
 * [ ] Category 单独一张表？
+* [ ] wenku_download_requests
 
 ## 广告接入
 

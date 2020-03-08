@@ -140,12 +140,8 @@ class CsdnAccount(Base):
 
 
 class BaiduAccount(Base):
-    username = models.CharField(max_length=50, verbose_name='账号登录名')
-    password = models.CharField(max_length=50, verbose_name='账号密码')
-    nickname = models.CharField(max_length=50, verbose_name='账号唯一昵称')
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
-    used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
     vip_free_count = models.IntegerField(default=0, verbose_name='VIP免费文档使用数')
     share_doc_count = models.IntegerField(default=0, verbose_name='共享文档使用数')
