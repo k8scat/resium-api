@@ -237,9 +237,9 @@ def list_resource_tags(request):
 @api_view(['GET'])
 def download(request):
     """
-    直接从CSDN或百度文库下载资源
-
-    需要认证
+    CSDN
+    百度文库
+    稻壳模板
     """
     if request.method == 'GET':
         user = None
@@ -263,6 +263,9 @@ def download(request):
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url)
             if oss_resource:
+                if user.point < settings.OSS_RESOURCE_POINT:
+                    return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+
                 # 判断用户是否下载过该资源
                 # 若没有，则给上传资源的用户赠送下载积分
                 if user != oss_resource.user:
@@ -568,7 +571,7 @@ def download(request):
                 user.save()
 
 
-@ratelimit(key='ip', rate='1/10m', block=settings.RATELIMIT_BLOCK)
+@ratelimit(key='ip', rate='10/m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['GET'])
 def oss_download(request):
@@ -586,6 +589,8 @@ def oss_download(request):
         email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
+            if user.point < settings.OSS_RESOURCE_POINT:
+                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -593,6 +598,7 @@ def oss_download(request):
             oss_resource = Resource.objects.get(key=key)
             if not aliyun_oss_check_file(oss_resource.key):
                 logging.error(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
+                ding(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
                 oss_resource.is_audited = 0
                 oss_resource.save()
                 return JsonResponse(dict(code=400, msg='该资源暂时无法下载'))
@@ -601,6 +607,7 @@ def oss_download(request):
 
         # 判断用户是否下载过该资源
         # 若没有，则给上传资源的用户赠送下载积分
+        # 上传者下载自己的资源不会获得积分
         if user != oss_resource.user:
             if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
                 oss_resource.user.point += 1
