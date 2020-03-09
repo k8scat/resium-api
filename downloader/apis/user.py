@@ -442,12 +442,12 @@ def wx(request):
         # 文本消息
         elif isinstance(msg, TextMessage):
             content = msg.content.strip()
-            if re.match(r'^(r_audit: ).+ (-)?\d$', msg.content):
+            if re.match(r'^(r_audit: )\d+ (-)?\d$', msg.content):
                 content = content.split('r_audit: ')[1].split(' ')
-                key = content[0]
+                resource_id = int(content[0])
                 is_audited = int(content[1])
                 try:
-                    resource = Resource.objects.get(key=key)
+                    resource = Resource.objects.get(id=resource_id)
                     resource.is_audited = is_audited
                     resource.save()
 

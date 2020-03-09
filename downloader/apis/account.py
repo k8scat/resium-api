@@ -103,7 +103,6 @@ def check_docer_cookies(request):
                 url = 'https://www.docer.com/proxy-docer/v4.php/api/user/allinfo'
                 with requests.get(url, headers=headers) as r:
                     if r.json()['result'] == 'ok':
-                        logging.info(r.json())
                         ding('稻壳模板cookies仍有效')
                     else:
                         ding('稻壳模板cookies已失效，请尽快更新')
