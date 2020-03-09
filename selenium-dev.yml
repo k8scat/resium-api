@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   selenium:
+    # selenium/standalone-chrome
     image: registry.cn-hangzhou.aliyuncs.com/hsowan/standalone-chrome-debug:latest
     volumes:
       - ./download:/download

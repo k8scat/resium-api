@@ -11,16 +11,18 @@ import os
 import random
 import re
 import string
+import time
 import uuid
 from json import JSONDecodeError
 from threading import Thread
 from urllib import parse
 
 import requests
+from PIL import Image
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.db.models import Q
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse, FileResponse, HttpResponse
 from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from selenium.common.exceptions import TimeoutException
@@ -33,7 +35,7 @@ from downloader.models import Resource, User, ResourceComment, DownloadRecord, C
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, get_driver, check_csdn, check_oss, aliyun_oss_check_file, \
-    save_resource, send_email
+    save_resource, send_email, predict_code
 
 
 @auth
@@ -236,14 +238,14 @@ def list_resource_tags(request):
 
 
 @auth
-@api_view(['GET'])
+@api_view(['POST'])
 def download(request):
     """
     CSDN
     百度文库
     稻壳模板
     """
-    if request.method == 'GET':
+    if request.method == 'POST':
         user = None
         try:
             email = request.session.get('email')
@@ -256,14 +258,13 @@ def download(request):
             except User.DoesNotExist:
                 return JsonResponse(dict(code=401, msg='未认证'))
 
-            resource_url = request.GET.get('url', None)
+            resource_url = request.data.get('url', None)
             if not resource_url:
                 return JsonResponse(dict(code=400, msg='资源地址不能为空'))
-            # 去除资源地址参数
-            resource_url = resource_url.split('?')[0]
 
+            download_type = request.data.get('dt', None)
             # 检查OSS是否存有该资源
-            oss_resource = check_oss(resource_url)
+            oss_resource = check_oss(resource_url, download_type)
             if oss_resource:
                 point = settings.OSS_RESOURCE_POINT
                 if user.point < point:
@@ -296,18 +297,20 @@ def download(request):
                 return JsonResponse(dict(code=200, url=url))
 
             # 生成资源存放的唯一子目录
-            uuid_str = str(uuid.uuid1())
-            save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+            unique_folder = str(uuid.uuid1())
+            save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
             while True:
                 if os.path.exists(save_dir):
-                    uuid_str = str(uuid.uuid1())
-                    save_dir = os.path.join(settings.DOWNLOAD_DIR, uuid_str)
+                    unique_folder = str(uuid.uuid1())
+                    save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
                 else:
                     os.mkdir(save_dir)
                     break
 
             # CSDN资源下载
             if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
+                # 去除资源地址参数
+                resource_url = resource_url.split('?')[0]
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
                 # 账号冻结
@@ -387,9 +390,11 @@ def download(request):
 
             # 百度文库文档下载
             elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
+                # 去除资源地址参数
+                resource_url = resource_url.split('?')[0]
                 logging.info(f'百度文库资源下载: {resource_url}')
 
-                driver = get_driver(uuid_str)
+                driver = get_driver(unique_folder)
                 baidu_account = None
                 try:
                     driver.get('https://www.baidu.com/')
@@ -498,6 +503,8 @@ def download(request):
 
             # 稻壳模板下载
             elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
+                # 去除资源地址参数
+                resource_url = resource_url.split('?')[0]
                 logging.info(f'稻壳模板下载: {resource_url}')
 
                 if user.student:
@@ -579,6 +586,174 @@ def download(request):
                         ding(f'稻壳模板cookies失效, 用户: {user.email}, 资源地址: {resource_url}')
                         return JsonResponse(dict(code=500, msg='下载失败'))
 
+            # 知网下载
+            # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
+            # https://kns.cnki.net/KCMS/detail/ 官网
+            elif re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+
+                if user.point < settings.ZHIWANG_POINT:
+                    return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+
+                if not download_type:
+                    return JsonResponse(dict(code=400, msg='错误的请求'))
+
+                # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
+                url = re.sub(r'http(s)?://kns\.cnki\.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn', resource_url)
+                driver = get_driver(unique_folder, load_images=True)
+                try:
+                    driver.get('http://wvpn.ncu.edu.cn/users/sign_in')
+                    username_input = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'user_login'))
+                    )
+                    username_input.send_keys(settings.NCU_USERNAME)
+                    password_input = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'user_password'))
+                    )
+                    password_input.send_keys(settings.NCU_PASSWORD)
+                    submit_button = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//div[@class='col-md-6 col-md-offset-6 login-btn']/input")
+                        )
+                    )
+                    submit_button.click()
+
+                    driver.get(url)
+                    driver.refresh()
+
+                    # 文献分类
+                    category = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'catalog_Ptitle')
+                        )
+                    ).text
+                    # 文献标题
+                    title = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//div[@class='wxTitle']/h2")
+                        )
+                    ).text
+
+                    # 尝试获取摘要
+                    try:
+                        desc = WebDriverWait(driver, 1).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'ChDivSummary')
+                            )
+                        ).text
+                    except TimeoutException:
+                        desc = ''
+
+                    # 尝试获取关键词
+                    try:
+                        # //div[@class='wxBaseinfo']//label[@id='catalog_KEYWORD']/../a
+                        items = WebDriverWait(driver, 1).until(
+                            EC.presence_of_all_elements_located(
+                                (By.XPATH, "//div[@class='wxBaseinfo']//label[@id='catalog_KEYWORD']/../a")
+                            )
+                        )
+                        tags = []
+                        for item in items:
+                            tags.append(item.text[:-1])
+                        tags = settings.TAG_SEP.join(tags)
+                    except TimeoutException:
+                        tags = ''
+
+                    # 获取下载按钮
+                    if download_type == 'caj':
+                        # caj下载
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'cajDown')
+                            )
+                        )
+                    elif download_type == 'pdf':
+                        # pdf下载
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'pdfDown')
+                            )
+                        )
+                    else:
+                        return JsonResponse(dict(code=400, msg='错误的请求'))
+                    # 获取下载链接
+                    download_link = download_button.get_attribute('href')
+                    # 访问下载链接
+                    driver.get(download_link)
+                    try:
+                        # 获取验证码图片
+                        code_image = WebDriverWait(driver, 1).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'vImg')
+                            )
+                        )
+                        # 自动获取截取位置
+                        # left = int(code_image.location['x'])
+                        # print(left)
+                        # upper = int(code_image.location['y'])
+                        # print(upper)
+                        # right = int(code_image.location['x'] + code_image.size['width'])
+                        # print(right)
+                        # lower = int(code_image.location['y'] + code_image.size['height'])
+                        # print(lower)
+
+                        # 获取截图
+                        driver.get_screenshot_as_file(settings.SCREENSHOT_IMAGE)
+
+                        # 手动设置截取位置
+                        left = 430
+                        upper = 275
+                        right = 620
+                        lower = 340
+                        # 通过Image处理图像
+                        img = Image.open(settings.SCREENSHOT_IMAGE)
+                        # 剪切图片
+                        img = img.crop((left, upper, right, lower))
+                        # 保存剪切好的图片
+                        img.save(settings.CODE_IMAGE)
+
+                        code = predict_code(settings.CODE_IMAGE)
+                        if code:
+                            code_input = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located(
+                                    (By.ID, 'vcode')
+                                )
+                            )
+                            code_input.send_keys(code)
+                            submit_code_button = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located(
+                                    (By.XPATH, "//dl[@class='c_verify-code']/dd/button")
+                                )
+                            )
+                            submit_code_button.click()
+                        else:
+                            return JsonResponse(dict(code=500, msg='下载失败'))
+
+                    finally:
+                        logging.info(save_dir)
+                        filepath, filename = check_download(save_dir)
+
+                        # 保存资源
+                        t = Thread(target=save_resource,
+                                   args=(resource_url, filename, filepath, title, tags, category, desc, user),
+                                   kwargs={'zhiwang_type': download_type})
+                        t.start()
+
+                        f = open(filepath, 'rb')
+                        response = FileResponse(f)
+                        response['Content-Type'] = 'application/octet-stream'
+                        response['Content-Disposition'] = 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
+                        return response
+
+                except Exception as e:
+                    logging.error(e)
+                    ding(f'下载出现未知错误：{str(e)}，用户：{user.email}，资源地址：{resource_url}')
+                    return JsonResponse(dict(code=500, msg='下载失败'))
+
+                finally:
+                    driver.close()
+
             else:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
         finally:
@@ -647,6 +822,7 @@ def oss_download(request):
 
 
 @auth
+@api_view(['POST'])
 def parse_resource(request):
     """
     爬取资源信息
@@ -657,12 +833,10 @@ def parse_resource(request):
     :return:
     """
 
-    if request.method == 'GET':
-        resource_url = request.GET.get('url', None)
+    if request.method == 'POST':
+        resource_url = request.data.get('url', None)
         if not resource_url:
             return JsonResponse(dict(code=400, msg='错误的请求'))
-
-        resource_url = resource_url.split('?')[0]
 
         # CSDN资源
         if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
@@ -737,5 +911,34 @@ def parse_resource(request):
                 else:
                     return JsonResponse(dict(code=500, msg='资源获取失败'))
 
+        # 知网下载
+        # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
+        # https://kns.cnki.net/KCMS/detail/ 官网
+        elif re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+            headers = {
+                'host': 'kns.cnki.net',
+                'referer': resource_url,
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'
+            }
+            with requests.get(resource_url, headers=headers) as r:
+                soup = BeautifulSoup(r.text, 'lxml')
+
+                # js生成的，requests没法获取
+                # category = soup.find('span', attrs={'id': 'catalog_Ptitle'}).stirng
+
+                tags_exist = soup.find('label', attrs={'id': 'catalog_KEYWORD'})
+                tags = []
+                if tags_exist:
+                    for tag in tags_exist.find_next_siblings('a'):
+                        tags.append(tag.string.strip()[:-1])
+
+                resource = {
+                    'title': soup.select('div.wxTitle h2')[0].text,
+                    'desc': soup.find('span', attrs={'id': 'ChDivSummary'}).string,
+                    'tags': tags,
+                    'caj_download': True if soup.find('a', attrs={'id': 'cajDown'}) else False,  # 是否支持caj下载
+                    'pdf_download': True if soup.find('a', attrs={'id': 'pdfDown'}) else False  # 是否支持pdf下载
+                }
+                return JsonResponse(dict(code=200, resource=resource))
         else:
             return JsonResponse(dict(code=400, msg='资源地址有误'))

@@ -72,6 +72,7 @@ class Resource(Base):
     is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
     file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
     wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
+    zhiwang_type = models.CharField(max_length=10, null=True, default=None, verbose_name='知网文献类型(caj/pdf)')
 
     class Meta:
         db_table = 'resource'

@@ -105,8 +105,9 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
-
 STATIC_URL = '/static/'
+# 用于 python manage.py collectstatic
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 EMAIL_HOST = 'smtp.qq.com'
 EMAIL_PORT = '465'
@@ -256,4 +257,14 @@ CSDN_POINT = 10
 DOCER_POINT = 2
 DOCER_STUDENT_POINT = 1
 OSS_RESOURCE_POINT = 1
+ZHIWANG_POINT = 1
+
+# http://www.fateadm.com/user_home.php
+PD_ID = '120959'
+PD_KEY = 'pxnfBZw6RfkAXOh5uOygeHoCy52e6wRp'
+SCREENSHOT_IMAGE = os.path.join(BASE_DIR, 'screenshot.png')
+CODE_IMAGE = os.path.join(BASE_DIR, 'code.png')
+
+NCU_USERNAME = '8000116092'
+NCU_PASSWORD = 'holdon7868'
 

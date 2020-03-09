@@ -9,14 +9,12 @@
 """
 
 import os
-from time import sleep
 
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
 django.setup()
 
-from downloader.models import *
 from downloader.utils import *
 
 

@@ -16,6 +16,7 @@ from urllib import parse
 
 import alipay
 import requests
+from PIL import Image
 from django.conf import settings
 
 import os
@@ -332,15 +333,17 @@ def get_alipay():
     )
 
 
-def check_oss(resource_url):
+def check_oss(resource_url, zhiwang_type=None):
     """
     检查oss是否已存储资源
 
+    :param resource_url:
+    :param zhiwang_type:
     :return: Resource
     """
 
     try:
-        resource = Resource.objects.get(url=resource_url, is_audited=1)
+        resource = Resource.objects.get(url=resource_url, is_audited=1, zhiwang_type=zhiwang_type)
         # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
         # 如果oss上没有存储资源，则提醒管理员检查资源
         if not aliyun_oss_check_file(resource.key):
@@ -353,20 +356,28 @@ def check_oss(resource_url):
         return None
 
 
-def check_download(save_dir):
+def check_download(folder):
     """
     判断文件是否下载完成
 
-    :param save_dir:
+    :param folder:
     :return:
     """
     logging.info('下载开始...')
     start = time.time()
-    # 5分钟左右下载完成
+    # 预计5分钟内下载完成
+    no_file_countdown = 10
     for i in range(3000):
-        files = os.listdir(save_dir)
-        if len(files) == 0 or files[0].endswith('.crdownload'):
-            # logging.info('Downloading')
+        files = os.listdir(folder)
+        # 判断是否存在文件，一般来说，开始下载后会立即有.crdownload文件，如果在循环10次后还是没有的话，直接返回None
+        if len(files) == 0:
+            if no_file_countdown >= 0:
+                no_file_countdown -= 1
+                time.sleep(0.1)
+                continue
+            else:
+                return None
+        elif files[0].endswith('.crdownload'):
             time.sleep(0.1)
             continue
         else:
@@ -377,21 +388,22 @@ def check_download(save_dir):
     else:
         logging.error('下载失败: 下载超时')
         ding('下载失败: 下载超时')
-        return False
+        return None
 
     # 下载完成后，文件夹下存在唯一的文件
     filename = files[0]
     # 生成文件的绝对路径
-    filepath = os.path.join(save_dir, filename)
+    filepath = os.path.join(folder, filename)
 
     return filepath, filename
 
 
-def get_driver(folder=''):
+def get_driver(folder='', load_images=False):
     """
     获取driver
 
     :param folder: 唯一文件夹
+    :param load_images: 是否加载图片
     :return: WebDriver
     """
     options = webdriver.ChromeOptions()
@@ -400,8 +412,10 @@ def get_driver(folder=''):
         'download.default_directory': '/download/' + folder,  # 下载目录, 需要在docker做映射
         "plugins.always_open_pdf_externally": True,
         'profile.default_content_settings.popups': 0,  # 设置为0，禁止弹出窗口
-        'profile.default_content_setting_values.images': 2,  # 禁止图片加载
     }
+    # 禁止图片加载
+    if not load_images:
+        prefs.setdefault('profile.default_content_setting_values.images', 2)
     options.add_experimental_option('prefs', prefs)
 
     caps = DesiredCapabilities.CHROME
@@ -430,7 +444,7 @@ def check_csdn():
     return True
 
 
-def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account, wenku_type=None):
+def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account=None, wenku_type=None, zhiwang_type=None):
     """
     保存资源记录并上传到OSS
 
@@ -444,13 +458,14 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     :param user:
     :param account:
     :param wenku_type: 百度文库文档类型
+    :param zhiwang_type: 知网文献类型(caj/pdf)
     :return:
     """
 
     with open(filepath, 'rb') as f:
         file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
+    if Resource.objects.filter((Q(url=resource_url) & Q(zhiwang_type=zhiwang_type)) | Q(file_md5=file_md5)).count():
         return
 
     # 存储在oss中的key
@@ -465,10 +480,11 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
 
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, category=category, key=key,
-                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc, wenku_type=wenku_type)
+                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc,
+                                           wenku_type=wenku_type, zhiwang_type=zhiwang_type)
         DownloadRecord(user=user,
                        resource=resource,
-                       account=account.email,
+                       account=account.email if account else None,
                        download_device=user.login_device,
                        download_ip=user.login_ip).save()
     except Exception as e:
@@ -581,3 +597,56 @@ def aliyun_oss_delete_file(key):
     # 删除文件。<yourObjectName>表示删除OSS文件时需要指定包含文件后缀在内的完整路径，例如abc/efg/123.jpg。
     # 如需删除文件夹，请将<yourObjectName>设置为对应的文件夹名称。如果文件夹非空，则需要将文件夹下的所有object删除后才能删除该文件夹。
     bucket.delete_object(key)
+
+
+def get_sign(pd_id, pd_key, timestamp):
+    md5 = hashlib.md5()
+    md5.update((timestamp + pd_key).encode())
+    csign = md5.hexdigest()
+
+    md5 = hashlib.md5()
+    md5.update((pd_id + timestamp + csign).encode())
+    csign = md5.hexdigest()
+    return csign
+
+
+def predict_code(image_path):
+    """
+    验证码识别
+
+    :param image_path:
+    :return:
+    """
+
+    tm = str(int(time.time()))
+    sign = get_sign(settings.PD_ID, settings.PD_KEY, tm)
+    data = {
+        'user_id': settings.PD_ID,
+        'timestamp': tm,
+        'sign': sign,
+        'predict_type': 30400,
+        'up_type': 'mt'
+    }
+    url = 'http://pred.fateadm.com/api/capreg'
+    files = {
+        'img_data': ('img_data', open(image_path, 'rb').read())
+    }
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'
+    }
+    # requests POST a Multipart-Encoded File
+    # https://requests.readthedocs.io/en/master/user/quickstart/#post-a-multipart-encoded-file
+    with requests.post(url, data, files=files, headers=headers) as r:
+        if r.status_code == requests.codes.OK:
+            result = r.json()
+            logging.info(result)
+            if result['RetCode'] == '0':
+                code = json.loads(result['RspData'])['result']
+                ding(f'验证码识别成功: {code}')
+                return code
+            else:
+                ding(f'验证码识别失败: {r.content.decode()}')
+                return None
+        else:
+            ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
+            return None
