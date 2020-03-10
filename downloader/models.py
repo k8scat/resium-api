@@ -36,7 +36,7 @@ class User(Base):
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
     # 防止统一账号同时下载多个资源
     is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
-    login_device = models.CharField(max_length=200, null=True, default=None, verbose_name='登录设备')
+    login_device = models.TextField(null=True, default=None, verbose_name='登录设备')
     login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
 

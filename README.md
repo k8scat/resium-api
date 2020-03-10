@@ -26,11 +26,13 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] wenku_download_requests
 * [ ] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
+    静态文件映射到本地
 * [ ] TestCase
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/87/
 * [ ] Coverage.py 统计测试覆盖率
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/89/
 * [ ] parse_resource 和 download 重复解析资源信息的问题
+* [ ] use alpine linux
 
 ## 广告接入
 

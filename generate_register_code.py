@@ -12,4 +12,4 @@ import string
 
 
 if __name__ == '__main__':
-    print(''.join(random.sample(string.digits, 8)))
+    print(''.join(random.sample(string.digits + string.ascii_lowercase, 10)))

@@ -24,9 +24,9 @@ DATABASES = {
 
 SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 
-CSDNBOT_UI = 'https://resium.ncucoder.com'
+CSDNBOT_UI = 'https://26xf90zp4w.ncucoder.com'
 
-CSDNBOT_API = 'https://api.csdnbot.ncucoder.com'
+CSDNBOT_API = 'https://api.26xf90zp4w.ncucoder.com'
 
 # 随机标签个数
 SAMPLE_TAG_COUNT = 50
