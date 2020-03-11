@@ -9,6 +9,7 @@ services:
       - csdnbot_net
     volumes:
       - /srv/csdnbot/download:/csdnbot/download
+    restart: always
     container_name: csdnbot
   selenium:
     image: selenium/standalone-chrome
