@@ -19,5 +19,5 @@ if __name__ == '__main__':
 
     users = User.objects.filter(is_active=True).all()
     for user in users:
-        if not create_coupon(user, '系统维护'):
+        if not create_coupon(user, '系统支付Bug'):
             print(user.email)
