@@ -27,6 +27,7 @@ SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 CSDNBOT_UI = 'https://26xf90zp4w.ncucoder.com'
 
 CSDNBOT_API = 'https://api.26xf90zp4w.ncucoder.com'
+ALIPAY_APP_NOTIFY_URL = CSDNBOT_API + '/alipay_notify/'
 
 # 随机标签个数
 SAMPLE_TAG_COUNT = 50
