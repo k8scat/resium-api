@@ -33,6 +33,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/89/
 * [ ] parse_resource 和 download 重复解析资源信息的问题
 * [ ] use alpine linux
+* [ ] 后端接口地址更新的问题
 
 ## 广告接入
 

@@ -159,7 +159,7 @@ ALIPAY_APP_ID = '2021001106627048'
 ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(BASE_DIR, 'alipay_app_private_key.pem')
 ALIPAY_PUBLIC_KEY_FILE = os.path.join(BASE_DIR, 'alipay_public_key.pem')
 ALIPAY_WEB_BASE_URL = 'https://openapi.alipay.com/gateway.do?'
-ALIPAY_APP_NOTIFY_URL = 'https://api.csdnbot.ncucoder.com/alipay_notify/'
+ALIPAY_APP_NOTIFY_URL = 'https://26xf90zp4w.csdnbot.ncucoder.com/alipay_notify/'
 
 # https://note.qidong.name/2018/11/django-logging/
 LOGGING = {
