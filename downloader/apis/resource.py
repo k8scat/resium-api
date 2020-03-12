@@ -11,7 +11,6 @@ import os
 import random
 import re
 import string
-import time
 import uuid
 from json import JSONDecodeError
 from threading import Thread
@@ -22,7 +21,7 @@ from PIL import Image
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.db.models import Q
-from django.http import JsonResponse, FileResponse, HttpResponse
+from django.http import JsonResponse, FileResponse
 from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from selenium.common.exceptions import TimeoutException
@@ -43,6 +42,8 @@ from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_s
 def upload(request):
     if request.method == 'POST':
         file = request.FILES.get('file', None)
+        if not file:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
 
         # 向上扩大10MiB
         if file.size > (2 * 100 + 10) * 1024 * 1024:
