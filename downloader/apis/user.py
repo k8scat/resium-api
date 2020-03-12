@@ -466,14 +466,14 @@ def wx(request):
                     content = '资源不存在'
                 reply = TextReply(content=content, message=msg)
             elif re.match(r'^(r_del: ).+$', msg.content):
-                key = content.split('r_del:')[1]
+                resource_id = int(content.split('r_del: ')[1])
                 try:
-                    Resource.objects.filter(key=key).delete()
-                    aliyun_oss_delete_file(key)
-                    content = f'资源删除成功: {key}'
-                except Exception as e:
-                    ding(f'资源删除失败: {str(e)}')
-                    content = f'资源删除失败: {str(e)}'
+                    resource = Resource.objects.get(id=resource_id)
+                    resource.delete()
+                    aliyun_oss_delete_file(resource.key)
+                    content = f'资源删除成功: {resource.key}'
+                except Resource.DoesNotExist:
+                    content = '资源不存在'
                 reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
