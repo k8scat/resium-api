@@ -76,3 +76,7 @@ https://download.csdn.net/help
 https://wenku.baidu.com/portal/browse/help#help/24
 
 严禁用户以任何方式转让、出售自己的百度文库账号与积分，一经发现，百度有权立即封禁该账号；
+
+## 百度文库解析
+
+* [Python在线百度文库爬虫(免下载券)](https://www.jianshu.com/p/c8e10ec26342)

@@ -863,27 +863,74 @@ def parse_resource(request):
 
         # 百度文库文档
         elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
+            """
+            资源信息获取地址: https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id=
+            """
+            doc_id = resource_url.split('.html')[0].split('://wenku.baidu.com/view/')[1]
+            logging.info(doc_id)
 
+            get_doc_info_url = f'https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={doc_id}'
+            get_vip_free_doc_url = f'https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={doc_id}'
             headers = {
-                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                'accept-encoding': 'gzip, deflate, br',
-                'accept-language': 'gzip, deflate, br',
-                'host': 'wenku.baidu.com',
                 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
             }
-            with requests.get(resource_url, headers=headers) as r:
+            with requests.get(get_doc_info_url, headers=headers) as r:
                 if r.status_code == requests.codes.OK:
-                    soup = BeautifulSoup(r.content.decode('gbk'), 'lxml')
-                    desc = soup.select('span.doc-desc-all')
-                    resource = {
-                        'title': soup.select('span.doc-header-title')[0].text,
-                        'tags': [tag.text for tag in soup.select('div.tag-tips a')],
-                        'desc': desc[0].text.strip() if desc else '',
-                        'file_type': soup.select('h1.reader_ab_test.with-top-banner b')[0]['class'][1].split('-')[1],
-                        # requests拿到的和selenium拿到的源代码是不一样的，requests的没有 style="display: block;"
-                        # 'doc_type': soup.find('div', attrs={'class': 'doc-tag', 'style': 'display: block;'}).find('span').string
-                    }
-                    return JsonResponse(dict(code=200, resource=resource))
+                    try:
+                        data = json.loads(r.content.decode()[7:-1])
+                        doc_info = data['docInfo']
+                        # 判断是否是VIP专享文档
+                        if doc_info.get('professionalDoc', None) == 1:
+                            doc_type = 'VIP专享文档'
+                        else:
+                            with requests.get(get_vip_free_doc_url, headers=headers) as _:
+                                if _.status_code == requests.codes.OK and _.json()['status']['code'] == 0:
+                                    doc_type = 'VIP免费文档' if _.json()['data']['is_vip_free_doc'] else '共享文档'
+                                else:
+                                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+                        file_type = doc_info['docType']
+                        if file_type == '6':
+                            file_type = 'PPTX'
+                        elif file_type == '3':
+                            file_type = 'PPT'
+                        elif file_type == '1':
+                            file_type = 'DOC'
+                        elif file_type == '4':
+                            file_type = 'DOCX'
+                        elif file_type == '8':
+                            file_type = 'TXT'
+                        elif file_type == '7':
+                            file_type = 'PDF'
+                        elif file_type == '5':
+                            file_type = 'XLSX'
+                        elif file_type == '2':
+                            file_type = 'XLS'
+                        elif file_type == '12':
+                            file_type = 'VSD'
+                        elif file_type == '15':
+                            file_type = 'PPS'
+                        elif file_type == '13':
+                            file_type = 'RTF'
+                        elif file_type == '9':
+                            file_type = 'WPS'
+                        elif file_type == '19':
+                            file_type = 'DWG'
+                        else:
+                            logging.error(f'未知文件格式: {file_type}, 资源地址: {resource_url}')
+                            ding(f'未知文件格式: {file_type}, 资源地址: {resource_url}')
+                            file_type = 'UNKNOWN'
+                        resource = {
+                            'title': doc_info['docTitle'],
+                            'tags': doc_info.get('newTagArray', []),
+                            'desc': doc_info['docDesc'],
+                            'file_type': file_type,
+                            'doc_type': doc_type
+                        }
+                        return JsonResponse(dict(code=200, resource=resource))
+                    except Exception as e:
+                        ding(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}')
+                        logging.error(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}')
+                        return JsonResponse(dict(code=500, msg='资源获取失败'))
                 else:
                     return JsonResponse(dict(code=500, msg='资源获取失败'))
 
