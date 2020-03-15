@@ -27,5 +27,5 @@ def list_coupons(request):
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
-        coupons = Coupon.objects.filter(user=user).all()
+        coupons = Coupon.objects.filter(user=user).order_by('-create_time').all()
         return JsonResponse(dict(code=200, coupons=CouponSerializers(coupons, many=True).data))

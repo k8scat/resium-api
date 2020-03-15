@@ -49,9 +49,9 @@ class CouponAdmin(admin.ModelAdmin):
 
 @admin.register(CsdnAccount)
 class CsdnAccountAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_enabled', 'email', 'phone', 'github_username', 'username', 'used_count', 'update_time')
+    list_display = ('id', 'is_enabled', 'email', 'used_count', 'update_time')
     list_per_page = 50
-    search_fields = ['email', 'github_username', 'phone', 'username']
+    search_fields = ['email']
 
 
 @admin.register(BaiduAccount)
@@ -79,9 +79,9 @@ class AdvertAdmin(admin.ModelAdmin):
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'sid', 'cls', 'grade', 'major', 'college')
     list_per_page = 50
-    search_fields = ['title']
+    search_fields = ['name', 'major', 'college', 'cls', 'sid', 'grade']
 
 
-admin.site.site_header = 'CSDNBot Admin'
-admin.site.site_title = 'CSDNBot Admin'
+admin.site.site_header = '源自下载后台'
+admin.site.site_title = '源自下载后台'
 admin.site.site_url = settings.CSDNBOT_UI

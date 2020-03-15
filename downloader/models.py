@@ -127,13 +127,10 @@ class Order(Base):
 
 
 class CsdnAccount(Base):
-    github_username = models.CharField(max_length=50, verbose_name='账号绑定的GitHub用户名')
-    github_password = models.CharField(max_length=50, verbose_name='账号绑定的GitHub密码')
-    username = models.CharField(max_length=50, verbose_name='账号唯一名称')
-    phone = models.CharField(max_length=20, verbose_name='账号绑定手机号')
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
+    today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
 
     class Meta:

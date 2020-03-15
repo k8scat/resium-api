@@ -455,8 +455,8 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     :param tags:
     :param category:
     :param desc:
-    :param user:
-    :param account:
+    :param user: 下载资源的用户
+    :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
     :param zhiwang_type: 知网文献类型(caj/pdf)
     :return:

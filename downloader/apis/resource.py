@@ -262,6 +262,9 @@ def download(request):
             resource_url = request.data.get('url', None)
             if not resource_url:
                 return JsonResponse(dict(code=400, msg='资源地址不能为空'))
+            if not re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+                # 去除资源地址参数
+                resource_url = resource_url.split('?')[0]
 
             download_type = request.data.get('dt', None)
             # 检查OSS是否存有该资源
@@ -310,22 +313,20 @@ def download(request):
 
             # CSDN资源下载
             if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
-                # 去除资源地址参数
-                resource_url = resource_url.split('?')[0]
                 logging.info(f'CSDN 资源下载: {resource_url}')
 
                 # 账号冻结
                 # return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
 
-                if not check_csdn():
-                    return JsonResponse(dict(code=400, msg='本站今日CSDN资源下载已达上限'))
-
-                # 无下载记录且可用下载积分不足
-                if user.point < 10:
+                # 可用下载积分不足
+                if user.point < settings.CSDN_POINT:
                     return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
                 try:
                     csdn_account = CsdnAccount.objects.get(is_enabled=True)
+                    # 判断账号当天下载数
+                    if csdn_account.today_download_count >= 20:
+                        return JsonResponse(dict(code=403, msg='下载失败，请联系管理员'))
                 except CsdnAccount.DoesNotExist:
                     ding('没有可以使用的CSDN会员账号')
                     return JsonResponse(dict(code=400, msg='下载失败'))
@@ -346,13 +347,17 @@ def download(request):
                 resource_id = resource_url.split('/')[-1]
                 headers = {
                     'cookie': csdn_account.cookies,
-                    # 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
+                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
                     'referer': resource_url  # OSS下载时需要这个请求头，获取资源下载链接时可以不需要
                 }
                 with requests.get(f'https://download.csdn.net/source/download?source_id={resource_id}',
                                   headers=headers) as r:
                     resp = r.json()
                     if resp['code'] == 200:
+                        # 更新账号今日下载数
+                        csdn_account.today_download_count += 1
+                        csdn_account.save()
+
                         # 更新用户的剩余下载积分和已用下载积分
                         point = settings.CSDN_POINT
                         user.point -= point
@@ -391,8 +396,6 @@ def download(request):
 
             # 百度文库文档下载
             elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
-                # 去除资源地址参数
-                resource_url = resource_url.split('?')[0]
                 logging.info(f'百度文库资源下载: {resource_url}')
 
                 driver = get_driver(unique_folder)
@@ -504,8 +507,6 @@ def download(request):
 
             # 稻壳模板下载
             elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
-                # 去除资源地址参数
-                resource_url = resource_url.split('?')[0]
                 logging.info(f'稻壳模板下载: {resource_url}')
 
                 if user.student:

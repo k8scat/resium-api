@@ -7,11 +7,8 @@
 手动处理数据
 
 """
-
 import os
-
 import django
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
 django.setup()
 

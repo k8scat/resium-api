@@ -46,3 +46,6 @@ CACHES = {
 }
 
 RATELIMIT_BLOCK = False
+
+from . import prod
+ALIPAY_APP_NOTIFY_URL = prod.CSDNBOT_API + '/alipay_notify/'

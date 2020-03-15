@@ -28,8 +28,8 @@ def check_csdn_cookies(request):
     if request.method == 'GET':
         token = request.GET.get('token', None)
         if token == settings.ADMIN_TOKEN:
-            try:
-                csdn_account = CsdnAccount.objects.get(is_enabled=True)
+            csdn_accounts = CsdnAccount.objects.all()
+            for csdn_account in csdn_accounts:
                 headers = {
                     'cookie': csdn_account.cookies
                 }
@@ -39,10 +39,7 @@ def check_csdn_cookies(request):
                     if el:
                         ding(f'CSDN会员账号剩余下载个数: {el[0].text}')
                     else:
-                        ding('CSDN会员账号的cookies已失效')
-
-            except CsdnAccount.DoesNotExist:
-                ding('没有可以使用的CSDN会员账号')
+                        ding('CSDN会员账号的cookies已失效，请及时更新')
 
         return HttpResponse('')
 
@@ -109,4 +106,19 @@ def check_docer_cookies(request):
             except DocerAccount.DoesNotExist:
                 ding('没有可以使用的稻壳模板会员账号')
 
+        return HttpResponse('')
+
+
+def reset_csdn_today_download_count(request):
+    """
+    重置CSDN账号的今日已下载数
+    """
+
+    if request.method == 'GET':
+        token = request.GET.get('token', None)
+        if token == settings.ADMIN_TOKEN:
+            csdn_accounts = CsdnAccount.objects.all()
+            for csdn_account in csdn_accounts:
+                csdn_account.today_download_count = 0
+                csdn_account.save()
         return HttpResponse('')
