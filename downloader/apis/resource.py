@@ -870,8 +870,9 @@ def parse_resource(request):
             """
             资源信息获取地址: https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id=
             """
-            doc_id = resource_url.split('.html')[0].split('://wenku.baidu.com/view/')[1]
-            logging.info(doc_id)
+            # https://wenku.baidu.com/view/c3853acaab00b52acfc789eb172ded630b1c9809.htm
+            doc_id = resource_url.split('?')[0].split('://wenku.baidu.com/view/')[1].split('.')[0]
+            logging.info(f'百度文库文档ID: {doc_id}')
 
             get_doc_info_url = f'https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={doc_id}'
             get_vip_free_doc_url = f'https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={doc_id}'
@@ -889,7 +890,8 @@ def parse_resource(request):
                         elif doc_info.get('isPaymentDoc', None) == 0:
                             with requests.get(get_vip_free_doc_url, headers=headers) as _:
                                 if _.status_code == requests.codes.OK and _.json()['status']['code'] == 0:
-                                    point = settings.WENKU_VIP_FREE_DOC_POINT if _.json()['data']['is_vip_free_doc'] else settings.WENKU_SHARE_DOC_POINT
+                                    point = settings.WENKU_VIP_FREE_DOC_POINT if _.json()['data'][
+                                        'is_vip_free_doc'] else settings.WENKU_SHARE_DOC_POINT
                                 else:
                                     return JsonResponse(dict(code=500, msg='资源获取失败'))
                         else:
@@ -935,8 +937,8 @@ def parse_resource(request):
                         }
                         return JsonResponse(dict(code=200, resource=resource))
                     except Exception as e:
-                        ding(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}')
-                        logging.error(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}')
+                        ding(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}, 用户: {request.session.get("email")}')
+                        logging.error(f'资源信息解析失败: {str(e)}，资源地址: {resource_url}, 用户: {request.session.get("email")}')
                         return JsonResponse(dict(code=500, msg='资源获取失败'))
                 else:
                     return JsonResponse(dict(code=500, msg='资源获取失败'))
