@@ -9,22 +9,7 @@ class Base(models.Model):
         abstract = True
 
 
-class Student(Base):
-    sid = models.CharField(max_length=50, verbose_name='学号', unique=True)
-    name = models.CharField(max_length=50, verbose_name='姓名')
-    cls = models.CharField(max_length=50, verbose_name='班级')
-    grade = models.IntegerField(verbose_name='年级')
-    school = models.CharField(max_length=50, verbose_name='学校')
-    major = models.CharField(max_length=50, verbose_name='专业')
-    college = models.CharField(max_length=100, verbose_name='学院')
-    comment = models.CharField(max_length=200, null=True, default=None, verbose_name='备注')
-
-    class Meta:
-        db_table = 'student'
-
-
 class User(Base):
-    student = models.ForeignKey(Student, on_delete=models.DO_NOTHING, null=True, default=None)
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     email = models.EmailField(verbose_name='邮箱')
     phone = models.CharField(max_length=20, null=True, default=None, verbose_name='手机号')
@@ -89,6 +74,7 @@ class DownloadRecord(Base):
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
     download_device = models.CharField(max_length=200, null=True, default=None, verbose_name='下载资源时使用的设备')
     download_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='下载资源时的ip地址')
+    used_point = models.IntegerField(default=0, verbose_name='下载使用的积分')
     account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
 
     class Meta:

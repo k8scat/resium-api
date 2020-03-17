@@ -18,10 +18,10 @@ urlpatterns = [
     re_path(r'^wx/?$', user.wx),
     path('change_nickname/', user.change_nickname),
     path('get_user/', user.get_user),
-    path('send_phone_code/', user.send_phone_code),
-    path('ncu_student_auth/', user.ncu_student_auth),
+    # path('send_phone_code/', user.send_phone_code),
 
-    path('service/', service.list_services),
+    path('list_services/', service.list_services),
+    path('list_points/', service.list_points),
 
     path('list_orders/', order.list_orders),
     path('create_order/', order.create_order),
@@ -33,6 +33,7 @@ urlpatterns = [
     re_path(r'^check_baidu_cookies/?$', account.check_baidu_cookies),
     re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
     re_path(r'^check_docer_cookies/?$', account.check_docer_cookies),
+    re_path(r'^reset_csdn_today_download_count/?$', account.reset_csdn_today_download_count),
 
     path('list_download_records/', download_record.list_download_records),
     re_path(r'^delete_download_record/?$', download_record.delete_download_record),
@@ -41,7 +42,7 @@ urlpatterns = [
     path('download/', resource.download),
     path('upload/', resource.upload),
     re_path(r'^check_file/?$', resource.check_file),
-    path('uploaded_resources/', resource.list_uploaded_resources),
+    path('list_uploaded_resources/', resource.list_uploaded_resources),
     re_path(r'^get_resource/?$', resource.get_resource),
     re_path(r'^list_comments/?$', resource.list_comments),
     path('create_comment/', resource.create_comment),

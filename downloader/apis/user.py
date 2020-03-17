@@ -32,7 +32,7 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Student, Resource
+from downloader.models import User, Resource
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, create_coupon, send_message, send_email, aliyun_oss_delete_file
 
@@ -442,10 +442,14 @@ def wx(request):
         # 文本消息
         elif isinstance(msg, TextMessage):
             content = msg.content.strip()
-            if re.match(r'^(r_audit: )\d+ (-)?\d$', msg.content):
-                content = content.split('r_audit: ')[1].split(' ')
-                resource_id = int(content[0])
-                is_audited = int(content[1])
+            if re.match(r'^(r_audit: )\d+ (-)?\d( .+)?$', msg.content):
+                # r_audit: 123 1 message
+                content = content.split(' ')
+                resource_id = int(content[1])
+                is_audited = int(content[2])
+                email_content = None
+                if len(content) == 4:
+                    email_content = content[3]
                 try:
                     resource = Resource.objects.get(id=resource_id)
                     resource.is_audited = is_audited
@@ -453,11 +457,10 @@ def wx(request):
 
                     # 发送邮件通知
                     subject = '[源自下载] 资源审核结果通知'
-                    email_content = None
                     if is_audited == 1:
                         email_content = f'您上传的资源({resource.title})已经审核通过。'
                     elif is_audited == -1:
-                        email_content = f'您上传的资源({resource.title})审核未通过。'
+                        email_content = email_content if email_content else f'您上传的资源({resource.title})审核未通过。'
                     if email_content:
                         send_email(subject, email_content, resource.user.email)
 
@@ -481,39 +484,6 @@ def wx(request):
         # 加密
         encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
         return HttpResponse(encrypted_xml, content_type="text/xml")
-
-
-@auth
-@api_view(['POST'])
-def ncu_student_auth(request):
-    if request.method == 'POST':
-        sid = request.data.get('sid', None)
-        name = request.data.get('name', None)
-        phone = request.data.get('phone', None)
-        code = request.data.get('code', None)
-        if not sid or not name or not phone or not code:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
-        if cache.get(phone) != code:
-            return JsonResponse(dict(code=400, msg='短信验证码无效'))
-        else:
-            cache.set(phone, None)
-            email = request.session.get('email')
-            try:
-                user = User.objects.get(email=email, is_active=True)
-                if user.student:
-                    return JsonResponse(dict(code=400, msg='已认证'))
-            except User.DoesNotExist:
-                return JsonResponse(dict(code=404, msg='用户不存在'))
-
-            try:
-                student = Student.objects.get(sid=sid, name=name)
-                user.student = student
-                user.phone = phone
-                user.save()
-                return JsonResponse(dict(code=200, msg='认证成功', user=UserSerializers(user).data))
-            except Student.DoesNotExist:
-                return JsonResponse(dict(code=404, msg='认证失败'))
 
 
 

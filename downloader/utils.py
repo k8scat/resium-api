@@ -444,7 +444,7 @@ def check_csdn():
     return True
 
 
-def save_resource(resource_url, filename, filepath, title, tags, category, desc, user, account=None, wenku_type=None, zhiwang_type=None):
+def save_resource(resource_url, filename, filepath, title, tags, category, desc, used_point, user, account=None, wenku_type=None, zhiwang_type=None):
     """
     保存资源记录并上传到OSS
 
@@ -455,6 +455,7 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     :param tags:
     :param category:
     :param desc:
+    :param used_point:
     :param user: 下载资源的用户
     :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
@@ -486,7 +487,8 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
                        resource=resource,
                        account=account.email if account else None,
                        download_device=user.login_device,
-                       download_ip=user.login_ip).save()
+                       download_ip=user.login_ip,
+                       used_point=used_point).save()
     except Exception as e:
         logging.error(e)
         ding(f'资源信息保存失败 {str(e)}, 但资源已上传: {key}')

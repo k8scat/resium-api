@@ -75,13 +75,6 @@ class AdvertAdmin(admin.ModelAdmin):
     search_fields = ['title']
 
 
-@admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'sid', 'cls', 'grade', 'major', 'college')
-    list_per_page = 50
-    search_fields = ['name', 'major', 'college', 'cls', 'sid', 'grade']
-
-
 admin.site.site_header = '源自下载后台'
 admin.site.site_title = '源自下载后台'
 admin.site.site_url = settings.CSDNBOT_UI

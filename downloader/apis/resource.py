@@ -270,7 +270,7 @@ def download(request):
             # 检查OSS是否存有该资源
             oss_resource = check_oss(resource_url, download_type)
             if oss_resource:
-                point = settings.OSS_RESOURCE_POINT
+                point = request.data.get('point')
                 if user.point < point:
                     return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
 
@@ -285,7 +285,8 @@ def download(request):
                 DownloadRecord(user=user,
                                resource=oss_resource,
                                download_device=user.login_device,
-                               download_ip=user.login_ip).save()
+                               download_ip=user.login_ip,
+                               used_point=point).save()
                 # 更新用户下载积分
                 user.point -= point
                 user.used_point += point
@@ -376,7 +377,7 @@ def download(request):
                                         if chunk:
                                             f.write(chunk)
                                 # 上传资源到OSS并保存记录到数据库
-                                t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, desc, user, csdn_account))
+                                t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, desc, settings.CSDN_POINT, user, csdn_account))
                                 t.start()
 
                                 f = open(filepath, 'rb')
@@ -486,7 +487,7 @@ def download(request):
 
                     filepath, filename = check_download(save_dir)
                     # 保存资源
-                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, cats, desc, user, baidu_account, doc_type))
+                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, cats, desc, point, user, baidu_account, doc_type))
                     t.start()
 
                     f = open(filepath, 'rb')
@@ -566,7 +567,7 @@ def download(request):
                                                 f.write(chunk)
 
                                     # 保存资源
-                                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, '', user, docer_account))
+                                    t = Thread(target=save_resource, args=(resource_url, filename, filepath, title, tags, category, '', settings.DOCER_POINT, user, docer_account))
                                     t.start()
 
                                     f = open(filepath, 'rb')
@@ -738,7 +739,7 @@ def download(request):
 
                         # 保存资源
                         t = Thread(target=save_resource,
-                                   args=(resource_url, filename, filepath, title, tags, category, desc, user),
+                                   args=(resource_url, filename, filepath, title, tags, category, desc, settings.ZHIWANG_POINT, user),
                                    kwargs={'zhiwang_type': download_type})
                         t.start()
 
@@ -810,7 +811,8 @@ def oss_download(request):
         DownloadRecord.objects.create(user=user,
                                       resource=oss_resource,
                                       download_device=user.login_device,
-                                      download_ip=user.login_ip)
+                                      download_ip=user.login_ip,
+                                      used_point=settings.OSS_RESOURCE_POINT)
 
         # 更新用户下载积分
         user.point -= point
@@ -855,7 +857,8 @@ def parse_resource(request):
                         'desc': soup.select('div.resource_description p')[0].text,
                         'tags': [tag.text for tag in soup.select('label.resource_tags a')],
                         'size': soup.select('strong.info_box span:nth-of-type(3) em')[0].text,
-                        'file_type': soup.select('dl.resource_box_dl dt img')[0]['src'].split('/')[-1].split('.')[0]
+                        'file_type': soup.select('dl.resource_box_dl dt img')[0]['src'].split('/')[-1].split('.')[0],
+                        'point': settings.CSDN_POINT
                     }
 
                     return JsonResponse(dict(code=200, resource=resource))
@@ -882,13 +885,16 @@ def parse_resource(request):
                         doc_info = data['docInfo']
                         # 判断是否是VIP专享文档
                         if doc_info.get('professionalDoc', None) == 1:
-                            doc_type = 'VIP专享文档'
-                        else:
+                            point = settings.WENKU_SPECIAL_DOC_POINT
+                        elif doc_info.get('isPaymentDoc', None) == 0:
                             with requests.get(get_vip_free_doc_url, headers=headers) as _:
                                 if _.status_code == requests.codes.OK and _.json()['status']['code'] == 0:
-                                    doc_type = 'VIP免费文档' if _.json()['data']['is_vip_free_doc'] else '共享文档'
+                                    point = settings.WENKU_VIP_FREE_DOC_POINT if _.json()['data']['is_vip_free_doc'] else settings.WENKU_SHARE_DOC_POINT
                                 else:
                                     return JsonResponse(dict(code=500, msg='资源获取失败'))
+                        else:
+                            point = None
+
                         file_type = doc_info['docType']
                         if file_type == '6':
                             file_type = 'PPTX'
@@ -925,7 +931,7 @@ def parse_resource(request):
                             'tags': doc_info.get('newTagArray', []),
                             'desc': doc_info['docDesc'],
                             'file_type': file_type,
-                            'doc_type': doc_type
+                            'point': point
                         }
                         return JsonResponse(dict(code=200, resource=resource))
                     except Exception as e:
@@ -954,7 +960,8 @@ def parse_resource(request):
                     resource = {
                         'title': soup.find('h1', class_='preview__title').string,
                         'tags': tags,
-                        'file_type': soup.select('span.m-crumbs-path a')[0].text
+                        'file_type': soup.select('span.m-crumbs-path a')[0].text,
+                        'point': settings.DOCER_POINT
                     }
                     return JsonResponse(dict(code=200, resource=resource))
                 else:
@@ -986,7 +993,8 @@ def parse_resource(request):
                     'desc': soup.find('span', attrs={'id': 'ChDivSummary'}).string,
                     'tags': tags,
                     'caj_download': True if soup.find('a', attrs={'id': 'cajDown'}) else False,  # 是否支持caj下载
-                    'pdf_download': True if soup.find('a', attrs={'id': 'pdfDown'}) else False  # 是否支持pdf下载
+                    'pdf_download': True if soup.find('a', attrs={'id': 'pdfDown'}) else False,  # 是否支持pdf下载
+                    'point': settings.ZHIWANG_POINT
                 }
                 return JsonResponse(dict(code=200, resource=resource))
         else:
