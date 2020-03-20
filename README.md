@@ -12,19 +12,16 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] tags 单独创建一个表
 * [ ] django-cors-headers 并没有返回 Access-Control-Allow-Origin
 * [ ] mq
-* [ ] redis 保存验证码 phone=code
 * [ ] 重复保存资源的问题
-* [ ] uWSGI
-* [ ] 爬取CSDN已下载资源
-* [ ] 检查csdn当天下载数
-* [ ] 后端分布式
+* [x] 爬取CSDN已下载资源
+* [x] 检查csdn当天下载数
+* [x] 后端分布式
 * [ ] 删除 文件碎片
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
-* [ ] 集成知网
+* [x] 集成知网
 * [ ] 上传奖励
-* [ ] Category 单独一张表？
-* [ ] wenku_download_requests
-* [ ] nginx + gunicorn
+* [x] wenku_download_requests
+* [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
     静态文件映射到本地
 * [ ] TestCase
@@ -34,6 +31,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] parse_resource 和 download 重复解析资源信息的问题
 * [ ] use alpine linux
 * [ ] 后端接口地址更新的问题
+* [x] CSDN VIP文章
+    https://blog.csdn.net/yangtao5202/article/details/82228857
 
 ## 广告接入
 

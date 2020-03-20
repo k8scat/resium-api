@@ -5,28 +5,23 @@
 @date: 2020/2/25
 
 """
-import json
-import logging
-
 import requests
 from bs4 import BeautifulSoup
-from selenium.webdriver.support import expected_conditions as EC
+from rest_framework.decorators import api_view
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
+from django.http import HttpResponse
 
 from downloader.models import DocerAccount, CsdnAccount, BaiduAccount
-from downloader.utils import get_driver, ding
+from downloader.utils import ding
 
 
+@api_view(['POST'])
 def check_csdn_cookies(request):
     """
     更新CSDN cookies
     """
-    if request.method == 'GET':
-        token = request.GET.get('token', None)
+    if request.method == 'POST':
+        token = request.data.get('token', None)
         if token == settings.ADMIN_TOKEN:
             csdn_accounts = CsdnAccount.objects.all()
             for csdn_account in csdn_accounts:
@@ -44,53 +39,40 @@ def check_csdn_cookies(request):
         return HttpResponse('')
 
 
+@api_view(['POST'])
 def check_baidu_cookies(request):
     """
     检查百度 cookies
     """
-    if request.method == 'GET':
-        token = request.GET.get('token', '')
+    if request.method == 'POST':
+        token = request.data.get('token', None)
         if token == settings.ADMIN_TOKEN:
-            driver = get_driver()
-            try:
-                driver.get('https://wenku.baidu.com/')
-
-                # 添加cookies
-                try:
-                    baidu_account = BaiduAccount.objects.get(is_enabled=True)
-                except BaiduAccount.DoesNotExist:
-                    ding('没有可用的百度文库会员账号')
-                    return JsonResponse(dict(code=500, msg='下载失败'))
-                cookies = json.loads(baidu_account.cookies)
-                for cookie in cookies:
-                    if 'expiry' in cookie:
-                        del cookie['expiry']
-                    driver.add_cookie(cookie)
-
-                driver.get('https://wenku.baidu.com/')
-                try:
-                    username = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//a[@id='userNameCon']/span[@class='text-dec-under'][1]"))
-                    ).text
-                    logging.info(username)
-                    baidu_account.cookies = json.dumps(driver.get_cookies())
-                    baidu_account.save()
-                    ding('百度文库 cookies 仍有效')
-                except TimeoutException:
-                    ding('百度文库 cookies 已失效，请尽快更新！')
-            finally:
-                driver.close()
+            baidu_accounts = BaiduAccount.objects.all()
+            for baidu_account in baidu_accounts:
+                headers = {
+                    'referer': 'https://wenku.baidu.com',
+                    'cookie': baidu_account.cookies,
+                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36'
+                }
+                get_user_info_url = 'https://wenku.baidu.com/user/interface/getuserinfo'
+                with requests.post(get_user_info_url, headers=headers) as r:
+                    if r.status_code == requests.codes.OK:
+                        is_login = r.json()['data']['userInfo']['isLogin']
+                        if is_login:
+                            ding('百度文库cookies仍有效')
+                        else:
+                            ding(f'百度文库cookies已失效，{r.text}')
 
         return HttpResponse('')
 
 
+@api_view(['POST'])
 def check_docer_cookies(request):
     """
     检查稻壳模板 cookies
     """
-    if request.method == 'GET':
-        token = request.GET.get('token', '')
+    if request.method == 'POST':
+        token = request.data.get('token', None)
         if token == settings.ADMIN_TOKEN:
             try:
                 docer_account = DocerAccount.objects.get(is_enabled=True)
@@ -109,13 +91,14 @@ def check_docer_cookies(request):
         return HttpResponse('')
 
 
+@api_view(['POST'])
 def reset_csdn_today_download_count(request):
     """
     重置CSDN账号的今日已下载数
     """
 
-    if request.method == 'GET':
-        token = request.GET.get('token', None)
+    if request.method == 'POST':
+        token = request.data.get('token', None)
         if token == settings.ADMIN_TOKEN:
             csdn_accounts = CsdnAccount.objects.all()
             for csdn_account in csdn_accounts:

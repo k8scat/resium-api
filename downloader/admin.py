@@ -33,7 +33,7 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_audited', 'user', 'title', 'url', 'key', 'filename', 'category', 'tags', 'create_time')
+    list_display = ('id', 'is_audited', 'user', 'title', 'url', 'key', 'filename', 'tags', 'create_time')
     list_per_page = 50
     list_filter = ('is_audited',)
     search_fields = ['title', 'key', 'url']
@@ -73,6 +73,13 @@ class AdvertAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'link', 'image')
     list_per_page = 50
     search_fields = ['title']
+
+
+@admin.register(Article)
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'url')
+    list_per_page = 50
+    search_fields = ['title', 'url', 'author']
 
 
 admin.site.site_header = '源自下载后台'

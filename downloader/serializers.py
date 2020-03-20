@@ -67,3 +67,7 @@ class AdvertSerializers(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ArticleSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Article
+        fields = '__all__'

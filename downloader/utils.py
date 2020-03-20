@@ -444,7 +444,7 @@ def check_csdn():
     return True
 
 
-def save_resource(resource_url, filename, filepath, title, tags, category, desc, used_point, user, account=None, wenku_type=None, zhiwang_type=None):
+def save_resource(resource_url, filename, filepath, title, tags, desc, used_point, user, account=None, wenku_type=None, zhiwang_type=None):
     """
     保存资源记录并上传到OSS
 
@@ -453,13 +453,11 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     :param filepath:
     :param title:
     :param tags:
-    :param category:
     :param desc:
     :param used_point:
     :param user: 下载资源的用户
     :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
-    :param zhiwang_type: 知网文献类型(caj/pdf)
     :return:
     """
 
@@ -478,10 +476,9 @@ def save_resource(resource_url, filename, filepath, title, tags, category, desc,
     try:
         # 资源文件大小
         size = os.path.getsize(filepath)
-
         resource = Resource.objects.create(title=title, filename=filename, size=size,
-                                           url=resource_url, category=category, key=key,
-                                           tags=tags, user_id=1, file_md5=file_md5, desc=desc,
+                                           url=resource_url, key=key, tags=tags,
+                                           file_md5=file_md5, desc=desc, user_id=1,
                                            wenku_type=wenku_type, zhiwang_type=zhiwang_type)
         DownloadRecord(user=user,
                        resource=resource,

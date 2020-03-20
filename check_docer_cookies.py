@@ -12,4 +12,4 @@ if __name__ == '__main__':
     payload = {
         'token': ADMIN_TOKEN
     }
-    requests.get('https://api.26xf90zp4w.ncucoder.com/check_docer_cookies/', params=payload)
+    requests.post('https://api.26xf90zp4w.ncucoder.com/check_docer_cookies/', data=payload)

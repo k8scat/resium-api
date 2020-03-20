@@ -6,7 +6,7 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, order, resource, advert, coupon, account, download_record
+from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article
 
 urlpatterns = [
     path('login/', user.login),
@@ -52,4 +52,9 @@ urlpatterns = [
     re_path(r'^parse_resource/?$', resource.parse_resource),
 
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
+
+    path('parse_csdn_article/', article.parse_csdn_article),
+    re_path(r'^list_articles/?$', article.list_articles),
+    path('get_article_count/', article.get_article_count),
+    re_path(r'^get_article/?$', article.get_article)
 ]
