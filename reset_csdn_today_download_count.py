@@ -15,4 +15,4 @@ if __name__ == '__main__':
     payload = {
         'token': ADMIN_TOKEN
     }
-    requests.get('https://api.26xf90zp4w.ncucoder.com/reset_csdn_today_download_count/', params=payload)
+    requests.post('http://localhost:8055/reset_csdn_today_download_count/', data=payload)
