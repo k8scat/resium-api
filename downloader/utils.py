@@ -156,7 +156,6 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             f.seek(0)
             # 验证分片上传。
             if bucket.get_object(key).read() == f.read():
-                ding(f'资源成功上传OSS：{filepath.split("/")[-1]}')
                 return True
             else:
                 ding(f'资源({filepath})上传OSS失败，异常未知')
@@ -519,9 +518,18 @@ def save_resource(resource_url, filename, filepath,
                        download_device=user.login_device,
                        download_ip=user.login_ip,
                        used_point=used_point).save()
+
+        ding(f'资源成功上传OSS：{filepath}',
+             user_email=user.email,
+             resource_url=resource_url,
+             used_account=account.email)
     except Exception as e:
-        logging.error(e)
-        ding(f'资源信息保存失败 {str(e)}, 但资源已上传: {key}')
+        ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
+             error=e,
+             resource_url=resource_url,
+             user_email=user.email,
+             used_account=account.email,
+             logger=logging.error)
 
 
 def get_file_md5(f):
