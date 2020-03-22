@@ -117,4 +117,6 @@ def reset_csdn_today_download_count(request):
             for csdn_account in csdn_accounts:
                 csdn_account.today_download_count = 0
                 csdn_account.save()
+                ding('[CSDN] 今日下载数已重置',
+                     used_account=csdn_account.email)
         return HttpResponse('')
