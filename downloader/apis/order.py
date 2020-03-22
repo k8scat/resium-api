@@ -47,7 +47,8 @@ def alipay_notify(request):
                 user.point += order.point
                 user.save()
 
-                ding(f'收入+{total_amount}, 付费用户: {user.email}')
+                ding(f'收入+{total_amount}',
+                     user_email=user.email)
             except Order.DoesNotExist:
                 return HttpResponse('failure')
             return HttpResponse('success')
