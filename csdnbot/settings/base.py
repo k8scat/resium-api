@@ -110,7 +110,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 EMAIL_HOST = 'smtp.qq.com'
-EMAIL_PORT = '465'
+EMAIL_PORT = 465
 EMAIL_HOST_USER = 'admin@ncucoder.com'
 EMAIL_HOST_PASSWORD = 'budnubzbonsmbaga'
 EMAIL_USE_SSL = True
@@ -241,7 +241,7 @@ WX_TOKEN = '6zOpjsMV15xWihocay4grCRPY82EQS7m'
 WX_APP_ID = 'wx687355ca576bb3d2'
 WX_ENCODING_AES_KEY = 'L32ggf9lyXAC7Noc37I3OrPLPW8HqzS6rgb9hC4ImNW'
 
-REGISTER_CODE = 'p34hz7rw'
+REGISTER_CODE = '7d5wh90r'
 
 ALIYUN_SMS_TEMPLATE_CODE = 'SMS_165419422'
 ALIYUN_SMS_SIGN_NAME = 'NCUCoder'
@@ -267,3 +267,5 @@ CODE_IMAGE = os.path.join(BASE_DIR, 'code.png')
 NCU_USERNAME = '8000116092'
 NCU_PASSWORD = 'holdon7868'
 
+# 资源下载间隔
+DOWNLOAD_INTERVAL = 60

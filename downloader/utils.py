@@ -10,13 +10,13 @@ import hashlib
 import hmac
 import json
 import logging
+import random
 import time
 import uuid
 from urllib import parse
 
 import alipay
 import requests
-from PIL import Image
 from django.conf import settings
 
 import os
@@ -35,10 +35,26 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User, Coupon, DocerAccount
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon
 
 
-def ding(content, at_mobiles=None, is_at_all=False):
+def ding(message, at_mobiles=None, is_at_all=False,
+         error='', user_email='', used_account='',
+         resource_url='', logger=logging.info):
+    """
+    使用钉钉Webhook Robot监控线上系统
+
+    :param message:
+    :param at_mobiles:
+    :param is_at_all:
+    :param error:
+    :param user_email:
+    :param used_account:
+    :param resource_url:
+    :param logger:
+    :return:
+    """
+
     timestamp = round(time.time() * 1000)
     secret_enc = settings.DINGTALK_SECRET.encode('utf-8')
     string_to_sign = f'{timestamp}\n{settings.DINGTALK_SECRET}'
@@ -51,10 +67,21 @@ def ding(content, at_mobiles=None, is_at_all=False):
     headers = {
         'Content-Type': 'application/json'
     }
+    if not isinstance(error, str):
+        error = str(error)
+    content = f'## {message}\n' \
+              f'- 错误信息：{error if error else "无"}\n' \
+              f'- 资源地址：{resource_url if resource_url else "无"}\n' \
+              f'- 用户邮箱：{user_email if user_email else "无"}\n' \
+              f'- 会员账号：{used_account if used_account else "无"}\n' \
+              f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}'
+    logger(content)
+
     data = {
-        'msgtype': 'text',
-        'text': {
-            'content': content + (' [dev]' if settings.DEBUG else ' [prod]')
+        'msgtype': 'markdown',
+        'markdown': {
+            'title': message,
+            'text': content
         },
         'at': {
             'atMobiles': at_mobiles,
@@ -129,15 +156,16 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             f.seek(0)
             # 验证分片上传。
             if bucket.get_object(key).read() == f.read():
-                ding(f'资源成功上传OSS {filepath.split("/")[-1]}')
+                ding(f'资源成功上传OSS：{filepath.split("/")[-1]}')
                 return True
             else:
-                ding(f'资源({filepath})上传OSS失败，没有异常')
+                ding(f'资源({filepath})上传OSS失败，异常未知')
                 return False
 
     except Exception as e:
-        logging.error(e)
-        ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码 ' + str(e))
+        ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码',
+             error=e,
+             logger=logging.error)
         return False
 
 
@@ -444,7 +472,9 @@ def check_csdn():
     return True
 
 
-def save_resource(resource_url, filename, filepath, title, tags, desc, used_point, user, account=None, wenku_type=None, zhiwang_type=None):
+def save_resource(resource_url, filename, filepath,
+                  title, tags, desc, used_point, user,
+                  account=None, wenku_type=None, zhiwang_type=None, is_docer_vip_doc=False):
     """
     保存资源记录并上传到OSS
 
@@ -458,6 +488,8 @@ def save_resource(resource_url, filename, filepath, title, tags, desc, used_poin
     :param user: 下载资源的用户
     :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
+    :param zhiwang_type: 知网文献类型，pdf/caj
+    :param is_docer_vip_doc: 是否是稻壳VIP模板
     :return:
     """
 
@@ -479,7 +511,8 @@ def save_resource(resource_url, filename, filepath, title, tags, desc, used_poin
         resource = Resource.objects.create(title=title, filename=filename, size=size,
                                            url=resource_url, key=key, tags=tags,
                                            file_md5=file_md5, desc=desc, user_id=1,
-                                           wenku_type=wenku_type, zhiwang_type=zhiwang_type)
+                                           wenku_type=wenku_type, zhiwang_type=zhiwang_type,
+                                           is_docer_vip_doc=is_docer_vip_doc)
         DownloadRecord(user=user,
                        resource=resource,
                        account=account.email if account else None,
@@ -631,7 +664,7 @@ def predict_code(image_path):
         'img_data': ('img_data', open(image_path, 'rb').read())
     }
     headers = {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'
+        'user-agent': get_random_ua()
     }
     # requests POST a Multipart-Encoded File
     # https://requests.readthedocs.io/en/master/user/quickstart/#post-a-multipart-encoded-file
@@ -649,3 +682,19 @@ def predict_code(image_path):
         else:
             ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
             return None
+
+
+def get_random_ua():
+    """
+    随机获取User-Agent
+
+    :return:
+    """
+
+    ua_list = [
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36',  # Google Chrome
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/82.0.4083.0 Safari/537.36 Edg/82.0.456.0',  # Microsoft Edge
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15',  # Safari
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:74.0) Gecko/20100101 Firefox/74.0'  # Firefox
+    ]
+    return random.choice(ua_list)

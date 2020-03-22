@@ -10,7 +10,7 @@ import os
 
 from selenium import webdriver
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
 django.setup()
 from downloader.models import BaiduAccount
 
@@ -21,7 +21,6 @@ if __name__ == '__main__':
     wenku_home = 'https://wenku.baidu.com/'
 
     driver = webdriver.Chrome()
-
     try:
         driver.get(wenku_home)
 

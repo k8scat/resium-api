@@ -128,7 +128,7 @@ def register(request):
         code = ''.join(random.sample(string.digits, 6))
         fake = Faker('zh_CN')
         nickname = fake.name()
-        user = User.objects.create(email=email, password=encrypted_password, code=code, nickname=nickname)
+        User(email=email, password=encrypted_password, code=code, nickname=nickname).save()
 
         activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
@@ -144,11 +144,10 @@ def register(request):
                       fail_silently=False)
             return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
         except Exception as e:
-            user.delete()
             if str(e).count('Mailbox not found or access denied'):
                 return JsonResponse(dict(code=400, msg='邮箱不可用，请使用其他邮箱注册'))
-            logging.error(e)
-            ding('注册激活邮件发送失败 ' + str(e))
+            logging.error(f'注册激活邮件发送失败: {str(e)}, 注册用户: {email}')
+            ding(f'注册激活邮件发送失败: {str(e)}, 注册用户: {email}')
             return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
 
     else:

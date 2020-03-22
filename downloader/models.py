@@ -19,8 +19,6 @@ class User(Base):
     code = models.CharField(max_length=6, verbose_name='验证码')
     point = models.IntegerField(default=0, verbose_name='下载积分')
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
-    # 防止统一账号同时下载多个资源
-    is_downloading = models.BooleanField(default=False, verbose_name='是否正在下载')
     login_device = models.TextField(null=True, default=None, verbose_name='登录设备')
     login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
@@ -58,6 +56,7 @@ class Resource(Base):
     file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
     wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
     zhiwang_type = models.CharField(max_length=10, null=True, default=None, verbose_name='知网文献类型(caj/pdf)')
+    is_docer_vip_doc = models.BooleanField(default=False, verbose_name='是否是稻壳VIP文档')
 
     class Meta:
         db_table = 'resource'
@@ -140,6 +139,7 @@ class DocerAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+    month_used_count = models.IntegerField(default=0, verbose_name='当月已使用VIP下载数')
 
     class Meta:
         db_table = 'docer_account'
@@ -175,3 +175,16 @@ class Article(Base):
 
     class Meta:
         db_table = 'article'
+
+
+class DocerPreviewImage(Base):
+    """
+    稻壳模板预览图片
+    """
+
+    resource_url = models.CharField(max_length=240, verbose_name='资源地址')
+    url = models.CharField(max_length=240, verbose_name='图片地址')
+    alt = models.CharField(max_length=200, verbose_name='图片解释')
+
+    class Meta:
+        db_table = 'docer_preview_image'

@@ -20,7 +20,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 * [x] 集成知网
 * [ ] 上传奖励
-* [x] wenku_download_requests
+* [ ] wenku_download_requests
 * [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
     静态文件映射到本地

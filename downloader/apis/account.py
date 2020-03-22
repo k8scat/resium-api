@@ -5,6 +5,9 @@
 @date: 2020/2/25
 
 """
+import json
+import logging
+
 import requests
 from bs4 import BeautifulSoup
 from rest_framework.decorators import api_view
@@ -12,7 +15,7 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from downloader.models import DocerAccount, CsdnAccount, BaiduAccount
-from downloader.utils import ding
+from downloader.utils import ding, get_random_ua
 
 
 @api_view(['POST'])
@@ -32,9 +35,10 @@ def check_csdn_cookies(request):
                     soup = BeautifulSoup(r.text, 'lxml')
                     el = soup.select('div.vip_info p:nth-of-type(1) span')
                     if el:
-                        ding(f'CSDN会员账号剩余下载个数: {el[0].text}')
+                        ding(f'[CSDN,{csdn_account.email}] 剩余下载个数：{el[0].text}',
+                             used_account=csdn_account.email)
                     else:
-                        ding('CSDN会员账号的cookies已失效，请及时更新')
+                        ding('[CSDN] Cookies已失效')
 
         return HttpResponse('')
 
@@ -49,19 +53,27 @@ def check_baidu_cookies(request):
         if token == settings.ADMIN_TOKEN:
             baidu_accounts = BaiduAccount.objects.all()
             for baidu_account in baidu_accounts:
+                cookies = ''
+                for cookie in json.loads(baidu_account.cookies):
+                    cookies += f"{cookie['name']}={cookie['value']};"
                 headers = {
                     'referer': 'https://wenku.baidu.com',
-                    'cookie': baidu_account.cookies,
-                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36'
+                    'cookie': cookies,
+                    'user-agent': get_random_ua()
                 }
                 get_user_info_url = 'https://wenku.baidu.com/user/interface/getuserinfo'
                 with requests.post(get_user_info_url, headers=headers) as r:
                     if r.status_code == requests.codes.OK:
-                        is_login = r.json()['data']['userInfo']['isLogin']
+                        data = r.json()['data']
+                        is_login = data['userInfo']['isLogin']
                         if is_login:
-                            ding('百度文库cookies仍有效')
+                            share_doc_count = data['jiaoyu_vip_info']['download_ticket_count']
+                            vip_special_doc_count = data['jiaoyu_vip_info']['professional_download_ticket_count']
+                            ding(f'[百度文库] 可用共享文档下载特权 {share_doc_count} 次，可用VIP专享文档下载特权 {vip_special_doc_count} 次')
                         else:
-                            ding(f'百度文库cookies已失效，{r.text}')
+                            ding('[百度文库] Cookies已失效',
+                                 error=r.text,
+                                 logger=logging.error)
 
         return HttpResponse('')
 
