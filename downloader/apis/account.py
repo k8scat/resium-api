@@ -35,10 +35,11 @@ def check_csdn_cookies(request):
                     soup = BeautifulSoup(r.text, 'lxml')
                     el = soup.select('div.vip_info p:nth-of-type(1) span')
                     if el:
-                        ding(f'[CSDN,{csdn_account.email}] 剩余下载个数：{el[0].text}',
+                        ding(f'[CSDN] 剩余下载个数：{el[0].text}',
                              used_account=csdn_account.email)
                     else:
-                        ding('[CSDN] Cookies已失效')
+                        ding('[CSDN] Cookies已失效',
+                             used_account=csdn_account.email)
 
         return HttpResponse('')
 
