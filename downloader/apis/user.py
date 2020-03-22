@@ -196,12 +196,13 @@ def send_forget_password_email(request):
     """
 
     if request.method == 'GET':
-        email = request.GET.get('email', '')
-        if email == '':
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
+        email = request.GET.get('email', None)
         try:
             user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=404, msg='用户不存在'))
+
+        try:
             code = ''.join(random.sample(string.digits, 6))
             password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
             encrypted_password = make_password(password)
@@ -272,7 +273,7 @@ def reset_password(request):
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='用户不存在'))
+            return JsonResponse(dict(code=401, msg='未认证'))
 
         old_password = request.data.get('old_password', '')
         new_password = request.data.get('new_password', '')
@@ -293,15 +294,22 @@ def reset_password(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@ratelimit(key='ip', rate='3/h', block=True)
-@ratelimit(key='ip', rate='1/m', block=True)
+@ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
+@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['POST'])
 def send_phone_code(request):
     if request.method == 'POST':
+        # 目前只有绑定手机时会用到短信
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            if user.phone:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=401, msg='未认证'))
+
         phone = request.data.get('phone', '')
-        logging.info(request.data)
-        logging.info(phone)
         if not re.match(r'^1[3456789]\d{9}$', phone):
             return JsonResponse(dict(code=400, msg='手机号有误'))
 
@@ -485,4 +493,25 @@ def wx(request):
         return HttpResponse(encrypted_xml, content_type="text/xml")
 
 
+@auth
+@api_view(['POST'])
+def bind_phone(request):
+    if request.method == 'POST':
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            if user.phone:
+                return JsonResponse(dict(code=400, msg='该账号已绑定手机号'))
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=401, msg='未认证'))
 
+        phone = request.data.get('phone', None)
+        code = request.data.get('code', None)
+        cache_code = cache.get(phone)
+        if code != cache_code:
+            return JsonResponse(dict(code=400, msg='验证码错误'))
+
+        cache.delete(phone)
+        user.phone = phone
+        user.save()
+        return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))

@@ -6,7 +6,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 
-* [ ] 用户是否正在下载状态: 数据库 -> redis
+* [x] 用户是否正在下载状态: 数据库 -> redis
 * [x] 集成稻壳模板
 * [ ] 换绑手机号、邮箱
 * [ ] tags 单独创建一个表
@@ -15,11 +15,11 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 重复保存资源的问题
 * [x] 爬取CSDN已下载资源
 * [x] 检查csdn当天下载数
-* [x] 后端分布式
+* [ ] 后端分布式
 * [ ] 删除 文件碎片
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 * [x] 集成知网
-* [ ] 上传奖励
+* [x] 上传奖励
 * [ ] wenku_download_requests
 * [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/

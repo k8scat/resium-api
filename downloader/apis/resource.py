@@ -43,6 +43,14 @@ from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_s
 @api_view(['POST'])
 def upload(request):
     if request.method == 'POST':
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            if not user.phone:
+                return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=401, msg='未认证'))
+
         file = request.FILES.get('file', None)
         if not file:
             return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -62,11 +70,6 @@ def upload(request):
         category = data.get('category', None)
         if title and tags and desc and category and file:
             try:
-                email = request.session.get('email')
-                try:
-                    user = User.objects.get(email=email, is_active=True)
-                except User.DoesNotExist:
-                    return JsonResponse(dict(code=400, msg='错误的请求'))
                 filename = file.name
                 key = f'{str(uuid.uuid1())}-{filename}'
                 logging.info(f'Upload resource: {key}')
@@ -250,7 +253,7 @@ def list_resource_tags(request):
         return JsonResponse(dict(code=200, tags=settings.TAG_SEP.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
 
 
-@ratelimit(key='ip', rate='1/m', method=['POST'])
+@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['POST'])
 def download(request):
@@ -264,6 +267,9 @@ def download(request):
 
         try:
             user = User.objects.get(email=email, is_active=True)
+            if not user.phone:
+                return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+
             cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
@@ -821,6 +827,9 @@ def oss_download(request):
 
         try:
             user = User.objects.get(email=email, is_active=True)
+            if not user.phone:
+                return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+
             cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
             point = settings.OSS_RESOURCE_POINT
             if user.point < point:

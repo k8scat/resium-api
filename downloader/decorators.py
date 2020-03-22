@@ -22,6 +22,8 @@ import jwt
 from django.conf import settings
 from django.http import JsonResponse
 
+from downloader.models import User
+
 
 def auth(fn):
     @wraps(fn)

@@ -96,11 +96,18 @@ def list_orders(request):
 def create_order(request):
     """
     创建订单
-
-    需要认证
     """
 
     if request.method == 'POST':
+        # 获取当前用户
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            if not user.phone:
+                return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=401, msg='未认证'))
+
         subject = request.data.get('subject', None)
         total_amount = request.data.get('total_amount', None)
         point = request.data.get('point', None)
@@ -135,10 +142,6 @@ def create_order(request):
         )
         # 生成支付链接
         pay_url = settings.ALIPAY_WEB_BASE_URL + order_string
-
-        # 获取当前用户
-        email = request.session.get('email')
-        user = User.objects.get(email=email)
 
         # 创建订单
         try:

@@ -14,5 +14,5 @@ if __name__ == '__main__':
     payload = {
         'token': ADMIN_TOKEN
     }
-    requests.post('https://api.26xf90zp4w.ncucoder.com/check_baidu_cookies/', data=payload)
+    requests.post('http://localhost:8055/check_baidu_cookies/', data=payload)
 

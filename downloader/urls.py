@@ -18,7 +18,8 @@ urlpatterns = [
     re_path(r'^wx/?$', user.wx),
     path('change_nickname/', user.change_nickname),
     path('get_user/', user.get_user),
-    # path('send_phone_code/', user.send_phone_code),
+    path('send_phone_code/', user.send_phone_code),
+    path('bind_phone/', user.bind_phone),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),

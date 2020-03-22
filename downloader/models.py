@@ -11,6 +11,7 @@ class Base(models.Model):
 
 class User(Base):
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
+    phone = models.CharField(max_length=20, null=True, default=None, verbose_name='手机号')
     email = models.EmailField(verbose_name='邮箱')
     password = models.CharField(max_length=100, verbose_name='密码')
     temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='修改密码时保存的临时密码')

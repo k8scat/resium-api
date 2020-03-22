@@ -13,7 +13,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from downloader.decorators import auth
-from downloader.models import CsdnAccount, Article
+from downloader.models import CsdnAccount, Article, User
 from downloader.serializers import ArticleSerializers
 from downloader.utils import ding
 
@@ -22,6 +22,12 @@ from downloader.utils import ding
 @api_view(['POST'])
 def parse_csdn_article(request):
     if request.method == 'POST':
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=401, msg='未认证'))
+
         article_url = request.data.get('url', None)
         if not article_url:
             return JsonResponse(dict(code=400, msg='错误的请求'))
