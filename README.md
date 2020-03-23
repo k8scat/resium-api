@@ -33,6 +33,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 后端接口地址更新的问题
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
+* [ ] 开放API
 
 ## 广告接入
 

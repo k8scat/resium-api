@@ -313,6 +313,10 @@ def send_phone_code(request):
         if not re.match(r'^1[3456789]\d{9}$', phone):
             return JsonResponse(dict(code=400, msg='手机号有误'))
 
+        # Todo: 这时不应该计入请求次数
+        if User.objects.filter(phone=phone, is_active=True).count() > 0:
+            return JsonResponse(dict(code=400, msg='该手机号已绑定其他账号'))
+
         code = ''.join(random.sample(string.digits, 6))
         if send_message(phone, code):
             cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
