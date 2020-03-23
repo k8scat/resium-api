@@ -3,7 +3,7 @@
 # 停止服务
 docker-compose down
 # 删除旧的镜像
-#docker rmi resium
+docker rmi resium
 
 # 只有在更新了基础镜像的时候才重新拉取基础镜像
 # 更新基础镜像
