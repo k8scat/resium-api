@@ -164,9 +164,9 @@ def predict(image_path):
                 code = json.loads(result['RspData'])['result']
                 ding(f'验证码识别成功: {code}')
                 return code
-            else:
-                ding(f'验证码识别失败: {r.text}')
-                return None
+
+            ding(f'验证码识别失败: {r.text}')
+            return None
         except JSONDecodeError:
             ding(f'验证码识别失败: {r.text}')
             return None

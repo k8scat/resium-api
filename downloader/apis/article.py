@@ -70,9 +70,9 @@ def parse_csdn_article(request):
                     article = Article.objects.create(url=article_url, title=title, content=content,
                                                      author=author, desc=desc, is_vip=is_vip, tags=tags)
                     return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
-                else:
-                    ding(f'文章获取失败: {article_url}')
-                    return JsonResponse(dict(code=500, msg='文章获取失败'))
+
+                ding(f'文章获取失败: {article_url}')
+                return JsonResponse(dict(code=500, msg='文章获取失败'))
 
 
 @auth

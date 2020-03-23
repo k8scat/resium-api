@@ -157,9 +157,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             # 验证分片上传。
             if bucket.get_object(key).read() == f.read():
                 return True
-            else:
-                ding(f'资源({filepath})上传OSS失败，异常未知')
-                return False
+            ding(f'资源({filepath})上传OSS失败，异常未知')
+            return False
 
     except Exception as e:
         ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码',
@@ -595,14 +594,13 @@ def send_message(phone, code):
     if settings.DEBUG:
         ding(code)
         return True
-    else:
-        try:
-            client.do_action_with_exception(request)
-            return True
-        except Exception as e:
-            logging.error(e)
-            ding(f'短信验证码发送失败: {str(e)}')
-            return False
+    try:
+        client.do_action_with_exception(request)
+        return True
+    except Exception as e:
+        logging.error(e)
+        ding(f'短信验证码发送失败: {str(e)}')
+        return False
 
 
 def send_email(subject, content, to_addr):
@@ -668,9 +666,8 @@ def predict_code(image_path):
                 code = json.loads(result['RspData'])['result']
                 ding(f'验证码识别成功: {code}')
                 return code
-            else:
-                ding(f'验证码识别失败: {r.content.decode()}')
-                return None
+            ding(f'验证码识别失败: {r.content.decode()}')
+            return None
         else:
             ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
             return None

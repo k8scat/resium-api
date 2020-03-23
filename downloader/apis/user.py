@@ -104,8 +104,7 @@ def login(request):
                 }
                 token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
                 return JsonResponse(dict(code=200, msg="登录成功", token=token, user=UserSerializers(user).data))
-            else:
-                return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
+            return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
 
@@ -292,8 +291,7 @@ def reset_password(request):
             user.password = make_password(new_password)
             user.save()
             return JsonResponse(dict(code=200, msg='密码修改成功'))
-        else:
-            return JsonResponse(dict(code=400, msg='旧密码不正确'))
+        return JsonResponse(dict(code=400, msg='旧密码不正确'))
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -326,8 +324,7 @@ def send_phone_code(request):
         if send_message(phone, code):
             cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
             return JsonResponse(dict(code=200, msg='验证码发送成功'))
-        else:
-            return JsonResponse(dict(code=500, msg='验证码发送失败'))
+        return JsonResponse(dict(code=500, msg='验证码发送失败'))
 
 
 @api_view(['GET', 'POST'])
@@ -376,8 +373,7 @@ def wx(request):
         # 3）开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
         if hashcode == signature:
             return HttpResponse(echostr)
-        else:
-            return HttpResponse('')
+        return HttpResponse('')
     elif request.method == 'POST':
         """
         消息管理

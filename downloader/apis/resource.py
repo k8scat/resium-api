@@ -417,14 +417,14 @@ def download(request):
                             # 'attachment;filename="' + parse.quote(filename, safe=string.printable) + '"'
                             response['Content-Disposition'] = download_resp.headers['Content-Disposition']
                             return response
-                        else:
-                            ding('[CSDN] 下载失败',
-                                 error=download_resp.text,
-                                 user_email=email,
-                                 resource_url=resource_url,
-                                 used_account=csdn_account.email,
-                                 logger=logging.error)
-                            return JsonResponse(dict(code=500, msg='下载失败'))
+
+                        ding('[CSDN] 下载失败',
+                             error=download_resp.text,
+                             user_email=email,
+                             resource_url=resource_url,
+                             used_account=csdn_account.email,
+                             logger=logging.error)
+                        return JsonResponse(dict(code=500, msg='下载失败'))
                 else:
                     if resp.get('message', None) == '当前资源不开放下载功能':
                         return JsonResponse(dict(code=400, msg='CSDN未开放该资源的下载功能'))
@@ -632,14 +632,14 @@ def download(request):
                                                                                                         safe=string.printable) + '"'
 
                                 return response
-                            else:
-                                ding('[稻壳VIP模板] 下载失败',
-                                     error=download_resp.text,
-                                     user_email=user.email,
-                                     used_account=docer_account.email,
-                                     resource_url=resource_url,
-                                     logger=logging.error)
-                                return JsonResponse(dict(code=500, msg='下载失败'))
+
+                            ding('[稻壳VIP模板] 下载失败',
+                                 error=download_resp.text,
+                                 user_email=user.email,
+                                 used_account=docer_account.email,
+                                 resource_url=resource_url,
+                                 logger=logging.error)
+                            return JsonResponse(dict(code=500, msg='下载失败'))
                     else:
                         ding('[稻壳VIP模板] 下载失败',
                              error=r.text,
@@ -940,8 +940,8 @@ def parse_resource(request):
                         'point': point
                     }
                     return JsonResponse(dict(code=200, resource=resource))
-                else:
-                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+
+                return JsonResponse(dict(code=500, msg='资源获取失败'))
 
         # 百度文库文档
         elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
@@ -1085,8 +1085,8 @@ def parse_resource(request):
                         'preview_images': preview_images
                     }
                     return JsonResponse(dict(code=200, resource=resource))
-                else:
-                    return JsonResponse(dict(code=500, msg='资源获取失败'))
+
+                return JsonResponse(dict(code=500, msg='资源获取失败'))
 
         # 知网下载
         # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
