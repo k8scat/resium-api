@@ -83,10 +83,11 @@ def login(request):
             if check_password(password, user.password):
                 login_device = request.META.get('HTTP_USER_AGENT', None)
                 # Fix: remote ip addr is always local ip
+                # https://stackoverflow.com/questions/4581789/how-do-i-get-user-ip-address-in-django
                 if 'HTTP_X_FORWARDED_FOR' in request.META:
-                    login_ip = request.META.get('HTTP_X_FORWARDED_FOR', None)
+                    login_ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
                 else:
-                    login_ip = request.META.get('REMOTE_ADDR', None)
+                    login_ip = request.META.get('REMOTE_ADDR')
 
                 if login_device and login_ip:
                     user.login_device = login_device

@@ -7,7 +7,7 @@ from downloader.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'is_active', 'point', 'used_point', 'create_time', 'update_time')
+    list_display = ('id', 'is_active', 'email', 'phone', 'point', 'used_point', 'login_time', 'login_ip')
     list_per_page = 50
     list_filter = ('is_active',)
     search_fields = ['email']
