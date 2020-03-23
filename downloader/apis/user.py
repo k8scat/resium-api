@@ -292,9 +292,7 @@ def reset_password(request):
             user.save()
             return JsonResponse(dict(code=200, msg='密码修改成功'))
         return JsonResponse(dict(code=400, msg='旧密码不正确'))
-
-    else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+    return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 @ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
@@ -496,6 +494,8 @@ def wx(request):
         # 加密
         encrypted_xml = crypto.encrypt_message(ret_xml, nonce, timestamp)
         return HttpResponse(encrypted_xml, content_type="text/xml")
+    else:
+        return HttpResponse('')
 
 
 @auth

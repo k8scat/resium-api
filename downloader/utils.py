@@ -668,9 +668,8 @@ def predict_code(image_path):
                 return code
             ding(f'验证码识别失败: {r.content.decode()}')
             return None
-        else:
-            ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
-            return None
+        ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
+        return None
 
 
 def get_random_ua():
