@@ -287,10 +287,10 @@ def download(request):
         if oss_resource:
             point = request.data.get('point')
             if user.point < point:
-                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
             # 判断用户是否下载过该资源
-            # 若没有，则给上传资源的用户赠送下载积分
+            # 若没有，则给上传资源的用户赠送积分
             if user != oss_resource.user:
                 if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
                     oss_resource.user.point += 1
@@ -302,7 +302,7 @@ def download(request):
                            download_device=user.login_device,
                            download_ip=user.login_ip,
                            used_point=point).save()
-            # 更新用户下载积分
+            # 更新用户积分
             user.point -= point
             user.used_point += point
             user.save()
@@ -331,21 +331,22 @@ def download(request):
         if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
             logging.info(f'CSDN 资源下载: {resource_url}')
 
-            # 可用下载积分不足
+            # 可用积分不足
             if user.point < settings.CSDN_POINT:
-                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
             try:
                 csdn_account = CsdnAccount.objects.get(is_enabled=True)
                 # 判断账号当天下载数
                 if csdn_account.today_download_count >= 20:
-                    ding(f'[CSDN,{csdn_account.email}] 今日下载数已用完',
+                    ding(f'[CSDN] 今日下载数已用完',
                          at_mobiles=['17770040362'],
                          user_email=email,
-                         resource_url=resource_url)
+                         resource_url=resource_url,
+                         used_account=csdn_account)
                     return JsonResponse(dict(code=403, msg='下载失败'))
             except CsdnAccount.DoesNotExist:
-                ding('没有可以使用的CSDN账号',
+                ding('[CSDN] 没有可用账号',
                      user_email=email,
                      resource_url=resource_url)
                 return JsonResponse(dict(code=400, msg='下载失败'))
@@ -356,6 +357,9 @@ def download(request):
                 # https://download.csdn.net/download/c_baby123/10791185
                 cannot_download = len(soup.select('div.resource_box a.copty-btn'))
                 if cannot_download:
+                    ding('[CSDN] 用户尝试下载版权受限的资源',
+                         user_email=user.email,
+                         resource_url=resource_url)
                     return JsonResponse(dict(code=400, msg='版权受限，无法下载'))
                 # 获取资源标题
                 title = soup.select('div.resource_box_info span.resource_title')[0].string
@@ -371,14 +375,23 @@ def download(request):
             }
             with requests.get(f'https://download.csdn.net/source/download?source_id={resource_id}',
                               headers=headers) as r:
-                resp = r.json()
+                try:
+                    resp = r.json()
+                except JSONDecodeError:
+                    ding('[CSDN] 下载失败',
+                         error=r.text,
+                         resource_url=resource_url,
+                         user_email=user.email,
+                         used_account=csdn_account.email,
+                         logger=logging.error)
+                    return JsonResponse(dict(code=500, msg='下载失败'))
                 if resp['code'] == 200:
                     # 更新账号今日下载数
                     csdn_account.today_download_count += 1
                     csdn_account.used_count += 1
                     csdn_account.save()
 
-                    # 更新用户的剩余下载积分和已用下载积分
+                    # 更新用户的剩余积分和已用积分
                     point = settings.CSDN_POINT
                     user.point -= point
                     user.used_point += point
@@ -405,7 +418,7 @@ def download(request):
                             response['Content-Disposition'] = download_resp.headers['Content-Disposition']
                             return response
                         else:
-                            ding('CSDN资源下载失败',
+                            ding('[CSDN] 下载失败',
                                  error=download_resp.text,
                                  user_email=email,
                                  resource_url=resource_url,
@@ -413,8 +426,11 @@ def download(request):
                                  logger=logging.error)
                             return JsonResponse(dict(code=500, msg='下载失败'))
                 else:
-                    ding('CSDN账号Cookies失效',
-                         error=r.text,
+                    if resp.get('message', None) == '当前资源不开放下载功能':
+                        return JsonResponse(dict(code=400, msg='CSDN未开放该资源的下载功能'))
+
+                    ding('[CSDN] 下载失败',
+                         error=resp,
                          user_email=email,
                          resource_url=resource_url,
                          used_account=csdn_account.email,
@@ -480,8 +496,8 @@ def download(request):
                     return JsonResponse(dict(code=400, msg='此类资源无法下载: ' + doc_type))
 
                 if user.point < point:
-                    return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
-                # 更新用户下载积分
+                    return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+                # 更新用户积分
                 user.point -= point
                 user.used_point += point
                 user.save()
@@ -535,7 +551,7 @@ def download(request):
                 return response
 
             except Exception as e:
-                ding('百度文库下载失败',
+                ding('[百度文库] 下载失败',
                      error=e,
                      user_email=email,
                      used_account=baidu_account.email,
@@ -550,7 +566,7 @@ def download(request):
             logging.info(f'稻壳模板下载: {resource_url}')
 
             if user.point < settings.DOCER_POINT:
-                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
             try:
                 docer_account = DocerAccount.objects.get(is_enabled=True)
@@ -584,7 +600,7 @@ def download(request):
                 try:
                     resp = r.json()
                     if resp['result'] == 'ok':
-                        # 更新用户下载积分
+                        # 更新用户积分
                         point = settings.DOCER_POINT
                         user.point -= point
                         user.used_point += point
@@ -617,7 +633,7 @@ def download(request):
 
                                 return response
                             else:
-                                ding('稻壳VIP模板下载失败',
+                                ding('[稻壳VIP模板] 下载失败',
                                      error=download_resp.text,
                                      user_email=user.email,
                                      used_account=docer_account.email,
@@ -625,14 +641,14 @@ def download(request):
                                      logger=logging.error)
                                 return JsonResponse(dict(code=500, msg='下载失败'))
                     else:
-                        ding('稻壳VIP模板下载失败',
+                        ding('[稻壳VIP模板] 下载失败',
                              error=r.text,
                              user_email=user.email,
                              resource_url=resource_url,
                              logger=logging.error)
                         return JsonResponse(dict(code=500, msg='下载失败'))
                 except JSONDecodeError:
-                    ding('稻壳账号Cookies失效',
+                    ding('[稻壳VIP模板] Cookies失效',
                          user_email=user.email,
                          resource_url=resource_url,
                          logger=logging.error)
@@ -645,7 +661,7 @@ def download(request):
 
             point = settings.ZHIWANG_POINT
             if user.point < point:
-                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
             if not download_type:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -798,7 +814,7 @@ def download(request):
                     return response
 
             except Exception as e:
-                ding('知网文献下载失败',
+                ding('[知网文献] 下载失败',
                      error=e,
                      user_email=user.email,
                      resource_url=resource_url,
@@ -833,7 +849,7 @@ def oss_download(request):
             cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
             point = settings.OSS_RESOURCE_POINT
             if user.point < point:
-                return JsonResponse(dict(code=400, msg='下载积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -853,7 +869,7 @@ def oss_download(request):
             return JsonResponse(dict(code=400, msg='资源不存在'))
 
         # 判断用户是否下载过该资源
-        # 若没有，则给上传资源的用户赠送下载积分
+        # 若没有，则给上传资源的用户赠送积分
         # 上传者下载自己的资源不会获得积分
         if user != oss_resource.user:
             if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
@@ -866,7 +882,7 @@ def oss_download(request):
                                       download_ip=user.login_ip,
                                       used_point=settings.OSS_RESOURCE_POINT)
 
-        # 更新用户下载积分
+        # 更新用户积分
         user.point -= point
         user.used_point += point
         user.save()

@@ -82,7 +82,11 @@ def login(request):
             user = User.objects.get(email=email, is_active=True)
             if check_password(password, user.password):
                 login_device = request.META.get('HTTP_USER_AGENT', None)
-                login_ip = request.META.get('REMOTE_ADDR', None)
+                # Fix: remote ip addr is always local ip
+                if 'HTTP_X_FORWARDED_FOR' in request.META:
+                    login_ip = request.META.get('HTTP_X_FORWARDED_FOR', None)
+                else:
+                    login_ip = request.META.get('REMOTE_ADDR', None)
 
                 if login_device and login_ip:
                     user.login_device = login_device

@@ -455,22 +455,6 @@ def get_driver(folder='', load_images=False):
     return driver
 
 
-def check_csdn():
-    """
-    Todo: 检查csdn会员账号 当天是否可下载
-
-    上传下载相关问题
-    https://blog.csdn.net/blogdevteam/article/details/103487272
-
-    Q：重复下载资源扣下载积分吗？
-    A：第一次下载资源扣下载积分，以后此资源下载30日内都为免费，如果发现扣分现象，请及时联系客服。30日后再次下载需要扣除相应的积分。
-
-    :return: bool
-    """
-
-    return True
-
-
 def save_resource(resource_url, filename, filepath,
                   title, tags, desc, used_point, user,
                   account=None, wenku_type=None, zhiwang_type=None, is_docer_vip_doc=False):
@@ -519,7 +503,7 @@ def save_resource(resource_url, filename, filepath,
                        download_ip=user.login_ip,
                        used_point=used_point).save()
 
-        ding(f'资源成功上传OSS：{filepath}',
+        ding(f'资源成功上传OSS：{title}',
              user_email=user.email,
              resource_url=resource_url,
              used_account=account.email)

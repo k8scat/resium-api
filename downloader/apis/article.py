@@ -25,6 +25,8 @@ def parse_csdn_article(request):
         email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
+            if user.point < settings.ARTICLE_POINT:
+                return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -48,7 +50,7 @@ def parse_csdn_article(request):
                     soup = BeautifulSoup(r.text, 'lxml')
                     # VIP文章
                     is_vip = len(soup.select('span.vip_article')) > 0
-                    if not is_vip:
+                    if user.email != 'hsowan.me@gmail.com' and not is_vip:
                         return JsonResponse(dict(code=400, msg='非VIP文章'))
                     # 文章标题
                     title = soup.select('h1.title-article')[0].string

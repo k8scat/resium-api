@@ -256,6 +256,7 @@ CSDN_POINT = 5
 DOCER_POINT = 1
 OSS_RESOURCE_POINT = 1
 ZHIWANG_POINT = 10
+ARTICLE_POINT = 1
 
 # http://www.fateadm.com/user_home.php
 PD_ID = '120959'
