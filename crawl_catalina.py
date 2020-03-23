@@ -12,13 +12,13 @@ import os
 import django
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 
 import re
 import uuid
 import requests
-from csdnbot.settings import base
+from resium.settings import base
 from bs4 import BeautifulSoup
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding
 from downloader.models import Resource

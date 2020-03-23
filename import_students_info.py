@@ -10,7 +10,7 @@ import re
 
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 from downloader.models import Student
 

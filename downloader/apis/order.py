@@ -139,7 +139,7 @@ def create_order(request):
             out_trade_no=out_trade_no,
             total_amount=total_amount,
             subject=subject,
-            return_url=settings.CSDNBOT_UI
+            return_url=settings.RESIUM_UI
         )
         # 生成支付链接
         pay_url = settings.ALIPAY_WEB_BASE_URL + order_string

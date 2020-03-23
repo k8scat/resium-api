@@ -8,7 +8,7 @@
 
 """
 import requests
-from csdnbot.settings.base import ADMIN_TOKEN
+from resium.settings.base import ADMIN_TOKEN
 
 
 if __name__ == '__main__':

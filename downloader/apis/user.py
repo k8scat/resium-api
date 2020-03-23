@@ -135,7 +135,7 @@ def register(request):
         nickname = fake.name()
         User(email=email, password=encrypted_password, code=code, nickname=nickname).save()
 
-        activate_url = quote(settings.CSDNBOT_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
+        activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
         subject = '[源自下载] 用户注册'
         html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
@@ -169,10 +169,10 @@ def activate(request):
         email = request.GET.get('email', None)
         code = request.GET.get('code', None)
         if email is None or code is None:
-            return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+            return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
 
         if User.objects.filter(email=email, is_active=True).count():
-            return redirect(settings.CSDNBOT_UI + '/login?msg=账号已激活')
+            return redirect(settings.RESIUM_UI + '/login?msg=账号已激活')
 
         try:
             user = User.objects.get(email=email, code=code, is_active=False)
@@ -184,13 +184,13 @@ def activate(request):
                 return JsonResponse(dict(code=500, msg='注册失败'))
 
             User.objects.filter(email=email, is_active=False).delete()
-            return redirect(settings.CSDNBOT_UI + '/login?msg=激活成功')
+            return redirect(settings.RESIUM_UI + '/login?msg=激活成功')
 
         except User.DoesNotExist:
-            return redirect(settings.CSDNBOT_UI + '/login?msg=账号不存在')
+            return redirect(settings.RESIUM_UI + '/login?msg=账号不存在')
 
     else:
-        return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
 
 
 @ratelimit(key='ip', rate='5/m', block=True)
@@ -211,7 +211,7 @@ def send_forget_password_email(request):
             code = ''.join(random.sample(string.digits, 6))
             password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
             encrypted_password = make_password(password)
-            reset_password_url = quote(settings.CSDNBOT_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
+            reset_password_url = quote(settings.RESIUM_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
                                        encoding='utf-8',
                                        safe=':/?=&')
             subject = '[源自下载] 密码重置'
@@ -257,14 +257,14 @@ def forget_password(request):
                 user.password = temp_password
                 user.temp_password = None
                 user.save()
-                return redirect(settings.CSDNBOT_UI + '/login?msg=密码重置成功')
+                return redirect(settings.RESIUM_UI + '/login?msg=密码重置成功')
             except User.DoesNotExist:
-                return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+                return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
         else:
-            return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+            return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
 
     else:
-        return redirect(settings.CSDNBOT_UI + '/login?msg=错误的请求')
+        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
 
 
 @auth

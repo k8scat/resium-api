@@ -393,7 +393,7 @@ def check_download(folder):
     logging.info('下载开始...')
     start = time.time()
     # 预计5分钟内下载完成
-    no_file_countdown = 10
+    no_file_countdown = 100
     for i in range(3000):
         files = os.listdir(folder)
         # 判断是否存在文件，一般来说，开始下载后会立即有.crdownload文件，如果在循环10次后还是没有的话，直接返回None
@@ -495,7 +495,7 @@ def save_resource(resource_url, filename, filepath,
                                            url=resource_url, key=key, tags=tags,
                                            file_md5=file_md5, desc=desc, user_id=1,
                                            wenku_type=wenku_type, zhiwang_type=zhiwang_type,
-                                           is_docer_vip_doc=is_docer_vip_doc)
+                                           is_docer_vip_doc=is_docer_vip_doc, local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
                        account=account.email if account else None,

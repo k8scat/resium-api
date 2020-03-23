@@ -1,5 +1,7 @@
 # CSDNBot -> Resium
 
+[![CodeFactor](https://www.codefactor.io/repository/github/resium-dev/resium/badge?s=203e0639dd031e8f239a574a23ea782c8ec73523)](https://www.codefactor.io/repository/github/resium-dev/resium)
+
 基础镜像: https://git.ncucoder.com/hsowan/python37-django
 
 OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
@@ -10,7 +12,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 集成稻壳模板
 * [ ] 换绑手机号、邮箱
 * [ ] tags 单独创建一个表
-* [ ] django-cors-headers 并没有返回 Access-Control-Allow-Origin
+* [x] django-cors-headers 并没有返回 Access-Control-Allow-Origin
+    use middleware to return Access-Control-Allow-Origin
 * [ ] mq
 * [ ] 重复保存资源的问题
 * [x] 爬取CSDN已下载资源
@@ -34,6 +37,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
 * [ ] 开放API
+* [ ] 日志处理
 
 ## 广告接入
 

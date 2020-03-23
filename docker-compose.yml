@@ -1,28 +1,28 @@
 version: '3.7'
 services:
-  csdnbot:
+  resium:
     build: .
-    image: csdnbot
+    image: resium
     ports:
       - 8055:8000
     networks:
       - csdnbot_net
     volumes:
-      - /srv/csdnbot/download:/csdnbot/download
+      - /srv/resium/download:/resium/download
     restart: always
-    container_name: csdnbot
+    container_name: resium
   selenium:
     image: selenium/standalone-chrome
     volumes:
       - /dev/shm:/dev/shm
-      - /srv/csdnbot/download:/download
+      - /srv/resium/download:/download
     networks:
       - csdnbot_net
     ports:
       - 6666:4444
     restart: always
     user: root
-    container_name: csdnbot-selenium
+    container_name: resium-selenium
 
 networks:
-  csdnbot_net:
+  resium_net:

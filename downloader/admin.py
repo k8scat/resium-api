@@ -84,4 +84,4 @@ class ArticleAdmin(admin.ModelAdmin):
 
 admin.site.site_header = '源自下载后台'
 admin.site.site_title = '源自下载后台'
-admin.site.site_url = settings.CSDNBOT_UI
+admin.site.site_url = settings.RESIUM_UI

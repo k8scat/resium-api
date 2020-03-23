@@ -13,7 +13,7 @@ import django
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
 django.setup()
 
 import requests

@@ -14,7 +14,7 @@ DEBUG = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'csdnbot',
+        'NAME': 'resium',
         'USER': 'root',
         'PASSWORD': 'root',
         'HOST': '127.0.0.1',
@@ -26,9 +26,9 @@ DATABASES = {
 # 远程 139.199.71.19 selenium只能用于认证
 SELENIUM_SERVER = 'http://127.0.0.1:4444/wd/hub'
 
-CSDNBOT_UI = 'http://localhost:3000'
+RESIUM_UI = 'http://localhost:3000'
 
-CSDNBOT_API = 'http://localhost:8000'
+RESIUM_API = 'http://localhost:8000'
 
 # 随机标签个数
 SAMPLE_TAG_COUNT = 3
@@ -48,4 +48,4 @@ CACHES = {
 RATELIMIT_BLOCK = False
 
 from . import prod
-ALIPAY_APP_NOTIFY_URL = prod.CSDNBOT_API + '/alipay_notify/'
+ALIPAY_APP_NOTIFY_URL = prod.RESIUM_API + '/alipay_notify/'

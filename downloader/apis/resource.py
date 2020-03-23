@@ -467,7 +467,7 @@ def download(request):
                     ).text
                     logging.info(doc_type)
                 except TimeoutException:
-                    ding('百度文库文档类型获取失败',
+                    ding('[百度文库] 文档类型获取失败',
                          used_account=baidu_account.email,
                          resource_url=resource_url,
                          user_email=email,

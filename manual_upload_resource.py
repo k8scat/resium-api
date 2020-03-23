@@ -15,7 +15,7 @@ import uuid
 
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 
 from downloader.models import Resource, User

@@ -9,7 +9,7 @@
 """
 import os
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'csdnbot.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
 django.setup()
 
 from downloader.models import DocerPreviewImage

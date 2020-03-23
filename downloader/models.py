@@ -58,14 +58,10 @@ class Resource(Base):
     wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
     zhiwang_type = models.CharField(max_length=10, null=True, default=None, verbose_name='知网文献类型(caj/pdf)')
     is_docer_vip_doc = models.BooleanField(default=False, verbose_name='是否是稻壳VIP文档')
+    local_path = models.CharField(max_length=200, default=None, null=True, verbose_name='资源本地保存路径')
 
     class Meta:
         db_table = 'resource'
-
-
-class Tag(Base):
-    name = models.CharField(max_length=100, verbose_name='标签名称')
-    resource = models.ForeignKey(Resource, on_delete=models.DO_NOTHING)
 
 
 class DownloadRecord(Base):
