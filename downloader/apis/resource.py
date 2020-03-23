@@ -55,9 +55,8 @@ def upload(request):
         if not file:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        # 向上扩大10MiB
-        if file.size > (2 * 100 + 10) * 1024 * 1024:
-            return JsonResponse(dict(code=400, msg='上传资源大小不能超过200MiB'))
+        if file.size > (2 * 10) * 1024 * 1024:
+            return JsonResponse(dict(code=400, msg='上传资源大小不能超过20MiB'))
 
         file_md5 = check_file_integrity(file.open('rb'))
         if Resource.objects.filter(file_md5=file_md5).count():
@@ -67,8 +66,7 @@ def upload(request):
         title = data.get('title', None)
         tags = data.get('tags', None)
         desc = data.get('desc', None)
-        category = data.get('category', None)
-        if title and tags and desc and category and file:
+        if title and tags and desc and file:
             try:
                 filename = file.name
                 key = f'{str(uuid.uuid1())}-{filename}'
@@ -79,9 +77,9 @@ def upload(request):
                     for chunk in file.chunks():
                         f.write(chunk)
                 Resource(title=title, desc=desc, tags=tags,
-                         category=category, filename=filename, size=file.size,
+                         filename=filename, size=file.size,
                          download_count=0, is_audited=0, key=key,
-                         user=user, file_md5=file_md5).save()
+                         user=user, file_md5=file_md5, local_path=filepath).save()
 
                 # 开线程上传资源到OSS
                 t = Thread(target=aliyun_oss_upload, args=(filepath, key))
