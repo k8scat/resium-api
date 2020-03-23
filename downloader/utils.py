@@ -515,9 +515,9 @@ def save_resource(resource_url, filename, filepath,
              logger=logging.error)
 
 
-def get_file_md5(f):
+def check_file_integrity(f):
     """
-    获取文件的MD5值
+    检查文件的完整性
 
     :param f:
     :return:

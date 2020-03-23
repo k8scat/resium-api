@@ -1,4 +1,4 @@
-# CSDNBot -> Resium
+# Resium
 
 [![CodeFactor](https://www.codefactor.io/repository/github/resium-dev/resium/badge?s=203e0639dd031e8f239a574a23ea782c8ec73523)](https://www.codefactor.io/repository/github/resium-dev/resium)
 
@@ -9,6 +9,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 ## Todo
 
 * [x] 用户是否正在下载状态: 数据库 -> redis
+    通过限制用户下载频率来达到用户
 * [x] 集成稻壳模板
 * [ ] 换绑手机号、邮箱
 * [ ] tags 单独创建一个表
@@ -38,6 +39,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://blog.csdn.net/yangtao5202/article/details/82228857
 * [ ] 开放API
 * [ ] 日志处理
+* [ ] Use sha512 over md5 to verify file integrity
 
 ## 广告接入
 

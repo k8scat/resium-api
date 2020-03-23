@@ -18,11 +18,7 @@ from django.core.cache import cache
 
 
 if __name__ == '__main__':
-    cache.set('phone', '17770040362', timeout=10)
-    print(cache.get('phone'))
-    cache.delete('phone')
-    print(cache.get('phone'))
-
+    print(check_file_integrity(open('/Users/mac/workspace/pycharm/resium/manual_upload_resource.py', 'rb')))
 
 
 
