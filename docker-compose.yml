@@ -6,7 +6,7 @@ services:
     ports:
       - 8055:8000
     networks:
-      - csdnbot_net
+      - resium_net
     volumes:
       - /srv/resium/download:/resium/download
     restart: always
@@ -17,7 +17,7 @@ services:
       - /dev/shm:/dev/shm
       - /srv/resium/download:/download
     networks:
-      - csdnbot_net
+      - resium_net
     ports:
       - 6666:4444
     restart: always
