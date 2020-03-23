@@ -1,2 +1,2 @@
 [bandit]
-exclude: resium/settings/*
+exclude: resium/settings/*.py
