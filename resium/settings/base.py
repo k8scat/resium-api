@@ -212,8 +212,8 @@ SCREENSHOT_IMAGE = os.path.join(BASE_DIR, 'screenshot.png')
 CODE_IMAGE = os.path.join(BASE_DIR, 'code.png')
 
 # 用于登录学校VPN
-NCU_USERNAME = '8000116092'
-NCU_PASSWORD = 'holdon7868'
+NCU_VPN_USERNAME = '8000116092'
+NCU_VPN_PASSWORD = 'holdon7868'
 
 # 资源下载间隔
 DOWNLOAD_INTERVAL = 60

@@ -675,12 +675,12 @@ def download(request):
                     EC.presence_of_element_located(
                         (By.ID, 'user_login'))
                 )
-                username_input.send_keys(settings.NCU_USERNAME)
+                username_input.send_keys(settings.NCU_VPN_USERNAME)
                 password_input = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located(
                         (By.ID, 'user_password'))
                 )
-                password_input.send_keys(settings.NCU_PASSWORD)
+                password_input.send_keys(settings.NCU_VPN_PASSWORD)
                 submit_button = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//div[@class='col-md-6 col-md-offset-6 login-btn']/input")

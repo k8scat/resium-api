@@ -280,9 +280,9 @@ def reset_password(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
-        old_password = request.data.get('old_password', '')
-        new_password = request.data.get('new_password', '')
-        if old_password == '' or new_password == '':
+        old_password = request.data.get('old_password', None)
+        new_password = request.data.get('new_password', None)
+        if not old_password or not new_password:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         if old_password == new_password:
