@@ -4,7 +4,7 @@ services:
     build: .
     image: resium
     ports:
-      - 8055:8000
+      - 8000:8000
     networks:
       - resium_net
     volumes:

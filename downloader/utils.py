@@ -11,8 +11,11 @@ import hmac
 import json
 import logging
 import random
+import string
 import time
 import uuid
+import zipfile
+from json import JSONDecodeError
 from urllib import parse
 
 import alipay
@@ -476,7 +479,7 @@ def save_resource(resource_url, filename, filepath,
     """
 
     with open(filepath, 'rb') as f:
-        file_md5 = check_file_integrity(f)
+        file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
     if Resource.objects.filter((Q(url=resource_url) & Q(zhiwang_type=zhiwang_type)) | Q(file_md5=file_md5)).count():
         return
@@ -506,6 +509,9 @@ def save_resource(resource_url, filename, filepath,
              user_email=user.email,
              resource_url=resource_url,
              used_account=account.email)
+
+        # 将资源上传到csdn
+        upload_csdn_resource(resource)
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
              error=e,
@@ -515,7 +521,7 @@ def save_resource(resource_url, filename, filepath,
              logger=logging.error)
 
 
-def check_file_integrity(f):
+def get_file_md5(f):
     """
     检查文件的完整性
 
@@ -547,7 +553,7 @@ def aliyun_oss_delete_files(keys: list):
     print('\n'.join(result.deleted_keys))
 
 
-def create_coupon(user, comment, total_amount=0.8, point=10):
+def create_coupon(user, comment, total_amount=1.8, point=20):
     try:
         code = str(uuid.uuid1()).replace('-', '')
         Coupon(user=user,
@@ -686,3 +692,77 @@ def get_random_ua():
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:74.0) Gecko/20100101 Firefox/74.0'  # Firefox
     ]
     return random.choice(ua_list)
+
+
+def upload_csdn_resource(resource):
+    headers = {
+        'cookie': CsdnAccount.objects.get(email='hsowan.v@gmail.com').cookies,
+        'user-agent': get_random_ua(),
+        'referer': 'https://download.csdn.net/upload',
+        'origin': 'https://download.csdn.net',
+    }
+    # 将资源与其他文件进行压缩，获得到不同的MD5
+    filepath = zip_file(resource.local_path)
+    file_md5 = get_file_md5(open(filepath, 'rb'))
+    title = resource.title + ''.join(random.sample(string.digits + string.ascii_letters, 5))
+    tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
+    if len(tags) > 5:
+        tags = ','.join(tags[:5])
+    else:
+        tags = ','.join(tags)
+
+    if len(resource.desc) < 50:
+        desc = resource.desc + ' 该资源是由 weixin_46449765 用户进行上传的，来源于网络，如有侵权，请联系本人进行删除！'
+    else:
+        desc = resource.desc
+
+    payload = {
+        'fileMd5': file_md5,
+        'sourceid': '',
+        'file_title': title,
+        'file_type': 4,
+        'file_primary': 15,  # 课程资源
+        'file_category': 15012,  # 专业指导
+        'resource_score': 5,
+        'file_tag': tags,
+        'file_desc': desc,
+        'cb_agree': True
+    }
+    files = [
+        ('user_file', open(filepath, 'rb'))
+    ]
+    with requests.post('https://download.csdn.net/upload', headers=headers, data=payload, files=files) as r:
+        if r.status_code == requests.codes.OK:
+            try:
+                resp = r.json()
+            except JSONDecodeError:
+                ding('资源上传到CSDN失败',
+                     error=r.text,
+                     logger=logging.error)
+
+            if resp['code'] == 200:
+                # 上传成功
+                ding('资源上传到CSDN成功')
+            else:
+                # 上传失败
+                ding('资源上传到CSDN失败',
+                     error=r.text,
+                     logger=logging.error)
+
+
+def zip_file(filepath):
+    """
+    压缩文件夹
+
+    :param filepath: 需要压缩的文件
+    :return:
+    """
+
+    outfile = os.path.join(settings.DOWNLOAD_DIR, str(uuid.uuid1()) + '.zip')
+    files = [filepath, os.path.join(settings.DOWNLOAD_DIR, '.gitkeep')]
+    f = zipfile.ZipFile(outfile, 'w', zipfile.zlib.DEFLATED)
+    for file in files:
+        filename = os.path.basename(file)
+        f.write(file, filename)
+    f.close()
+    return outfile

@@ -47,8 +47,10 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 毕设、大作业代做
 * [ ] 错误信息：{'code': 400, 'message': '资源不存在', 'data': ''}
     https://download.csdn.net/download/x_uhen/12013989
-* [ ] csdn自动上传，使用新账号
+* [x] csdn自动上传，使用新账号
 * [ ] 机器人下载
+* [ ] 知网下载补充
+    https://kns.cnki.net/KCMS/detail/detail.aspx?dbcode=CMFD&dbname=CMFD2008&filename=2008138848.nh&v=MDAzNDdmWk9SckZ5RGtVcnpCVjEyN0ZySzdGdG5JcDVFYlBJUjhlWDFMdXhZUzdEaDFUM3FUcldNMUZyQ1VSN3E=
 
 ## 广告接入
 

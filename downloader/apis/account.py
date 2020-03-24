@@ -37,6 +37,9 @@ def check_csdn_cookies(request):
                     if el:
                         ding(f'[CSDN] 剩余下载个数：{el[0].text}',
                              used_account=csdn_account.email)
+                    elif len(soup.select('div.name span')) > 0:
+                        ding('[CSDN] Cookies仍有效',
+                             used_account=csdn_account.email)
                     else:
                         ding('[CSDN] Cookies已失效',
                              used_account=csdn_account.email)
@@ -70,9 +73,11 @@ def check_baidu_cookies(request):
                         if is_login:
                             share_doc_count = data['jiaoyu_vip_info']['download_ticket_count']
                             vip_special_doc_count = data['jiaoyu_vip_info']['professional_download_ticket_count']
-                            ding(f'[百度文库] 可用共享文档下载特权 {share_doc_count} 次，可用VIP专享文档下载特权 {vip_special_doc_count} 次')
+                            ding(f'[百度文库] 可用共享文档下载特权 {share_doc_count} 次，可用VIP专享文档下载特权 {vip_special_doc_count} 次',
+                                 used_account=baidu_account.email)
                         else:
                             ding('[百度文库] Cookies已失效',
+                                 used_account=baidu_account.email,
                                  error=r.text,
                                  logger=logging.error)
 
@@ -95,9 +100,11 @@ def check_docer_cookies(request):
                 url = 'https://www.docer.com/proxy-docer/v4.php/api/user/allinfo'
                 with requests.get(url, headers=headers) as r:
                     if r.json()['result'] == 'ok':
-                        ding('稻壳模板cookies仍有效')
+                        ding('稻壳模板cookies仍有效',
+                             used_account=docer_account.email)
                     else:
-                        ding('稻壳模板cookies已失效，请尽快更新')
+                        ding('稻壳模板cookies已失效，请尽快更新',
+                             used_account=docer_account.email)
             except DocerAccount.DoesNotExist:
                 ding('没有可以使用的稻壳模板会员账号')
 

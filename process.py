@@ -18,7 +18,8 @@ from django.core.cache import cache
 
 
 if __name__ == '__main__':
-    print(check_file_integrity(open('/Users/mac/workspace/pycharm/resium/manual_upload_resource.py', 'rb')))
+    filepath = '/Users/mac/workspace/pycharm/resium/download/ac4f0d96-6cfd-11ea-873b-a0999b0715d5/Saki-the-open-window-分析.ppt'
+    print(zip_file(filepath))
 
 
 

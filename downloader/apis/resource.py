@@ -34,7 +34,7 @@ from downloader.decorators import auth
 from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount, BaiduAccount, \
     DocerPreviewImage
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
-from downloader.utils import aliyun_oss_upload, check_file_integrity, ding, aliyun_oss_sign_url, \
+from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, get_driver, check_oss, aliyun_oss_check_file, \
     save_resource, send_email, predict_code, get_random_ua
 
@@ -58,7 +58,7 @@ def upload(request):
         if file.size > (2 * 10) * 1024 * 1024:
             return JsonResponse(dict(code=400, msg='上传资源大小不能超过20MiB'))
 
-        file_md5 = check_file_integrity(file.open('rb'))
+        file_md5 = get_file_md5(file.open('rb'))
         if Resource.objects.filter(file_md5=file_md5).count():
             return JsonResponse(dict(code=400, msg='资源已存在'))
 
