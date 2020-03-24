@@ -35,13 +35,20 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] parse_resource 和 download 重复解析资源信息的问题
 * [ ] use alpine linux
 * [ ] 后端接口地址更新的问题
+    后端settings/prod.py
+    前端.env.production
+    微信公众号 > 基本配置 > 服务器配置 > 服务器地址
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
 * [ ] 开放API
 * [ ] 日志处理
 * [ ] Use sha512 over md5 to verify file integrity
-* [ ] 会员账号安全
+* [ ] 下载和保存上传资源是分开的
 * [ ] 毕设、大作业代做
+* [ ] 错误信息：{'code': 400, 'message': '资源不存在', 'data': ''}
+    https://download.csdn.net/download/x_uhen/12013989
+* [ ] csdn自动上传，使用新账号
+* [ ] 机器人下载
 
 ## 广告接入
 

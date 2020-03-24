@@ -23,6 +23,7 @@ class User(Base):
     login_device = models.TextField(null=True, default=None, verbose_name='登录设备')
     login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
+    can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
 
     class Meta:
         db_table = 'user'
@@ -161,6 +162,7 @@ class Advert(Base):
 
 
 class Article(Base):
+    user = models.ForeignKey(User, null=True, default=None, on_delete=models.DO_NOTHING)
     url = models.CharField(max_length=200, null=True, default=None, verbose_name='文章链接', unique=True)
     title = models.CharField(max_length=200, verbose_name='文章标题')
     content = models.TextField(verbose_name='文章内容')

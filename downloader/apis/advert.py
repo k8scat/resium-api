@@ -15,7 +15,6 @@ from downloader.models import Advert
 from downloader.serializers import AdvertSerializers
 
 
-@auth
 @api_view(['GET'])
 def get_random_advert(request):
     if request.method == 'GET':

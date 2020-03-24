@@ -137,7 +137,6 @@ def list_uploaded_resources(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@auth
 @api_view(['GET'])
 def get_resource(request):
     if request.method == 'GET':
@@ -162,7 +161,6 @@ def get_resource(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@auth
 @api_view(['GET'])
 def list_comments(request):
     if request.method == 'GET':
@@ -177,8 +175,8 @@ def list_comments(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@ratelimit(key='ip', rate='1/5m', block=True)
 @auth
+@ratelimit(key='ip', rate='1/5m', block=True)
 @api_view(['POST'])
 def create_comment(request):
     if request.method == 'POST':
@@ -197,7 +195,6 @@ def create_comment(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@auth
 @api_view(['GET'])
 def list_resources(request):
     """
@@ -220,7 +217,6 @@ def list_resources(request):
         return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
 
 
-@auth
 @api_view(['GET'])
 def get_resource_count(request):
     """
@@ -234,7 +230,6 @@ def get_resource_count(request):
                                                                          Q(tags__icontains=key)).count()))
 
 
-@auth
 @api_view(['GET'])
 def list_resource_tags(request):
     """
@@ -251,7 +246,6 @@ def list_resource_tags(request):
         return JsonResponse(dict(code=200, tags=settings.TAG_SEP.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
 
 
-@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['POST'])
 def download(request):
@@ -267,6 +261,8 @@ def download(request):
             user = User.objects.get(email=email, is_active=True)
             if not user.phone:
                 return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+            if not user.can_download:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
 
             cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
         except User.DoesNotExist:
@@ -826,7 +822,6 @@ def download(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
-@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
 @auth
 @api_view(['GET'])
 def oss_download(request):

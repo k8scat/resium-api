@@ -122,17 +122,21 @@ def register(request):
         if not email or not password or not code:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        # 检查邮箱是否已注册以及注册码是否有效
+        # 检查邮箱是否已注册
         if User.objects.filter(email=email, is_active=True).count() != 0:
             return JsonResponse(dict(code=400, msg='邮箱已注册'))
-        if code != settings.REGISTER_CODE:
-            return JsonResponse(dict(code=400, msg='注册码无效'))
+
+        # 检查邀请码是否正确
+        # if code != settings.REGISTER_CODE:
+        #     return JsonResponse(dict(code=400, msg='邀请码无效'))
+        can_download = code == settings.REGISTER_CODE
 
         encrypted_password = make_password(password)
         code = ''.join(random.sample(string.digits, 6))
         fake = Faker('zh_CN')
         nickname = fake.name()
-        User(email=email, password=encrypted_password, code=code, nickname=nickname).save()
+        User(email=email, password=encrypted_password,
+             code=code, nickname=nickname, can_download=can_download).save()
 
         activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
@@ -149,9 +153,11 @@ def register(request):
             return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
         except Exception as e:
             if str(e).count('Mailbox not found or access denied'):
-                return JsonResponse(dict(code=400, msg='邮箱不可用，请使用其他邮箱注册'))
-            logging.error(f'注册激活邮件发送失败: {str(e)}, 注册用户: {email}')
-            ding(f'注册激活邮件发送失败: {str(e)}, 注册用户: {email}')
+                return JsonResponse(dict(code=400, msg='当前邮箱不可用，请使用其他邮箱注册'))
+            ding('注册激活邮件发送失败',
+                 error=e,
+                 logger=logging.error,
+                 user_email=email)
             return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
 
     else:

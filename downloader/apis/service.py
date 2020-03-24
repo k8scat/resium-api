@@ -12,7 +12,6 @@ from downloader.decorators import auth
 from downloader.serializers import ServiceSerializers, Service
 
 
-@auth
 def list_services(request):
     """
     获取所有的服务
@@ -23,7 +22,6 @@ def list_services(request):
         return JsonResponse(dict(code=200, services=ServiceSerializers(services, many=True).data))
 
 
-@auth
 def list_points(request):
     """
     获取所有下载所需的积分

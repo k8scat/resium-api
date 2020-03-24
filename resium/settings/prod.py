@@ -24,9 +24,9 @@ DATABASES = {
 
 SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 
-RESIUM_UI = 'https://26xf90zp4w.ncucoder.com'
+RESIUM_UI = 'https://download.ncucoder.com'
 
-RESIUM_API = 'https://api.26xf90zp4w.ncucoder.com'
+RESIUM_API = 'https://api.download.ncucoder.com'
 ALIPAY_APP_NOTIFY_URL = RESIUM_API + '/alipay_notify/'
 
 # 随机标签个数

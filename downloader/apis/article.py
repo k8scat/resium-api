@@ -29,6 +29,10 @@ def parse_csdn_article(request):
             user = User.objects.get(email=email, is_active=True)
             if user.point < settings.ARTICLE_POINT:
                 return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
+            if not user.phone:
+                return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+            if not user.can_download:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -68,14 +72,14 @@ def parse_csdn_article(request):
                     tags = settings.TAG_SEP.join(
                         [tag.string.strip() for tag in soup.select('a.tag-link') if tag.get('data-report-click', None)])
                     article = Article.objects.create(url=article_url, title=title, content=content,
-                                                     author=author, desc=desc, is_vip=is_vip, tags=tags)
+                                                     author=author, desc=desc, is_vip=is_vip,
+                                                     tags=tags, user=user)
                     return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
 
                 ding(f'文章获取失败: {article_url}')
                 return JsonResponse(dict(code=500, msg='文章获取失败'))
 
 
-@auth
 def list_articles(request):
     if request.method == 'GET':
         page = int(request.GET.get('page', 1))
@@ -92,7 +96,6 @@ def list_articles(request):
         return JsonResponse(dict(code=200, articles=ArticleSerializers(articles, many=True).data))
 
 
-@auth
 @api_view(['GET'])
 def get_article_count(request):
     if request.method == 'GET':
@@ -103,7 +106,6 @@ def get_article_count(request):
                                                                         Q(content__icontains=key)).count()))
 
 
-@auth
 def get_article(request):
     if request.method == 'GET':
         try:

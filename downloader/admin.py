@@ -77,7 +77,7 @@ class AdvertAdmin(admin.ModelAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'url')
+    list_display = ('id', 'user', 'title', 'url')
     list_per_page = 50
     search_fields = ['title', 'url', 'author']
 
