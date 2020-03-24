@@ -33,6 +33,7 @@ def list_points(request):
             'wenku_share_doc': settings.WENKU_SHARE_DOC_POINT,
             'wenku_special_doc': settings.WENKU_SPECIAL_DOC_POINT,
             'csdn': settings.CSDN_POINT,
+            'csdn_pro': settings.CSDN_PRO_POINT,
             'zhiwang': settings.ZHIWANG_POINT,
             'docer': settings.DOCER_POINT,
             'oss_resource': settings.OSS_RESOURCE_POINT,

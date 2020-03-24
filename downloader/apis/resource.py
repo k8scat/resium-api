@@ -279,7 +279,9 @@ def download(request):
         # 检查OSS是否存有该资源
         oss_resource = check_oss(resource_url, download_type)
         if oss_resource:
-            point = request.data.get('point')
+            point = request.data.get('point', None)
+            if not point:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
             if user.point < point:
                 return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
@@ -324,17 +326,21 @@ def download(request):
         # CSDN资源下载
         if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
             logging.info(f'CSDN 资源下载: {resource_url}')
-
-            # 可用积分不足
-            if user.point < settings.CSDN_POINT:
-                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
-
             try:
                 csdn_account = CsdnAccount.objects.get(is_enabled=True)
+                # 如果不是我的csdn账号或者账号当天下载数超过10，则将积分上调
+                if csdn_account.email != settings.MY_CSDN_ACCOUNT or csdn_account.today_download_count >= 10:
+                    point = settings.CSDN_POINT
+                else:
+                    point = settings.CSDN_PRO_POINT
+
+                # 可用积分不足
+                if user.point < point:
+                    return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+
                 # 判断账号当天下载数
                 if csdn_account.today_download_count >= 20:
                     ding(f'[CSDN] 今日下载数已用完',
-                         at_mobiles=['17770040362'],
                          user_email=email,
                          resource_url=resource_url,
                          used_account=csdn_account)
@@ -386,7 +392,6 @@ def download(request):
                     csdn_account.save()
 
                     # 更新用户的剩余积分和已用积分
-                    point = settings.CSDN_POINT
                     user.point -= point
                     user.used_point += point
                     user.save()
@@ -922,7 +927,17 @@ def parse_resource(request):
                     # https://download.csdn.net/download/c_baby123/10791185
                     can_download = len(soup.select('div.resource_box a.copty-btn')) == 0
                     if can_download:
-                        point = settings.CSDN_POINT
+                        try:
+                            csdn_account = CsdnAccount.objects.get(is_enabled=True)
+                            if csdn_account.email != settings.MY_CSDN_ACCOUNT or csdn_account.today_download_count >= 10:
+                                point = settings.CSDN_POINT
+                            else:
+                                point = settings.CSDN_PRO_POINT
+                        except CsdnAccount.DoesNotExist:
+                            ding('[CSDN] 没有可用账号',
+                                 user_email=request.session.get('email'),
+                                 resource_url=resource_url)
+                            return JsonResponse(dict(code=500, msg='资源获取失败'))
                     else:
                         point = None
                     resource = {
