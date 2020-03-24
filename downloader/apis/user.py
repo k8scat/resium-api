@@ -119,7 +119,7 @@ def register(request):
         password = request.data.get('password', None)
         code = request.data.get('code', None)
 
-        if not email or not password or not code:
+        if not email or not password:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         # 检查邮箱是否已注册
