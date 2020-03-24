@@ -476,7 +476,7 @@ def save_resource(resource_url, filename, filepath,
     """
 
     with open(filepath, 'rb') as f:
-        file_md5 = get_file_md5(f)
+        file_md5 = check_file_integrity(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
     if Resource.objects.filter((Q(url=resource_url) & Q(zhiwang_type=zhiwang_type)) | Q(file_md5=file_md5)).count():
         return

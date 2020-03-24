@@ -40,6 +40,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 开放API
 * [ ] 日志处理
 * [ ] Use sha512 over md5 to verify file integrity
+* [ ] 会员账号安全
+* [ ] 毕设、大作业代做
 
 ## 广告接入
 
