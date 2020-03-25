@@ -749,7 +749,7 @@ def upload_csdn_resource(resource):
             else:
                 # 上传失败
                 ding('资源上传到CSDN失败',
-                     error=r.text,
+                     error=resp,
                      logger=logging.error)
 
 
