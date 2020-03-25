@@ -759,7 +759,7 @@ def zip_file(filepath):
     """
 
     outfile = os.path.join(settings.DOWNLOAD_DIR, str(uuid.uuid1()) + '.zip')
-    files = [filepath, os.path.join(settings.DOWNLOAD_DIR, 'README.md')]
+    files = [filepath, os.path.join(settings.DOWNLOAD_DIR, '.gitkeep')]
     f = zipfile.ZipFile(outfile, 'w', zipfile.zlib.DEFLATED)
     for file in files:
         filename = os.path.basename(file)
