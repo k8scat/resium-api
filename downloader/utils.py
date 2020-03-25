@@ -708,6 +708,9 @@ def upload_csdn_resource(resource):
     tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
     if len(tags) > 5:
         tags = ','.join(tags[:5])
+    elif len(tags) == 0:
+        # 存在没有tag的情况
+        tags = title
     else:
         tags = ','.join(tags)
 
