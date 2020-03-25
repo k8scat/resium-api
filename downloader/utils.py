@@ -704,7 +704,7 @@ def upload_csdn_resource(resource):
     # 将资源与其他文件进行压缩，获得到不同的MD5
     filepath = zip_file(resource.local_path)
     file_md5 = get_file_md5(open(filepath, 'rb'))
-    title = resource.title + ''.join(random.sample(string.digits + string.ascii_letters, 5))
+    title = resource.title + f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
     tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
     if len(tags) > 5:
         tags = ','.join(tags[:5])
