@@ -731,6 +731,7 @@ def upload_csdn_resource(resource):
         'file_desc': desc,
         'cb_agree': True
     }
+    logging.info(payload)
     files = [
         ('user_file', open(filepath, 'rb'))
     ]
