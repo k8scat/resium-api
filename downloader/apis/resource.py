@@ -271,7 +271,7 @@ def download(request):
         resource_url = request.data.get('url', None)
         if not resource_url:
             return JsonResponse(dict(code=400, msg='资源地址不能为空'))
-        if not re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+        if not re.match(settings.PATTERN_ZHIWANG, resource_url):
             # 去除资源地址参数
             resource_url = resource_url.split('?')[0]
 
@@ -326,16 +326,11 @@ def download(request):
         logging.info(f'资源[{resource_url}]保存路径: {save_dir}')
 
         # CSDN资源下载
-        if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
+        if re.match(settings.PATTERN_CSDN, resource_url):
             logging.info(f'CSDN 资源下载: {resource_url}')
             try:
                 csdn_account = CsdnAccount.objects.get(is_enabled=True)
-                # 如果不是我的csdn账号或者账号当天下载数超过10，则将积分上调
-                if csdn_account.email != settings.MY_CSDN_ACCOUNT or csdn_account.today_download_count >= 10:
-                    point = settings.CSDN_POINT
-                else:
-                    point = settings.CSDN_PRO_POINT
-
+                point = settings.CSDN_POINT
                 # 可用积分不足
                 if user.point < point:
                     return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
@@ -439,7 +434,7 @@ def download(request):
                     return JsonResponse(dict(code=400, msg='下载失败'))
 
         # 百度文库文档下载
-        elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
+        elif re.match(settings.PATTERN_WENKU, resource_url):
             logging.info(f'百度文库资源下载: {resource_url}')
 
             driver = get_driver(unique_folder)
@@ -563,7 +558,7 @@ def download(request):
                 driver.quit()
 
         # 稻壳模板下载
-        elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
+        elif re.match(settings.PATTERN_DOCER, resource_url):
             logging.info(f'稻壳模板下载: {resource_url}')
 
             if user.point < settings.DOCER_POINT:
@@ -658,7 +653,7 @@ def download(request):
         # 知网下载
         # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
         # https://kns.cnki.net/KCMS/detail/ 官网
-        elif re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+        elif re.match(settings.PATTERN_ZHIWANG, resource_url):
 
             point = settings.ZHIWANG_POINT
             if user.point < point:
@@ -910,12 +905,12 @@ def parse_resource(request):
         if not resource_url:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        if not re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+        if not re.match(settings.PATTERN_ZHIWANG, resource_url):
             # 去除资源地址参数
             resource_url = resource_url.split('?')[0]
 
         # CSDN资源
-        if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
+        if re.match(settings.PATTERN_CSDN, resource_url):
             headers = {
                 'authority': 'download.csdn.net',
                 'referer': 'https://download.csdn.net/',
@@ -929,20 +924,9 @@ def parse_resource(request):
                     # https://download.csdn.net/download/c_baby123/10791185
                     can_download = len(soup.select('div.resource_box a.copty-btn')) == 0
                     if can_download:
-                        try:
-                            csdn_account = CsdnAccount.objects.get(is_enabled=True)
-                            if csdn_account.email != settings.MY_CSDN_ACCOUNT or csdn_account.today_download_count >= 10:
-                                point = settings.CSDN_POINT
-                            else:
-                                point = settings.CSDN_PRO_POINT
-                        except CsdnAccount.DoesNotExist:
-                            ding('[CSDN] 没有可用账号',
-                                 user_email=request.session.get('email'),
-                                 resource_url=resource_url)
-                            return JsonResponse(dict(code=500, msg='资源获取失败'))
+                        point = settings.CSDN_POINT
                     else:
                         point = None
-
                     size = soup.select('strong.info_box span:nth-of-type(3) em')[0].text
                     resource = {
                         'title': soup.find('span', class_='resource_title').string,
@@ -957,7 +941,7 @@ def parse_resource(request):
                 return JsonResponse(dict(code=500, msg='资源获取失败'))
 
         # 百度文库文档
-        elif re.match(r'^(http(s)?://wenku\.baidu\.com/view/).+$', resource_url):
+        elif re.match(settings.PATTERN_WENKU, resource_url):
             """
             资源信息获取地址: https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id=
             """
@@ -1038,7 +1022,7 @@ def parse_resource(request):
                     return JsonResponse(dict(code=500, msg='资源获取失败'))
 
         # 稻壳模板
-        elif re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource_url):
+        elif re.match(settings.PATTERN_DOCER, resource_url):
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                 'accept-encoding': 'gzip, deflate, br',
@@ -1104,7 +1088,7 @@ def parse_resource(request):
         # 知网下载
         # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
         # https://kns.cnki.net/KCMS/detail/ 官网
-        elif re.match(r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$', resource_url):
+        elif re.match(settings.PATTERN_ZHIWANG, resource_url):
             headers = {
                 'host': 'kns.cnki.net',
                 'referer': resource_url,

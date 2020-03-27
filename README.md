@@ -54,6 +54,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] GitHub
 * [x] 800m资源下载失败
 * [ ] 将资源上传放到凌晨
+* [ ] 分离coolq
 
 ## CoolQ
 

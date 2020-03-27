@@ -16,6 +16,7 @@ import time
 import uuid
 import zipfile
 from json import JSONDecodeError
+from threading import Thread
 from urllib import parse
 
 import alipay
@@ -43,7 +44,7 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccoun
 
 def ding(message, at_mobiles=None, is_at_all=False,
          error=None, user_email='', used_account='',
-         resource_url='', logger=logging.info):
+         resource_url='', logger=logging.info, qq=None):
     """
     使用钉钉Webhook Robot监控线上系统
 
@@ -55,6 +56,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
     :param used_account:
     :param resource_url:
     :param logger:
+    :param qq:
     :return:
     """
 
@@ -70,13 +72,12 @@ def ding(message, at_mobiles=None, is_at_all=False,
     headers = {
         'Content-Type': 'application/json'
     }
-    if not isinstance(error, str):
-        error = str(error)
     content = f'## {message}\n' \
-              f'- 错误信息：{error if error else "无"}\n' \
+              f'- 错误信息：{str(error) if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
               f'- 用户邮箱：{user_email if user_email else "无"}\n' \
               f'- 会员账号：{used_account if used_account else "无"}\n' \
+              f'- QQ：{str(qq) if qq else "无"}' \
               f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}'
     logger(content)
 
@@ -206,7 +207,7 @@ def aliyun_oss_check_file(key):
         return None
 
 
-def aliyun_oss_sign_url(key, expire=600):
+def aliyun_oss_sign_url(key, expire=3600):
     """
     获取文件临时下载链接，使用签名URL进行临时授权
 
@@ -464,7 +465,7 @@ def get_driver(folder='', load_images=False):
 
 def save_resource(resource_url, filename, filepath,
                   title, tags, desc, used_point, user,
-                  account=None, wenku_type=None, zhiwang_type=None, is_docer_vip_doc=False):
+                  account=None, wenku_type=None, zhiwang_type=None, is_docer_vip_doc=False, ret=False):
     """
     保存资源记录并上传到OSS
 
@@ -480,6 +481,7 @@ def save_resource(resource_url, filename, filepath,
     :param wenku_type: 百度文库文档类型
     :param zhiwang_type: 知网文献类型，pdf/caj
     :param is_docer_vip_doc: 是否是稻壳VIP模板
+    :param ret: 是否返回数据
     :return:
     """
 
@@ -487,13 +489,13 @@ def save_resource(resource_url, filename, filepath,
         file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
     if Resource.objects.filter((Q(url=resource_url) & Q(zhiwang_type=zhiwang_type)) | Q(file_md5=file_md5)).count():
-        return
+        return None
 
     # 存储在oss中的key
     key = str(uuid.uuid1()) + '-' + filename
     upload_success = aliyun_oss_upload(filepath, key)
     if not upload_success:
-        return
+        return None
 
     try:
         # 资源文件大小
@@ -517,7 +519,11 @@ def save_resource(resource_url, filename, filepath,
 
         # 如果资源小于200M，将资源上传到CSDN
         if size < 200 * 1000 * 100:
-            upload_csdn_resource(resource)
+            t = Thread(target=upload_csdn_resource, args=(resource,))
+            t.start()
+
+        if ret:
+            return aliyun_oss_sign_url(key)
 
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',

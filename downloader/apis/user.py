@@ -610,3 +610,35 @@ def oauth_github_callback(request):
                 logging.warning(get_access_token_res.content)
                 return HttpResponse('OAuth failed.')
 
+
+@api_view(['POST'])
+def bind_qq(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if not token or token != settings.BOT_TOKEN:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        qq = request.data.get('qq', None)
+        email = request.data.get('email', None)
+        password = request.data.get('password', None)
+        if not qq or not email or not password:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            if not user.phone:  # 没有绑定手机号，不允许绑定qq
+                return JsonResponse(dict(code=4000, msg='未绑定手机号'))
+            if not user.can_download:  # 没有邀请码，不允许绑定qq
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+
+            if check_password(password, user.password):
+                user.qq = qq
+                user.save()
+                return JsonResponse(dict(code=200, msg='QQ绑定成功'))
+
+            return JsonResponse(dict(code=400, msg='邮箱或密码不正确'))
+
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=404, msg='用户不存在'))
+
+

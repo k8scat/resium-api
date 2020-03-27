@@ -25,6 +25,7 @@ class User(Base):
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
     github_id = models.IntegerField(default=None, null=True)
+    qq = models.IntegerField(default=None, null=True)
 
     class Meta:
         db_table = 'user'

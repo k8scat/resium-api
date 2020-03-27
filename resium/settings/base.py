@@ -200,7 +200,6 @@ WENKU_VIP_FREE_DOC_POINT = 1
 WENKU_SHARE_DOC_POINT = 10
 WENKU_SPECIAL_DOC_POINT = 20
 CSDN_POINT = 10
-CSDN_PRO_POINT = 5
 DOCER_POINT = 1
 OSS_RESOURCE_POINT = 1
 ZHIWANG_POINT = 10
@@ -277,7 +276,9 @@ GITHUB_CLIENT_SECRET = 'a5e1ea07323f240d41f6c55a62486bcd7eea7248'
 GITHUB_GET_USER_URL = 'https://api.github.com/user'
 GITHUB_GET_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
-CQ_ACCESS_TOKEN = 'eyJzdWIiOiJoc293YW4ubWVryFUdFEEzz77SBjC3GxleM9uSP'
-CQ_SECRET = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9'
-CQ_API = 'http://49.235.161.70:5700'
-CQ_QQ = '1583096682'
+BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
+
+PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/download/).+$'
+PATTERN_WENKU = r'^(http(s)?://wenku\.baidu\.com/view/).+$'
+PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
+PATTERN_ZHIWANG = r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$'
