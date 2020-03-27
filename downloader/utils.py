@@ -42,7 +42,7 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccoun
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
-         error='', user_email='', used_account='',
+         error=None, user_email='', used_account='',
          resource_url='', logger=logging.info):
     """
     使用钉钉Webhook Robot监控线上系统
@@ -128,8 +128,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
         parts = []
 
         total_size = os.path.getsize(filepath)
-        # determine_part_size方法用来确定分片大小。100KB
-        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
+        # determine_part_size方法用来确定分片大小。1000KB
+        part_size = determine_part_size(total_size, preferred_size=1000 * 1024)
 
         # 逐个上传分片。
         with open(filepath, 'rb') as f:
@@ -153,16 +153,21 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             bucket.complete_multipart_upload(key, upload_id, parts)
 
             end = time.time()
-            logging.info(f'上传成功: {key}, 耗时 {end - start} 秒')
 
-            # 修改文件指针，重新读文件
-            f.seek(0)
-            # 验证分片上传。
-            if bucket.get_object(key).read() == f.read():
-                return True
-            ding(f'资源({filepath})上传OSS失败，异常未知')
-            return False
+        with open(filepath, 'rb') as file:
+            try:
+                if bucket.get_object(key).read() == file.read():
+                    logging.info(f'上传成功: {key}, 耗时 {end - start} 秒')
+                    ding(f'资源成功上传OSS: {key}, 耗时{round(end-start, 2)}秒')
+                    return True
+                else:
 
+                    return False
+            except Exception as e:
+                ding('资源上传OSS失败',
+                     error=e,
+                     logger=logging.error)
+                return False
     except Exception as e:
         ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码',
              error=e,
@@ -505,13 +510,15 @@ def save_resource(resource_url, filename, filepath,
                        download_ip=user.login_ip,
                        used_point=used_point).save()
 
-        ding(f'资源成功上传OSS：{title}',
+        ding(f'资源保存成功: {title}',
              user_email=user.email,
              resource_url=resource_url,
              used_account=account.email)
 
-        # 将资源上传到csdn
-        upload_csdn_resource(resource)
+        # 如果资源小于200M，将资源上传到CSDN
+        if size < 200 * 1000 * 100:
+            upload_csdn_resource(resource)
+
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
              error=e,
@@ -732,7 +739,7 @@ def upload_csdn_resource(resource):
         'file_desc': desc,
         'cb_agree': True
     }
-    logging.info(payload)
+    # logging.info(payload)
     files = [
         ('user_file', open(filepath, 'rb'))
     ]

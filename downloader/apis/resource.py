@@ -322,6 +322,8 @@ def download(request):
             else:
                 os.mkdir(save_dir)
                 break
+        # 将资源存放的路径记录到日志
+        logging.info(f'资源[{resource_url}]保存路径: {save_dir}')
 
         # CSDN资源下载
         if re.match(r'^(http(s)?://download\.csdn\.net/download/).+$', resource_url):
@@ -940,12 +942,15 @@ def parse_resource(request):
                             return JsonResponse(dict(code=500, msg='资源获取失败'))
                     else:
                         point = None
+
+                    size = soup.select('strong.info_box span:nth-of-type(3) em')[0].text
                     resource = {
                         'title': soup.find('span', class_='resource_title').string,
                         'desc': soup.select('div.resource_description p')[0].text,
                         'tags': [tag.text for tag in soup.select('label.resource_tags a')],
                         'file_type': soup.select('dl.resource_box_dl dt img')[0]['src'].split('/')[-1].split('.')[0],
-                        'point': point
+                        'point': point,
+                        'size': size
                     }
                     return JsonResponse(dict(code=200, resource=resource))
 

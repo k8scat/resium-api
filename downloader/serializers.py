@@ -13,7 +13,7 @@ from downloader.models import *
 class UserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'create_time', 'email', 'point', 'used_point', 'nickname', 'phone', 'can_download']
+        fields = '__all__'
 
 
 class ResourceSerializers(serializers.ModelSerializer):

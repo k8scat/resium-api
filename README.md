@@ -33,8 +33,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] Coverage.py 统计测试覆盖率
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/89/
 * [ ] parse_resource 和 download 重复解析资源信息的问题
-* [ ] use alpine linux
-* [ ] 后端接口地址更新的问题
+* [x] 后端接口地址更新的问题
     后端settings/prod.py
     前端.env.production
     微信公众号 > 基本配置 > 服务器配置 > 服务器地址
@@ -53,6 +52,14 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://kns.cnki.net/KCMS/detail/detail.aspx?dbcode=CMFD&dbname=CMFD2008&filename=2008138848.nh&v=MDAzNDdmWk9SckZ5RGtVcnpCVjEyN0ZySzdGdG5JcDVFYlBJUjhlWDFMdXhZUzdEaDFUM3FUcldNMUZyQ1VSN3E=
 * [ ] 短链接
 * [ ] GitHub
+* [x] 800m资源下载失败
+* [ ] 将资源上传放到凌晨
+
+## CoolQ
+
+https://github.com/richardchien/coolq-http-api
+
+为 酷Q 提供通过 HTTP 或 WebSocket 接收事件和调用 API 的能力 https://cqhttp.cc/docs/
 
 ## 广告接入
 

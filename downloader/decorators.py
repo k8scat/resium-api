@@ -20,6 +20,7 @@ from functools import wraps
 
 import jwt
 from django.conf import settings
+from django.core.cache import cache
 from django.http import JsonResponse
 
 from downloader.models import User
@@ -28,12 +29,9 @@ from downloader.models import User
 def auth(fn):
     @wraps(fn)
     def _wrapper(request):
-        # path vs. path_info: https://docs.djangoproject.com/en/3.0/ref/request-response/
-        logging.info(f'Auth: {request.path_info}')
         token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
         if token is None:
             return JsonResponse(dict(code=401, msg='未认证'))
-
         try:
             token = token[len(settings.REQUEST_TOKEN_PREFIX):]
             # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html

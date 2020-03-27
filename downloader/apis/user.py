@@ -7,6 +7,7 @@
 """
 import datetime
 import hashlib
+import json
 import logging
 import random
 import re
@@ -14,11 +15,12 @@ import string
 from urllib.parse import quote
 
 import jwt
+import requests
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -526,3 +528,85 @@ def bind_phone(request):
         user.phone = phone
         user.save()
         return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))
+
+
+def oauth_github_callback(request):
+    """
+    GitHub OAuth
+
+    https://github.com/login/oauth/authorize?client_id=ab7e64017baa6a360f1a&scope=user
+
+    :param request:
+    :return:
+    """
+
+    if request.method == 'GET':
+        code = request.GET.get('code', None)
+        # 没有 code 参数时的处理
+        if not code:
+            return HttpResponse('OAuth failed.')
+        # 其实是token
+        state = request.GET.get('state', None)
+
+        data = {
+            'client_id': settings.GITHUB_CLIENT_ID,
+            'client_secret': settings.GITHUB_CLIENT_SECRET,
+            'code': code,
+            'state': state
+        }
+        headers = {
+            'Accept': 'application/json'
+        }
+        with requests.post(settings.GITHUB_GET_ACCESS_TOKEN_URL, data, headers=headers) as get_access_token_res:
+            if get_access_token_res.status_code == requests.codes.OK:
+                logging.info(get_access_token_res.json())
+                headers = {
+                    'Authorization': 'token ' + get_access_token_res.json()['access_token']
+                }
+                with requests.get(settings.GITHUB_GET_USER_URL, headers=headers) as get_user_res:
+                    if get_user_res.status_code == requests.codes.OK:
+                        # Refer: https://developer.github.com/v3/users/#get-a-single-user
+                        github_user = get_user_res.json()
+                        github_user_id = github_user.get('id', None)
+                        if github_user_id is not None:
+                            if state:
+                                try:
+                                    payload = jwt.decode(state, settings.JWT_SECRET, algorithms=['HS512'])
+                                    email = payload.get('sub', None)
+                                    try:
+                                        user = User.objects.get(email=email, is_active=True)
+                                        user.github_id = github_user_id
+                                        user.save()
+                                        return redirect(settings.RESIUM_UI)
+                                    except User.DoesNotExist:
+                                        return HttpResponse('错误的请求')
+                                except Exception as e:
+                                    logging.info(e)
+                                    return HttpResponse('错误的请求')
+
+                            github_email = github_user['email']
+                            user = User.objects.create(email=github_email,
+                                                       github_id=github_user_id,
+                                                       nickname=github_user['name'])
+                            # 设置token过期时间
+                            exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+                            payload = {
+                                'exp': exp,
+                                'sub': github_email
+                            }
+                            token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
+                            # 省略持久化的操作
+                            response = HttpResponseRedirect(settings.RESIUM_UI)
+                            response.set_cookie('token', token)
+                            response.set_cookie('user', json.dumps(UserSerializers(user).data))
+                            return response
+
+                        return HttpResponse('错误的请求')
+                    else:
+                        logging.warning(get_user_res.content)
+                        return HttpResponse('OAuth failed.')
+
+            else:
+                logging.warning(get_access_token_res.content)
+                return HttpResponse('OAuth failed.')
+

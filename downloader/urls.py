@@ -6,7 +6,7 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article
+from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, coolq
 
 urlpatterns = [
     path('login/', user.login),
@@ -20,6 +20,7 @@ urlpatterns = [
     path('get_user/', user.get_user),
     path('send_phone_code/', user.send_phone_code),
     path('bind_phone/', user.bind_phone),
+    re_path(r'^oauth/github/?$', user.oauth_github_callback),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),
@@ -57,5 +58,7 @@ urlpatterns = [
     path('parse_csdn_article/', article.parse_csdn_article),
     re_path(r'^list_articles/?$', article.list_articles),
     path('get_article_count/', article.get_article_count),
-    re_path(r'^get_article/?$', article.get_article)
+    re_path(r'^get_article/?$', article.get_article),
+
+    path('cq_receive/', coolq.receive)
 ]

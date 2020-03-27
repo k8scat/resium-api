@@ -271,3 +271,13 @@ LOGGING = {
         },
     },
 }
+
+GITHUB_CLIENT_ID = 'ab7e64017baa6a360f1a'
+GITHUB_CLIENT_SECRET = 'a5e1ea07323f240d41f6c55a62486bcd7eea7248'
+GITHUB_GET_USER_URL = 'https://api.github.com/user'
+GITHUB_GET_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
+
+CQ_ACCESS_TOKEN = 'eyJzdWIiOiJoc293YW4ubWVryFUdFEEzz77SBjC3GxleM9uSP'
+CQ_SECRET = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9'
+CQ_API = 'http://49.235.161.70:5700'
+CQ_QQ = '1583096682'
