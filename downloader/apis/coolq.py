@@ -17,13 +17,13 @@ from rest_framework.request import Request
 
 
 @api_view(['POST'])
-def receive(request: Request):
+def receive(request):
     if request.method == 'POST':
         logging.info(request.headers)
         x_sig = request.headers.get('X-Signature', None)
         qq = request.headers.get('X-Self-ID', None)
         if x_sig and qq == settings.CQ_QQ:
-            sig = hmac.new(settings.CQ_SECRET, request.body, 'sha1').hexdigest()
+            sig = hmac.new(settings.CQ_SECRET.encode(), request.body, 'sha1').hexdigest()
             received_sig = x_sig[len('sha1='):]
             if sig == received_sig:
                 logging.info('ok')
