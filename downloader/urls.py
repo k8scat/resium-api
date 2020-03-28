@@ -21,7 +21,7 @@ urlpatterns = [
     path('send_phone_code/', user.send_phone_code),
     path('bind_phone/', user.bind_phone),
     re_path(r'^oauth/github/?$', user.oauth_github_callback),
-    path('bind_qq/', user.bind_qq),
+    path('bot/bind_qq/', user.bind_qq),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),
@@ -61,5 +61,5 @@ urlpatterns = [
     path('get_article_count/', article.get_article_count),
     re_path(r'^get_article/?$', article.get_article),
 
-    path('bot/', bot.download)
+    path('bot/download/', bot.download)
 ]
