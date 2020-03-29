@@ -24,7 +24,6 @@ class User(Base):
     login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
-    github_id = models.IntegerField(default=None, null=True)
     qq = models.BigIntegerField(default=None, null=True)
     check_in_count = models.SmallIntegerField(default=0, verbose_name='签到次数')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')

@@ -20,7 +20,6 @@ urlpatterns = [
     path('get_user/', user.get_user),
     path('send_phone_code/', user.send_phone_code),
     path('bind_phone/', user.bind_phone),
-    re_path(r'^oauth/github/?$', user.oauth_github_callback),
     path('bot/bind_qq/', user.bind_qq),
 
     path('list_services/', service.list_services),
