@@ -11,7 +11,6 @@ import os
 import re
 import uuid
 from json import JSONDecodeError
-from threading import Thread
 from urllib import parse
 
 import requests
@@ -582,3 +581,50 @@ def download(request):
 
         else:
             return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@api_view(['POST'])
+def check_in(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if not token or token != settings.BOT_TOKEN:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        qq = request.data.get('qq', None)
+        if not qq:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        try:
+            user = User.objects.get(qq=qq, is_active=True)
+            if user.has_check_in_today:
+                return JsonResponse(dict(code=400, msg='今日已签到，请明天再来！'))
+            else:
+                user.has_check_in_today = True
+                if user.check_in_count == 5:
+                    user.point += settings.CSDN_POINT
+                    user.check_in_count = 0
+                    msg = f'签到成功，积分+{settings.CSDN_POINT}！'
+                else:
+                    user.check_in_count += 1
+                    msg = '签到成功！'
+                user.save()
+                return JsonResponse(dict(code=200, msg=msg))
+
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=400, msg='请先绑定源自下载账号'))
+
+
+@api_view(['POST'])
+def reset_check_in_count(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if token == settings.ADMIN_TOKEN:
+            User.objects.filter(qq__isnull=False).update(check_in_count=0)
+
+
+@api_view(['POST'])
+def reset_has_check_in_today(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if token == settings.ADMIN_TOKEN:
+            User.objects.filter(qq__isnull=False, has_check_in_today=True).update(reset_has_check_in_today=False)

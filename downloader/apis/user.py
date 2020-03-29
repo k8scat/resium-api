@@ -641,4 +641,3 @@ def bind_qq(request):
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='用户不存在'))
 
-
