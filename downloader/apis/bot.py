@@ -606,7 +606,7 @@ def check_in(request):
                     msg = f'签到成功，积分+{settings.CSDN_POINT}！'
                 else:
                     user.check_in_count += 1
-                    msg = '签到成功！'
+                    msg = f'签到成功，本周已签到{user.check_in_count}次！'
                 user.save()
                 return JsonResponse(dict(code=200, msg=msg))
 
