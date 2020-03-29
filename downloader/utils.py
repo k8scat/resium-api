@@ -116,7 +116,6 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
     :return:
     """
     logging.info('开始上传资源...')
-    start = time.time()
     try:
         bucket = get_aliyun_oss_bucket()
 
@@ -152,23 +151,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
             # headers["x-oss-object-acl"] = oss2.OBJECT_ACL_PRIVATE
             # bucket.complete_multipart_upload(key, upload_id, parts, headers=headers)
             bucket.complete_multipart_upload(key, upload_id, parts)
+            return True
 
-            end = time.time()
-
-        with open(filepath, 'rb') as file:
-            try:
-                if bucket.get_object(key).read() == file.read():
-                    logging.info(f'上传成功: {key}, 耗时 {end - start} 秒')
-                    ding(f'资源成功上传OSS: {key}, 耗时{round(end-start, 2)}秒')
-                    return True
-                else:
-
-                    return False
-            except Exception as e:
-                ding('资源上传OSS失败',
-                     error=e,
-                     logger=logging.error)
-                return False
     except Exception as e:
         ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码',
              error=e,
