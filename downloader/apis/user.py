@@ -627,9 +627,9 @@ def bind_qq(request):
         try:
             user = User.objects.get(email=email, is_active=True)
             if not user.phone:  # 没有绑定手机号，不允许绑定qq
-                return JsonResponse(dict(code=4000, msg='未绑定手机号'))
+                return JsonResponse(dict(code=4000, msg='请先登录源自下载网站进行绑定手机号'))
             if not user.can_download:  # 没有邀请码，不允许绑定qq
-                return JsonResponse(dict(code=400, msg='错误的请求'))
+                return JsonResponse(dict(code=400, msg='该账号不支持绑定QQ'))
 
             if check_password(password, user.password):
                 user.qq = qq

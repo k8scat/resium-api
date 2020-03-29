@@ -276,6 +276,7 @@ GITHUB_CLIENT_SECRET = 'a5e1ea07323f240d41f6c55a62486bcd7eea7248'
 GITHUB_GET_USER_URL = 'https://api.github.com/user'
 GITHUB_GET_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
+# 机器人和后端通信的唯一凭证，直接放在post的data中，key是token
 BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
 
 PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/download/).+$'
