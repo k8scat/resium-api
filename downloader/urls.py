@@ -61,5 +61,8 @@ urlpatterns = [
     path('get_article_count/', article.get_article_count),
     re_path(r'^get_article/?$', article.get_article),
 
-    path('bot/download/', bot.download)
+    path('bot/download/', bot.download),
+    path('reset_has_check_in_today/', bot.reset_has_check_in_today),
+    path('reset_check_in_count/', bot.reset_check_in_count),
+    path('bot/check_in/', bot.check_in)
 ]
