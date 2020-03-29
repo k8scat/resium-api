@@ -11,9 +11,11 @@ import os
 import re
 import uuid
 from json import JSONDecodeError
+from threading import Thread
 from urllib import parse
 
 import requests
+from PIL import Image
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
@@ -26,7 +28,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from downloader.models import User, DownloadRecord, CsdnAccount, BaiduAccount, DocerAccount
 from downloader.utils import check_oss, get_random_ua, ding, aliyun_oss_sign_url, save_resource, get_driver, \
-    check_download
+    check_download, predict_code
 
 
 @api_view(['POST'])
@@ -109,7 +111,7 @@ def download(request):
             oss_resource.download_count += 1
             oss_resource.save()
 
-            return JsonResponse(dict(code=200, download_url=download_url))
+            return JsonResponse(dict(code=200, download_url=download_url, point=point))
 
         # 生成资源存放的唯一子目录
         unique_folder = str(uuid.uuid1())
@@ -205,7 +207,7 @@ def download(request):
                             # 上传资源到OSS并保存记录到数据库
                             download_url = save_resource(url, filename, filepath, title, tags, desc, point, user,
                                                          account=csdn_account, ret=True)
-                            return JsonResponse(dict(code=200, download_url=download_url))
+                            return JsonResponse(dict(code=200, download_url=download_url, point=point))
 
                         ding('[CSDN] 下载失败',
                              error=download_resp.text,
@@ -330,7 +332,7 @@ def download(request):
                 download_url = save_resource(url, filename, filepath, title, tags, desc, point, user,
                                              account=baidu_account, wenku_type=doc_type, ret=True)
 
-                return JsonResponse(dict(code=200, download_url=download_url))
+                return JsonResponse(dict(code=200, download_url=download_url, point=point))
 
             except Exception as e:
                 ding('[百度文库] 下载失败',
@@ -406,7 +408,7 @@ def download(request):
                                 download_url = save_resource(url, filename, filepath, title, tags, desc, point, user,
                                                              account=docer_account, is_docer_vip_doc=is_docer_vip_doc, ret=True)
 
-                                return JsonResponse(dict(code=200, download_url=download_url))
+                                return JsonResponse(dict(code=200, download_url=download_url, point=point))
 
                             ding('[稻壳VIP模板] 下载失败',
                                  error=download_resp.text,
@@ -430,7 +432,153 @@ def download(request):
                     return JsonResponse(dict(code=500, msg='下载失败'))
 
         elif re.match(settings.PATTERN_ZHIWANG, url):
-            return JsonResponse(dict(code=400, msg='暂不支持下载知网文献'))
+            point = settings.ZHIWANG_POINT
+            if user.point < point:
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+
+            # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
+            url = re.sub(r'http(s)?://kns\.cnki\.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn', resource_url)
+            driver = get_driver(unique_folder, load_images=True)
+            try:
+                driver.get('http://wvpn.ncu.edu.cn/users/sign_in')
+                username_input = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.ID, 'user_login'))
+                )
+                username_input.send_keys(settings.NCU_VPN_USERNAME)
+                password_input = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.ID, 'user_password'))
+                )
+                password_input.send_keys(settings.NCU_VPN_PASSWORD)
+                submit_button = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='col-md-6 col-md-offset-6 login-btn']/input")
+                    )
+                )
+                submit_button.click()
+
+                driver.get(url)
+                driver.refresh()
+
+                # 文献标题
+                title = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='wxTitle']/h2")
+                    )
+                ).text
+
+                # 尝试获取摘要
+                try:
+                    desc = WebDriverWait(driver, 1).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'ChDivSummary')
+                        )
+                    ).text
+                except TimeoutException:
+                    desc = ''
+
+                # 尝试获取关键词
+                try:
+                    # //div[@class='wxBaseinfo']//label[@id='catalog_KEYWORD']/../a
+                    items = WebDriverWait(driver, 1).until(
+                        EC.presence_of_all_elements_located(
+                            (By.XPATH, "//div[@class='wxBaseinfo']//label[@id='catalog_KEYWORD']/../a")
+                        )
+                    )
+                    tags = []
+                    for item in items:
+                        tags.append(item.text[:-1])
+                    tags = settings.TAG_SEP.join(tags)
+                except TimeoutException:
+                    tags = ''
+
+                try:
+                    # pdf下载
+                    download_button = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'pdfDown')
+                        )
+                    )
+                except TimeoutException:
+                    return JsonResponse(dict(code=400, msg='该文献不支持下载PDF'))
+
+                # 获取下载链接
+                download_link = download_button.get_attribute('href')
+                # 访问下载链接
+                driver.get(download_link)
+                try:
+                    # 获取验证码图片
+                    code_image = WebDriverWait(driver, 1).until(
+                        EC.presence_of_element_located(
+                            (By.ID, 'vImg')
+                        )
+                    )
+                    # 自动获取截取位置
+                    # left = int(code_image.location['x'])
+                    # print(left)
+                    # upper = int(code_image.location['y'])
+                    # print(upper)
+                    # right = int(code_image.location['x'] + code_image.size['width'])
+                    # print(right)
+                    # lower = int(code_image.location['y'] + code_image.size['height'])
+                    # print(lower)
+
+                    # 获取截图
+                    driver.get_screenshot_as_file(settings.SCREENSHOT_IMAGE)
+
+                    # 手动设置截取位置
+                    left = 430
+                    upper = 275
+                    right = 620
+                    lower = 340
+                    # 通过Image处理图像
+                    img = Image.open(settings.SCREENSHOT_IMAGE)
+                    # 剪切图片
+                    img = img.crop((left, upper, right, lower))
+                    # 保存剪切好的图片
+                    img.save(settings.CODE_IMAGE)
+
+                    code = predict_code(settings.CODE_IMAGE)
+                    if code:
+                        code_input = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'vcode')
+                            )
+                        )
+                        code_input.send_keys(code)
+                        submit_code_button = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//dl[@class='c_verify-code']/dd/button")
+                            )
+                        )
+                        submit_code_button.click()
+                    else:
+                        return JsonResponse(dict(code=500, msg='下载失败'))
+
+                finally:
+                    logging.info(save_dir)
+                    filepath, filename = check_download(save_dir)
+
+                    # 保存资源
+                    download_url = save_resource(url, filename, filepath, title, tags, desc, point, user,
+                                                 zhiwang_type='pdf', ret=True)
+                    user.point -= point
+                    user.used_point += point
+                    user.save()
+
+                    return JsonResponse(dict(code=200, download_url=download_url, point=point))
+
+            except Exception as e:
+                ding('[知网文献] 下载失败',
+                     error=e,
+                     qq=qq,
+                     resource_url=url,
+                     logger=logging.error)
+                return JsonResponse(dict(code=500, msg='下载失败'))
+
+            finally:
+                driver.close()
 
         else:
             return JsonResponse(dict(code=400, msg='错误的请求'))

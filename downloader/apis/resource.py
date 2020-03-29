@@ -721,19 +721,25 @@ def download(request):
 
                 # 获取下载按钮
                 if download_type == 'caj':
-                    # caj下载
-                    download_button = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.ID, 'cajDown')
+                    try:
+                        # caj下载
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'cajDown')
+                            )
                         )
-                    )
+                    except TimeoutException:
+                        return JsonResponse(dict(code=400, msg='该文献不支持下载CAJ'))
                 elif download_type == 'pdf':
-                    # pdf下载
-                    download_button = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.ID, 'pdfDown')
+                    try:
+                        # pdf下载
+                        download_button = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.ID, 'pdfDown')
+                            )
                         )
-                    )
+                    except TimeoutException:
+                        return JsonResponse(dict(code=400, msg='该文献不支持下载PDF'))
                 else:
                     return JsonResponse(dict(code=400, msg='错误的请求'))
                 # 获取下载链接
