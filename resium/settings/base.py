@@ -107,10 +107,10 @@ STATIC_URL = '/static/'
 # 用于 python manage.py collectstatic
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-EMAIL_HOST = 'smtp.qq.com'
+EMAIL_HOST = 'smtp.exmail.qq.com'
 EMAIL_PORT = 465
-EMAIL_HOST_USER = 'admin@ncucoder.com'
-EMAIL_HOST_PASSWORD = 'budnubzbonsmbaga'
+EMAIL_HOST_USER = 'admin@resium.cn'
+EMAIL_HOST_PASSWORD = 'QLVNHSDDDAAQCYWj'
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = f'源自下载 <{EMAIL_HOST_USER}>'
 

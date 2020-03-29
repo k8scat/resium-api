@@ -40,21 +40,18 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
 * [ ] 开放API
-* [ ] 日志处理
 * [ ] Use sha512 over md5 to verify file integrity
 * [ ] 下载和保存上传资源是分开的
 * [ ] 毕设、大作业代做
 * [ ] 错误信息：{'code': 400, 'message': '资源不存在', 'data': ''}
     https://download.csdn.net/download/x_uhen/12013989
 * [x] csdn自动上传，使用新账号
-* [ ] 机器人下载
+* [x] 机器人下载
 * [ ] 知网下载补充
     https://kns.cnki.net/KCMS/detail/detail.aspx?dbcode=CMFD&dbname=CMFD2008&filename=2008138848.nh&v=MDAzNDdmWk9SckZ5RGtVcnpCVjEyN0ZySzdGdG5JcDVFYlBJUjhlWDFMdXhZUzdEaDFUM3FUcldNMUZyQ1VSN3E=
-* [ ] 短链接
-* [ ] GitHub
+* [x] 短链接
 * [x] 800m资源下载失败
-* [ ] 将资源上传放到凌晨
-* [ ] 分离coolq
+* [x] 分离coolq
 * [ ] 日志系统 elk
 
 ## CoolQ
