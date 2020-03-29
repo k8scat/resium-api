@@ -41,9 +41,12 @@ def download(request):
         if not qq or not url:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
+        if cache.get(str(qq)):
+            return JsonResponse(dict(code=403, msg='下载请求过快'))
+
         try:
             user = User.objects.get(qq=qq, is_active=True)
-            cache.set(qq, True, timeout=settings.DOWNLOAD_INTERVAL)
+            cache.set(str(qq), True, timeout=settings.COOLQ_DOWNLOAD_INTERVAL)
         except User.DoesNotExist:
             return JsonResponse(dict(code=401, msg='请先绑定源自下载账号'))
 

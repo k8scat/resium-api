@@ -219,6 +219,7 @@ NCU_VPN_PASSWORD = 'holdon7868'
 
 # 资源下载间隔
 DOWNLOAD_INTERVAL = 60
+COOLQ_DOWNLOAD_INTERVAL = 180
 
 # https://note.qidong.name/2018/11/django-logging/
 LOGGING = {
