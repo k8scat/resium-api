@@ -43,7 +43,7 @@ def download(request):
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         if cache.get(str(qq)):
-            return JsonResponse(dict(code=403, msg='下载请求过快'))
+            return JsonResponse(dict(code=403, msg='下载请求过快，请稍后再尝试！'))
 
         try:
             user = User.objects.get(qq=qq, is_active=True)
