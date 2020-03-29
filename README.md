@@ -33,7 +33,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] Coverage.py 统计测试覆盖率
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/89/
 * [ ] parse_resource 和 download 重复解析资源信息的问题
-* [x] 后端接口地址更新的问题
+* [ ] 后端接口地址更新的问题
     后端settings/prod.py
     前端.env.production
     微信公众号 > 基本配置 > 服务器配置 > 服务器地址
