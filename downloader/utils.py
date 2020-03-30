@@ -11,6 +11,7 @@ import hmac
 import json
 import logging
 import random
+import re
 import string
 import time
 import uuid
@@ -714,6 +715,8 @@ def upload_csdn_resource(resource):
 
     if len(resource.desc) < 50:
         desc = resource.desc + ' 该资源是由 weixin_46449765 用户进行上传的，来源于网络，如有侵权，请联系本人进行删除！'
+    elif re.match(settings.PATTERN_DOCER, resource.url):
+        desc = '该资源是由 weixin_46449765 用户进行上传的，来源于网络，如有侵权，请联系本人进行删除！'
     else:
         desc = resource.desc
 

@@ -157,6 +157,9 @@ def get_resource(request):
                         } for preview_image in DocerPreviewImage.objects.filter(resource_url=resource.url).all()
                     ]
                 resource = ResourceSerializers(resource).data
+                # 清除稻壳模板的desc
+                if re.match(settings.PATTERN_DOCER, resource['url']):
+                    resource['desc'] = ''
                 resource.setdefault('preview_images', preview_images)
                 return JsonResponse(dict(code=200, resource=resource))
             except Resource.DoesNotExist:
@@ -1088,7 +1091,7 @@ def parse_resource(request):
                         'title': soup.find('h1', class_='preview__title').string,
                         'tags': tags,
                         'file_type': soup.select('span.m-crumbs-path a')[0].text,
-                        'desc': soup.find('meta', attrs={'name': 'Description'})['content'],
+                        'desc': '',  # soup.find('meta', attrs={'name': 'Description'})['content']
                         'point': settings.DOCER_POINT,
                         'preview_images': preview_images
                     }

@@ -22,17 +22,20 @@ from downloader.utils import ding
 
 
 def get_resources(keyword='', page=1):
-    url = 'https://docer.wps.cn/v3.php/api/search/shop_search?per_page=64&sale_type=2'
+    url = 'https://docer.wps.cn/v3.php/api/search/shop_search'
     params = {
         'keyword': keyword,
         'page': page,
         'per_page': 99,
         'sale_type': 1,
-        'mb_app': '1,2,3'
+        'mb_app': '1,2,3',
+        'file_type': 1
     }
     with requests.get(url, params=params) as r:
         if r.status_code == requests.codes.OK and r.json()['result'] == 'ok':
             return [resource['id'] for resource in r.json()['data']['data']]
+        else:
+            return []
 
 
 def download(resource_id):
@@ -63,7 +66,7 @@ if __name__ == '__main__':
     # total_resources = []
     # current_page = 1
     # resources = get_resources(page=current_page)
-    # while len(resources):
+    # while len(resources) > 0:
     #     for res in resources:
     #         if res not in total_resources:
     #             total_resources.append(res)
@@ -73,11 +76,12 @@ if __name__ == '__main__':
     #     f.write(json.dumps({
     #         'resources': total_resources
     #     }))
+    #     print(len(total_resources))
 
     with open(os.path.join(settings.BASE_DIR, 'docer_resources.json'), 'r') as f:
         resources = json.loads(f.read())['resources']
         count = 0
-        for res_id in resources[:260]:
+        for res_id in resources[:100]:
 
             if download(res_id):
                 count += 1
