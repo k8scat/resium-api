@@ -1,8 +1,6 @@
 static
 migrate
 baidu_manual_login.py
-crawl_csdn_resources.py
-crawl_docer.py
 manual_upload_resource.py
 process.py
 redis-dev.yml
