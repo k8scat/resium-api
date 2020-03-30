@@ -9,76 +9,78 @@
 """
 import json
 import os
-import re
 import time
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import requests
+from django.conf import settings
 
-from downloader.utils import get_driver, check_download
-
-
-def login():
-    pass
+from downloader.utils import ding
 
 
-def download(download_url, unique_folder):
-    docer_home = 'https://www.docer.com/'
-
-    driver = get_driver(os.path.join('docer', unique_folder))
-
-    try:
-        # 先请求，再添加cookies
-        # selenium.common.exceptions.InvalidCookieDomainException: Message: Document is cookie-averse
-        driver.get(docer_home)
-        # 从文件中获取到cookies
-        with open(cookies_file, 'r', encoding='utf-8') as f:
-            cookies = json.loads(f.read())
-        for c in cookies:
-            driver.add_cookies({'name': c['name'], 'value': c['value'], 'path': c['path'], 'domain': c['domain'],
-                               'secure': c['secure']})
-        driver.get(download_url)
-        time.sleep(1)
-        # 获取word名称
-        word_name = driver.find_element_by_xpath(
-            "/html/body/div[@id='__nuxt']/div[@id='__layout']/div[@id='App']/div[@class='g-router-regular']/div[2]/div[@class='preview g-clearfloat']/div[@class='preview__info']/h1[@class='preview__title']").text
-        # 只要简历模板
-        # if word_name.find('简历') == -1:
-        #     return
-
-        # 获取word编号
-        pattern = re.compile(r'\d+')
-        word_id = pattern.findall(driver.find_element_by_xpath(
-            "/html/body/div[@id='__nuxt']/div[@id='__layout']/div[@id='App']/div[@class='g-router-regular']/div[2]/div[@class='preview g-clearfloat']/div[@class='preview__info']/ul[@class='preview__detail g-clearfloat']/li[@class='preview__detail-item'][3]").text)[
-            0]
-
-        # 是否是VIP模板
-        is_vip = driver.find_element_by_xpath(
-            "/html/body/div[@id='__nuxt']/div[@id='__layout']/div[@id='App']/div[@class='g-router-regular']/div[2]/div[@class='preview g-clearfloat']/div[@class='preview__info']/ul[@class='preview__detail g-clearfloat']/li[@class='preview__detail-item'][4]").text.find(
-            'VIP') != -1
-        # 只爬取VIP模板
-        if not is_vip:
-            return
-
-        download_button = WebDriverWait(driver, 60).until(EC.presence_of_element_located(
-            (By.XPATH,
-             "/html/body/div[@id='__nuxt']/div[@id='__layout']/div[@id='App']/div[@class='g-router-regular']/div[2]/div[@class='preview g-clearfloat']/div[@class='preview__info']/div[@class='preview__btns g-clearfloat']/span[2]"))
-        )
-        download_button.click()
-
-        check_download()
+def get_resources(keyword='', page=1):
+    url = 'https://docer.wps.cn/v3.php/api/search/shop_search?per_page=64&sale_type=2'
+    params = {
+        'keyword': keyword,
+        'page': page,
+        'per_page': 99,
+        'sale_type': 1,
+        'mb_app': '1,2,3'
+    }
+    with requests.get(url, params=params) as r:
+        if r.status_code == requests.codes.OK and r.json()['result'] == 'ok':
+            return [resource['id'] for resource in r.json()['data']['data']]
 
 
-
-
-    finally:
-        driver.quit()
+def download(resource_id):
+    url1 = f'https://www.docer.com/preview/{resource_id}'
+    url2 = f'https://www.docer.com/webmall/preview/{resource_id}'
+    headers = {
+        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJoc293YW4ubWVAZ21haWwuY29tIn0.GccYzRBABvxQ6ryFUdFEEzz77SBjC3GxleM9uSP-uJuLKpGgYriSANRJDWWNk8VbSyVGtgaTj0yS-pSyvad_KQ'
+    }
+    payload1 = {
+        'url': url1
+    }
+    payload2 = {
+        'url': url2
+    }
+    with requests.post('https://api.resium.cn/check_resource_existed/', data=payload1, headers=headers) as r1:
+        if r1.status_code == requests.codes.OK and r1.json()['code'] == 200 and not r1.json()['is_existed']:
+            with requests.post('https://api.resium.cn/check_resource_existed/', data=payload2, headers=headers) as r2:
+                if r2.status_code == requests.codes.OK and r2.json()['code'] == 200 and not r2.json()['is_existed']:
+                    with requests.post('https://api.resium.cn/download/', data=payload1, headers=headers) as download_resp:
+                        if download_resp.headers.get('Content-Type', None) == 'application/octet-stream':
+                            ding('稻壳模板下载成功', resource_url=url1)
+                            return True
+    return False
 
 
 if __name__ == '__main__':
-    pass
+    # 获取稻壳模板的ID并保存到文件
+    # total_resources = []
+    # current_page = 1
+    # resources = get_resources(page=current_page)
+    # while len(resources):
+    #     for res in resources:
+    #         if res not in total_resources:
+    #             total_resources.append(res)
+    #     current_page += 1
+    #     resources = get_resources(page=current_page)
+    # with open(os.path.join(settings.BASE_DIR, 'docer_resources.json'), 'w') as f:
+    #     f.write(json.dumps({
+    #         'resources': total_resources
+    #     }))
+
+    with open(os.path.join(settings.BASE_DIR, 'docer_resources.json'), 'r') as f:
+        resources = json.loads(f.read())['resources']
+        count = 0
+        for res_id in resources[:260]:
+
+            if download(res_id):
+                count += 1
+            time.sleep(300)
+
+        ding(f'最终爬取了{count}个稻壳模板')

@@ -39,6 +39,10 @@ from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_s
     save_resource, send_email, predict_code, get_random_ua
 
 
+class ResourceDownload:
+    pass
+
+
 @auth
 @api_view(['POST'])
 def upload(request):
@@ -252,6 +256,7 @@ def download(request):
     """
     资源下载
     """
+
     if request.method == 'POST':
         email = request.session.get('email')
         if cache.get(email):
@@ -1124,3 +1129,15 @@ def parse_resource(request):
                 return JsonResponse(dict(code=200, resource=resource))
         else:
             return JsonResponse(dict(code=400, msg='资源地址有误'))
+
+
+@auth
+@api_view(['POST'])
+def check_resource_existed(request):
+    if request.method == 'POST':
+        url = request.data.get('url', None)
+        if not url:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        is_resource_existed = Resource.objects.filter(url=url).count() > 0
+        return JsonResponse(dict(code=200, is_existed=is_resource_existed))

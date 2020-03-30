@@ -53,6 +53,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 800m资源下载失败
 * [x] 分离coolq
 * [ ] 日志系统 elk
+* [ ] 代码重构，资源下载的代码多处存在重复
+* [ ] 800m资源下载成功后，check失败
 
 ## CoolQ
 
