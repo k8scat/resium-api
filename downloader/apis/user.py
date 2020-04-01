@@ -14,6 +14,7 @@ import string
 from urllib.parse import quote
 
 import jwt
+import requests
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.cache import cache
@@ -447,7 +448,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '你好，欢迎关注源自下载！' \
+            content = '你好，欢迎关注源自开发者！' \
                       '\n\n每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享'
             reply = TextReply(content=content, message=msg)
 
@@ -528,35 +529,69 @@ def bind_phone(request):
         return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))
 
 
+@auth
+@api_view(['POST'])
+def send_qq_code(request):
+    qq = request.data.get('qq', None)
+    if not qq:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+    code = ''.join(random.sample(string.digits, 6))
+    cache.set(qq, code, settings.QQ_CODE_EXPIRE)
+
+    payload = {
+        'user_id': int(qq),
+        'message': code  # 每次只能点赞10次，SVIP也只能10次，需要请求两次
+    }
+    with requests.post(settings.COOLQ_API + '/send_private_msg', data=payload, headers=settings.COOLQ_AUTH_HEADERS) as r:
+        if r.status_code == requests.codes.OK and r.json()['status'] == 'ok':
+            return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
+        else:
+            return JsonResponse(dict(code=500, msg='QQ验证码发送失败'))
+
+
+@auth
 @api_view(['POST'])
 def bind_qq(request):
     if request.method == 'POST':
-        token = request.data.get('token', None)
-        if not token or token != settings.BOT_TOKEN:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
         qq = request.data.get('qq', None)
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
-        if not qq or not email or not password:
+        code = request.data.get('code', None)
+        if not qq or not code:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
+        email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
             if not user.phone:  # 没有绑定手机号，不允许绑定qq
-                return JsonResponse(dict(code=4000, msg='请先登录源自下载网站进行绑定手机号'))
+                return JsonResponse(dict(code=4000, msg='请先进行绑定手机号'))
             if not user.can_download:  # 没有邀请码，不允许绑定qq
                 return JsonResponse(dict(code=400, msg='该账号不支持绑定QQ'))
             if user.qq:
                 return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
 
-            if check_password(password, user.password):
-                user.qq = qq
-                user.save()
-                return JsonResponse(dict(code=200, msg='QQ绑定成功'))
+            user.qq = int(qq)
+            user.save()
 
             return JsonResponse(dict(code=400, msg='邮箱或密码不正确'))
 
         except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='账号不存在'))
+            return JsonResponse(dict(code=404, msg='未认证'))
 
+
+@auth
+@api_view(['POST'])
+def set_register_code(request):
+    if request.method == 'POST':
+        code = request.data.get('code', None)
+        if not code:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        if code != settings.REGISTER_CODE:
+            return JsonResponse(dict(code=400, msg='邀请码不存在'))
+
+        email = request.session.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            user.can_download = True
+            user.save()
+        except User.DoesNotExist:
+            return JsonResponse(dict(code=400, msg='未认证'))

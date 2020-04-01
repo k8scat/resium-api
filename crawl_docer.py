@@ -82,7 +82,6 @@ if __name__ == '__main__':
         resources = json.loads(f.read())['resources']
         count = 0
         for res_id in resources[:100]:
-
             if download(res_id):
                 count += 1
             time.sleep(300)

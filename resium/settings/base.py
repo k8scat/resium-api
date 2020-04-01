@@ -194,6 +194,7 @@ ALIYUN_SMS_TEMPLATE_CODE = 'SMS_165419422'
 ALIYUN_SMS_SIGN_NAME = 'NCUCoder'
 
 PHONE_CODE_EXPIRE = 300
+QQ_CODE_EXPIRE = 300
 
 # 资源积分
 WENKU_VIP_FREE_DOC_POINT = 1
@@ -279,3 +280,8 @@ PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/download/).+$'
 PATTERN_WENKU = r'^(http(s)?://wenku\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
 PATTERN_ZHIWANG = r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$'
+
+COOLQ_API = 'http://49.235.161.70:5700'
+COOLQ_AUTH_HEADERS = {
+    'Authorization': 'Bearer eyJzdWIiOiJoc293YW4ubWVryFUdFEEzz77SBjC3GxleM9uSP'
+}

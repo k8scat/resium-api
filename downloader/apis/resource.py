@@ -589,7 +589,7 @@ def download(request):
                     tags = tags[:-1]
                 tags = settings.TAG_SEP.join(tags)
                 # 从head中获取desc
-                desc = soup.find('meta', attrs={'name': 'Description'})['content']
+                desc = ''  # soup.find('meta', attrs={'name': 'Description'})['content']
                 is_docer_vip_doc = r.text.count('类型：VIP模板') > 0
 
             # 下载资源
