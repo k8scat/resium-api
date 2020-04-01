@@ -49,7 +49,7 @@ def download(request):
             user = User.objects.get(qq=qq, is_active=True)
             cache.set(str(qq), True, timeout=settings.COOLQ_DOWNLOAD_INTERVAL)
         except User.DoesNotExist:
-            return JsonResponse(dict(code=401, msg='请先绑定源自下载账号！如何绑定账号请查看公告！'))
+            return JsonResponse(dict(code=401, msg='请先前往源自下载网站的个人中心进行绑定QQ！'))
 
         # 检查OSS是否存有该资源
         oss_resource = check_oss(url)
@@ -581,3 +581,23 @@ def download(request):
 
         else:
             return JsonResponse(dict(code=400, msg='错误的请求'))
+
+
+@api_view(['POST'])
+def check_can_download(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if not token or token != settings.BOT_TOKEN:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        qq = request.data.get('qq', None)
+        if not qq:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        if cache.get(str(qq)):
+            return JsonResponse(dict(code=403, msg='下载请求过快，请稍后再尝试！'))
+
+        if not User.objects.filter(qq=qq, is_active=True).count():
+            return JsonResponse(dict(code=401, msg='请先前往源自下载网站的个人中心进行绑定QQ！'))
+
+        return JsonResponse(dict(code=200, msg='ok'))

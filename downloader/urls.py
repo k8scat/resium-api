@@ -71,4 +71,5 @@ urlpatterns = [
     re_path(r'^get_article/?$', article.get_article),
 
     path('bot/download/', bot.download),
+    path('bot/check_can_download/', bot.check_can_download)
 ]
