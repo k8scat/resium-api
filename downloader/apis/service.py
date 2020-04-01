@@ -8,7 +8,6 @@
 from django.conf import settings
 from django.http import JsonResponse
 
-from downloader.decorators import auth
 from downloader.serializers import ServiceSerializers, Service
 
 
