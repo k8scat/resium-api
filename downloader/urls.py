@@ -8,7 +8,13 @@
 from django.urls import path, re_path
 from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, bot
 
+
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
+
 urlpatterns = [
+    path('sentry-debug/', trigger_error),
     path('login/', user.login),
     path('register/', user.register),
     re_path(r'^activate/?$', user.activate),
@@ -20,7 +26,10 @@ urlpatterns = [
     path('get_user/', user.get_user),
     path('send_phone_code/', user.send_phone_code),
     path('bind_phone/', user.bind_phone),
-    path('bot/bind_qq/', user.bind_qq),
+    path('bind_qq/', user.bind_qq),
+    path('send_qq_code/', user.send_qq_code),
+    path('set_user_can_download/', user.set_user_can_download),
+    path('reset_has_check_in_today/', user.reset_has_check_in_today),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),
@@ -62,7 +71,4 @@ urlpatterns = [
     re_path(r'^get_article/?$', article.get_article),
 
     path('bot/download/', bot.download),
-    path('reset_has_check_in_today/', bot.reset_has_check_in_today),
-    path('reset_check_in_count/', bot.reset_check_in_count),
-    path('bot/check_in/', bot.check_in)
 ]

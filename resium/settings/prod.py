@@ -6,6 +6,8 @@
 
 """
 from .base import *
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 DEBUG = False
 
@@ -45,3 +47,12 @@ CACHES = {
 }
 
 RATELIMIT_BLOCK = True
+
+sentry_sdk.init(
+    dsn="https://ca79fc2104324d859b1d5f8aee301567@sentry.io/5185473",
+    integrations=[DjangoIntegration()],
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)

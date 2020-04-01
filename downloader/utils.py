@@ -502,10 +502,8 @@ def save_resource(resource_url, filename, filepath,
              resource_url=resource_url,
              used_account=account.email)
 
-        # 如果资源小于200M，将资源上传到CSDN
-        if size < 200 * 1000 * 1000:
-            t = Thread(target=upload_csdn_resource, args=(resource,))
-            t.start()
+        t = Thread(target=upload_csdn_resource, args=(resource,))
+        t.start()
 
         if ret:
             return aliyun_oss_sign_url(key)
@@ -693,6 +691,7 @@ def get_random_ua():
 
 
 def upload_csdn_resource(resource):
+    logging.info(f'开始上传资源到CSDN: {resource.url}')
     headers = {
         'cookie': CsdnAccount.objects.get(email='hsowan.v@gmail.com').cookies,
         'user-agent': get_random_ua(),
@@ -771,3 +770,4 @@ def zip_file(filepath):
         f.write(file, filename)
     f.close()
     return outfile
+

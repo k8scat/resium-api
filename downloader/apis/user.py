@@ -33,9 +33,9 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Resource
+from downloader.models import User
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, create_coupon, send_message, send_email, aliyun_oss_delete_file
+from downloader.utils import ding, create_coupon, send_message
 
 
 @auth
@@ -118,7 +118,6 @@ def register(request):
     if request.method == 'POST':
         email = request.data.get('email', None)
         password = request.data.get('password', None)
-        code = request.data.get('code', None)
 
         if not email or not password:
             return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -127,17 +126,12 @@ def register(request):
         if User.objects.filter(email=email, is_active=True).count() != 0:
             return JsonResponse(dict(code=400, msg='邮箱已注册'))
 
-        # 检查邀请码是否正确
-        # if code != settings.REGISTER_CODE:
-        #     return JsonResponse(dict(code=400, msg='邀请码无效'))
-        can_download = code == settings.REGISTER_CODE
-
         encrypted_password = make_password(password)
         code = ''.join(random.sample(string.digits, 6))
         fake = Faker('zh_CN')
         nickname = fake.name()
         User(email=email, password=encrypted_password,
-             code=code, nickname=nickname, can_download=can_download).save()
+             code=code, nickname=nickname).save()
 
         activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                              safe=':/?=&')
@@ -458,42 +452,36 @@ def wx(request):
 
         # 文本消息
         elif isinstance(msg, TextMessage):
-            content = msg.content.strip()
-            if re.match(r'^(r_audit: )\d+ (-)?\d( .+)?$', msg.content):
-                # r_audit: 123 1 message
-                content = content.split(' ')
-                resource_id = int(content[1])
-                is_audited = int(content[2])
-                email_content = None
-                if len(content) == 4:
-                    email_content = content[3]
+            msg_content = msg.content.strip()
+            email_password = msg_content.split(' ')
+            if len(msg_content.split(' ')) == 2:
+                email = email_password[0]
+                password = email_password[1]
                 try:
-                    resource = Resource.objects.get(id=resource_id)
-                    resource.is_audited = is_audited
-                    resource.save()
-
-                    # 发送邮件通知
-                    subject = '[源自下载] 资源审核结果通知'
-                    if is_audited == 1:
-                        email_content = f'您上传的资源({resource.title})已经审核通过。'
-                    elif is_audited == -1:
-                        email_content = email_content if email_content else f'您上传的资源({resource.title})审核未通过。'
-                    if email_content:
-                        send_email(subject, email_content, resource.user.email)
-
-                    content = '资源更新成功'
-                except Resource.DoesNotExist:
-                    content = '资源不存在'
+                    user = User.objects.get(email=email, is_active=True)
+                    if check_password(password, user.password):
+                        user.wx_openid = msg.source
+                        user.save()
+                        content = '账号绑定成功'
+                    else:
+                        content = '邮箱或密码不正确'
+                except User.DoesNotExist:
+                    content = '用户不存在'
                 reply = TextReply(content=content, message=msg)
-            elif re.match(r'^(r_del: ).+$', msg.content):
-                resource_id = int(content.split('r_del: ')[1])
+            elif msg_content == '签到':
                 try:
-                    resource = Resource.objects.get(id=resource_id)
-                    resource.delete()
-                    aliyun_oss_delete_file(resource.key)
-                    content = f'资源删除成功: {resource.key}'
-                except Resource.DoesNotExist:
-                    content = '资源不存在'
+                    user = User.objects.get(wx_openid=msg.source)
+                    if user.has_check_in_today:
+                        content = '今日已签到'
+                    else:
+                        random_points = [1]
+                        point = random.choice(random_points)
+                        user.point += point
+                        user.has_check_in_today = True
+                        user.save()
+                        content = f'签到成功，获得{point}积分'
+                except User.DoesNotExist:
+                    content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
@@ -532,21 +520,50 @@ def bind_phone(request):
 @auth
 @api_view(['POST'])
 def send_qq_code(request):
+    """
+    发送qq验证码
+    """
+
     qq = request.data.get('qq', None)
     if not qq:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-    code = ''.join(random.sample(string.digits, 6))
-    cache.set(qq, code, settings.QQ_CODE_EXPIRE)
 
-    payload = {
-        'user_id': int(qq),
-        'message': code  # 每次只能点赞10次，SVIP也只能10次，需要请求两次
-    }
-    with requests.post(settings.COOLQ_API + '/send_private_msg', data=payload, headers=settings.COOLQ_AUTH_HEADERS) as r:
+    with requests.post(settings.COOLQ_API + '/get_friend_list',
+                       headers=settings.COOLQ_AUTH_HEADERS) as r:
         if r.status_code == requests.codes.OK and r.json()['status'] == 'ok':
-            return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
+            friends = [user['user_id'] for user in r.json()['data']]
+            if int(qq) not in friends:
+                return JsonResponse(dict(code=400, msg='请先添加QQ342430384为好友'))
+            else:
+                email = request.session.get('email')
+                try:
+                    user = User.objects.get(email=email, is_active=True)
+                    if user.qq:
+                        return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
+
+                    code = ''.join(random.sample(string.digits, 6))
+                    payload = {
+                        'user_id': int(qq),
+                        'message': code
+                    }
+                    with requests.post(settings.COOLQ_API + '/send_private_msg',
+                                       data=payload,
+                                       headers=settings.COOLQ_AUTH_HEADERS) as _:
+                        if _.status_code == requests.codes.OK and _.json()['status'] == 'ok':
+                            cache.set(qq, code, settings.QQ_CODE_EXPIRE)
+                            return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
+                        else:
+                            if _.json()['retcode'] == -23:
+                                return JsonResponse(dict(code=500, msg='请检查QQ是否输入正确'))
+                            logging.info(_.json())
+                            return JsonResponse(dict(code=500, msg='QQ验证码发送失败'))
+
+                except User.DoesNotExist:
+                    return JsonResponse(dict(code=400, msg='未认证'))
+
         else:
-            return JsonResponse(dict(code=500, msg='QQ验证码发送失败'))
+            logging.info(r.json)
+            return False
 
 
 @auth
@@ -571,27 +588,35 @@ def bind_qq(request):
             user.qq = int(qq)
             user.save()
 
-            return JsonResponse(dict(code=400, msg='邮箱或密码不正确'))
+            return JsonResponse(dict(code=200, msg='QQ绑定成功'))
 
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='未认证'))
 
 
-@auth
 @api_view(['POST'])
-def set_register_code(request):
+def set_user_can_download(request):
     if request.method == 'POST':
-        code = request.data.get('code', None)
-        if not code:
+        token = request.data.get('token', None)
+        email = request.data.get('email', None)
+        if not token or not email or token != settings.BOT_TOKEN:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        if code != settings.REGISTER_CODE:
-            return JsonResponse(dict(code=400, msg='邀请码不存在'))
-
-        email = request.session.get('email')
         try:
             user = User.objects.get(email=email, is_active=True)
+            if not user.phone:
+                return JsonResponse(dict(code=400, msg='用户为绑定手机号'))
+
             user.can_download = True
             user.save()
+            return JsonResponse(dict(code=200, msg='成功设置用户可下载外站资源'))
         except User.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='未认证'))
+            return JsonResponse(dict(code=404, msg='用户不存在'))
+
+
+@api_view(['POST'])
+def reset_has_check_in_today(request):
+    if request.method == 'POST':
+        token = request.data.get('token', None)
+        if token == settings.ADMIN_TOKEN:
+            User.objects.filter(wx_openid__isnull=False, has_check_in_today=True).update(has_check_in_today=False)
