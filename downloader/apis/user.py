@@ -459,7 +459,9 @@ def wx(request):
                 password = email_password[1]
                 try:
                     user = User.objects.get(email=email, is_active=True)
-                    if check_password(password, user.password):
+                    if user.wx_openid:
+                        content = f'已绑定账号{user.email}'
+                    elif check_password(password, user.password):
                         user.wx_openid = msg.source
                         user.save()
                         content = '账号绑定成功'
@@ -587,8 +589,7 @@ def bind_qq(request):
 
             user.qq = int(qq)
             user.save()
-
-            return JsonResponse(dict(code=200, msg='QQ绑定成功'))
+            return JsonResponse(dict(code=200, msg='QQ绑定成功', user=UserSerializers(user).data))
 
         except User.DoesNotExist:
             return JsonResponse(dict(code=404, msg='未认证'))
