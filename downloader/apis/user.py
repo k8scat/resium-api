@@ -596,26 +596,6 @@ def bind_qq(request):
 
 
 @api_view(['POST'])
-def set_user_can_download(request):
-    if request.method == 'POST':
-        token = request.data.get('token', None)
-        email = request.data.get('email', None)
-        if not token or not email or token != settings.BOT_TOKEN:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            if not user.phone:
-                return JsonResponse(dict(code=400, msg='用户为绑定手机号'))
-
-            user.can_download = True
-            user.save()
-            return JsonResponse(dict(code=200, msg='成功设置用户可下载外站资源'))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='用户不存在'))
-
-
-@api_view(['POST'])
 def reset_has_check_in_today(request):
     if request.method == 'POST':
         token = request.data.get('token', None)
