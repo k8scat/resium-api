@@ -503,7 +503,7 @@ def save_resource(resource_url, filename, filepath,
              used_account=account.email)
 
         # 如果资源小于200M，将资源上传到CSDN
-        if size < 200 * 1000 * 100:
+        if size < 200 * 1000 * 1000:
             t = Thread(target=upload_csdn_resource, args=(resource,))
             t.start()
 
