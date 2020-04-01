@@ -28,7 +28,7 @@ urlpatterns = [
     path('bind_phone/', user.bind_phone),
     path('bind_qq/', user.bind_qq),
     path('send_qq_code/', user.send_qq_code),
-    path('set_user_can_download/', user.set_user_can_download),
+    path('bot/set_user_can_download/', user.set_user_can_download),
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
 
     path('list_services/', service.list_services),
