@@ -536,42 +536,31 @@ def send_qq_code(request):
     if not qq:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    with requests.post(settings.COOLQ_API + '/get_friend_list',
-                       headers=settings.COOLQ_AUTH_HEADERS) as r:
-        if r.status_code == requests.codes.OK and r.json()['status'] == 'ok':
-            friends = [user['user_id'] for user in r.json()['data']]
-            if int(qq) not in friends:
-                return JsonResponse(dict(code=400, msg='请先添加QQ342430384为好友'))
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        if user.qq:
+            return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
+
+        code = ''.join(random.sample(string.digits, 6))
+        payload = {
+            'user_id': int(qq),
+            'message': code
+        }
+        with requests.post(settings.COOLQ_API + '/send_private_msg',
+                           data=payload,
+                           headers=settings.COOLQ_AUTH_HEADERS) as _:
+            if _.status_code == requests.codes.OK and _.json()['status'] == 'ok':
+                cache.set(qq, code, settings.QQ_CODE_EXPIRE)
+                return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
             else:
-                email = request.session.get('email')
-                try:
-                    user = User.objects.get(email=email, is_active=True)
-                    if user.qq:
-                        return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
+                if _.json()['retcode'] == -23:
+                    return JsonResponse(dict(code=500, msg='请检查QQ是否输入正确'))
+                logging.info(_.json())
+                return JsonResponse(dict(code=500, msg='请先添加QQ342430384为好友'))
 
-                    code = ''.join(random.sample(string.digits, 6))
-                    payload = {
-                        'user_id': int(qq),
-                        'message': code
-                    }
-                    with requests.post(settings.COOLQ_API + '/send_private_msg',
-                                       data=payload,
-                                       headers=settings.COOLQ_AUTH_HEADERS) as _:
-                        if _.status_code == requests.codes.OK and _.json()['status'] == 'ok':
-                            cache.set(qq, code, settings.QQ_CODE_EXPIRE)
-                            return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
-                        else:
-                            if _.json()['retcode'] == -23:
-                                return JsonResponse(dict(code=500, msg='请检查QQ是否输入正确'))
-                            logging.info(_.json())
-                            return JsonResponse(dict(code=500, msg='QQ验证码发送失败'))
-
-                except User.DoesNotExist:
-                    return JsonResponse(dict(code=400, msg='未认证'))
-
-        else:
-            logging.info(r.json)
-            return False
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='未认证'))
 
 
 @auth
