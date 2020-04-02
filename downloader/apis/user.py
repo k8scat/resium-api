@@ -459,12 +459,18 @@ def wx(request):
                 password = email_password[1]
                 try:
                     user = User.objects.get(email=email, is_active=True)
-                    if user.wx_openid:
-                        content = f'已绑定账号{user.email}'
+                    if not user.phone:
+                        content = '账号未绑定手机号'
+                    elif user.wx_openid:
+                        content = f'该账号已被微信绑定'
                     elif check_password(password, user.password):
-                        user.wx_openid = msg.source
-                        user.save()
-                        content = '账号绑定成功'
+                        try:
+                            u = User.objects.get(wx_openid=msg.source)
+                            content = f'该微信已绑定账号{u.email}'
+                        except User.DoesNotExist:
+                            user.wx_openid = msg.source
+                            user.save()
+                            content = '账号绑定成功'
                     else:
                         content = '邮箱或密码不正确'
                 except User.DoesNotExist:
