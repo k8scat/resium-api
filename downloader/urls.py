@@ -6,7 +6,8 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, bot
+from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, bot, \
+    oauth
 
 
 def trigger_error(request):
@@ -72,4 +73,6 @@ urlpatterns = [
     path('bot/download/', bot.download),
     path('bot/check_can_download/', bot.check_can_download),
     path('bot/set_user_can_download/', bot.set_user_can_download),
+
+    re_path(r'^oauth/qq/?$', oauth.qq)
 ]

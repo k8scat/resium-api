@@ -41,31 +41,29 @@ from downloader.utils import ding, create_coupon, send_message
 @auth
 @api_view(['POST'])
 def change_nickname(request):
-    if request.method == 'POST':
-        user_id = request.data.get('user_id', None)
-        nickname = request.data.get('nickname', None)
-        if user_id and nickname:
-            try:
-                user = User.objects.get(id=user_id, is_active=True)
-                user.nickname = nickname
-                user.save()
-                return JsonResponse(dict(code=200, msg='昵称修改成功', user=UserSerializers(user).data))
-            except User.DoesNotExist:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
-        else:
+    user_id = request.data.get('user_id', None)
+    nickname = request.data.get('nickname', None)
+    if user_id and nickname:
+        try:
+            user = User.objects.get(id=user_id, is_active=True)
+            user.nickname = nickname
+            user.save()
+            return JsonResponse(dict(code=200, msg='昵称修改成功', user=UserSerializers(user).data))
+        except User.DoesNotExist:
             return JsonResponse(dict(code=400, msg='错误的请求'))
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 @auth
-@api_view(['GET'])
+@api_view()
 def get_user(request):
-    if request.method == 'GET':
-        email = request.session.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            return JsonResponse(dict(code=200, user=UserSerializers(user).data))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        return JsonResponse(dict(code=200, user=UserSerializers(user).data))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
 @api_view(['POST'])
@@ -73,41 +71,40 @@ def login(request):
     """
     用户登录
     """
-    if request.method == 'POST':
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
-        if not email or not password:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+    email = request.data.get('email', None)
+    password = request.data.get('password', None)
+    if not email or not password:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            if check_password(password, user.password):
-                login_device = request.META.get('HTTP_USER_AGENT', None)
-                # Fix: remote ip addr is always local ip
-                # https://stackoverflow.com/questions/4581789/how-do-i-get-user-ip-address-in-django
-                if 'HTTP_X_FORWARDED_FOR' in request.META:
-                    login_ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
-                else:
-                    login_ip = request.META.get('REMOTE_ADDR')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        if check_password(password, user.password):
+            login_device = request.META.get('HTTP_USER_AGENT', None)
+            # Fix: remote ip addr is always local ip
+            # https://stackoverflow.com/questions/4581789/how-do-i-get-user-ip-address-in-django
+            if 'HTTP_X_FORWARDED_FOR' in request.META:
+                login_ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
+            else:
+                login_ip = request.META.get('REMOTE_ADDR')
 
-                if login_device and login_ip:
-                    user.login_device = login_device
-                    user.login_ip = login_ip
-                    user.login_time = datetime.datetime.now()
-                    user.save()
-                else:
-                    return JsonResponse(dict(code=400, msg='登录失败'))
-                # 设置token过期时间
-                exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-                payload = {
-                    'exp': exp,
-                    'sub': email
-                }
-                token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
-                return JsonResponse(dict(code=200, msg="登录成功", token=token, user=UserSerializers(user).data))
-            return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
+            if login_device and login_ip:
+                user.login_device = login_device
+                user.login_ip = login_ip
+                user.login_time = datetime.datetime.now()
+                user.save()
+            else:
+                return JsonResponse(dict(code=400, msg='登录失败'))
+            # 设置token过期时间
+            exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            payload = {
+                'exp': exp,
+                'sub': email
+            }
+            token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
+            return JsonResponse(dict(code=200, msg="登录成功", token=token, user=UserSerializers(user).data))
+        return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
 
 
 @api_view(['POST'])
@@ -115,28 +112,97 @@ def register(request):
     """
     用户注册
     """
-    if request.method == 'POST':
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
+    email = request.data.get('email', None)
+    password = request.data.get('password', None)
 
-        if not email or not password:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+    if not email or not password:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        # 检查邮箱是否已注册
-        if User.objects.filter(email=email, is_active=True).count() != 0:
-            return JsonResponse(dict(code=400, msg='邮箱已注册'))
+    # 检查邮箱是否已注册
+    if User.objects.filter(email=email, is_active=True).count() != 0:
+        return JsonResponse(dict(code=400, msg='邮箱已注册'))
 
-        encrypted_password = make_password(password)
+    encrypted_password = make_password(password)
+    code = ''.join(random.sample(string.digits, 6))
+    fake = Faker('zh_CN')
+    nickname = fake.name()
+    User(email=email, password=encrypted_password,
+         code=code, nickname=nickname).save()
+
+    activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
+                         safe=':/?=&')
+    subject = '[源自下载] 用户注册'
+    html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
+    plain_message = strip_tags(html_message)
+    try:
+        send_mail(subject=subject,
+                  message=plain_message,
+                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  recipient_list=[email],
+                  html_message=html_message,
+                  fail_silently=False)
+        return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
+    except Exception as e:
+        if str(e).count('Mailbox not found or access denied'):
+            return JsonResponse(dict(code=400, msg='当前邮箱不可用，请使用其他邮箱注册'))
+        ding('注册激活邮件发送失败',
+             error=e,
+             logger=logging.error,
+             user_email=email)
+        return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
+
+
+@api_view()
+def activate(request):
+    """
+    账号激活
+    """
+    email = request.GET.get('email', None)
+    code = request.GET.get('code', None)
+    if email is None or code is None:
+        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
+
+    if User.objects.filter(email=email, is_active=True).count():
+        return redirect(settings.RESIUM_UI + '/login?msg=账号已激活')
+
+    try:
+        user = User.objects.get(email=email, code=code, is_active=False)
+        user.is_active = True
+        user.save()
+
+        # 优惠券
+        if not create_coupon(user, '新用户注册'):
+            return JsonResponse(dict(code=500, msg='注册失败'))
+
+        User.objects.filter(email=email, is_active=False).delete()
+        return redirect(settings.RESIUM_UI + '/login?msg=激活成功')
+
+    except User.DoesNotExist:
+        return redirect(settings.RESIUM_UI + '/login?msg=账号不存在')
+
+
+@ratelimit(key='ip', rate='5/m', block=True)
+@api_view()
+def send_forget_password_email(request):
+    """
+    发送重置密码的邮件
+    """
+    email = request.GET.get('email', None)
+    try:
+        user = User.objects.get(email=email, is_active=True)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='用户不存在'))
+
+    try:
         code = ''.join(random.sample(string.digits, 6))
-        fake = Faker('zh_CN')
-        nickname = fake.name()
-        User(email=email, password=encrypted_password,
-             code=code, nickname=nickname).save()
-
-        activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
-                             safe=':/?=&')
-        subject = '[源自下载] 用户注册'
-        html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
+        password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
+        encrypted_password = make_password(password)
+        reset_password_url = quote(settings.RESIUM_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
+                                   encoding='utf-8',
+                                   safe=':/?=&')
+        subject = '[源自下载] 密码重置'
+        html_message = render_to_string('downloader/forget_password.html',
+                                        {'reset_password_url': reset_password_url, 'password': password})
         plain_message = strip_tags(html_message)
         try:
             send_mail(subject=subject,
@@ -145,100 +211,20 @@ def register(request):
                       recipient_list=[email],
                       html_message=html_message,
                       fail_silently=False)
-            return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
-        except Exception as e:
-            if str(e).count('Mailbox not found or access denied'):
-                return JsonResponse(dict(code=400, msg='当前邮箱不可用，请使用其他邮箱注册'))
-            ding('注册激活邮件发送失败',
-                 error=e,
-                 logger=logging.error,
-                 user_email=email)
-            return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
-
-    else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-
-@api_view(['GET'])
-def activate(request):
-    """
-    账号激活
-    """
-
-    if request.method == 'GET':
-        email = request.GET.get('email', None)
-        code = request.GET.get('code', None)
-        if email is None or code is None:
-            return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-
-        if User.objects.filter(email=email, is_active=True).count():
-            return redirect(settings.RESIUM_UI + '/login?msg=账号已激活')
-
-        try:
-            user = User.objects.get(email=email, code=code, is_active=False)
-            user.is_active = True
+            user.temp_password = encrypted_password
+            user.code = code
             user.save()
-
-            # 优惠券
-            if not create_coupon(user, '新用户注册'):
-                return JsonResponse(dict(code=500, msg='注册失败'))
-
-            User.objects.filter(email=email, is_active=False).delete()
-            return redirect(settings.RESIUM_UI + '/login?msg=激活成功')
-
-        except User.DoesNotExist:
-            return redirect(settings.RESIUM_UI + '/login?msg=账号不存在')
-
-    else:
-        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
+            return JsonResponse(dict(code=200, msg='发送成功，请前往邮箱重置密码'))
+        except Exception as e:
+            logging.error(e)
+            ding('密码重置邮件发送失败 ' + str(e))
+            return JsonResponse(dict(code=500, msg='发送失败'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='用户不存在'))
 
 
 @ratelimit(key='ip', rate='5/m', block=True)
-@api_view(['GET'])
-def send_forget_password_email(request):
-    """
-    发送重置密码的邮件
-    """
-
-    if request.method == 'GET':
-        email = request.GET.get('email', None)
-        try:
-            user = User.objects.get(email=email, is_active=True)
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='用户不存在'))
-
-        try:
-            code = ''.join(random.sample(string.digits, 6))
-            password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
-            encrypted_password = make_password(password)
-            reset_password_url = quote(settings.RESIUM_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
-                                       encoding='utf-8',
-                                       safe=':/?=&')
-            subject = '[源自下载] 密码重置'
-            html_message = render_to_string('downloader/forget_password.html',
-                                            {'reset_password_url': reset_password_url, 'password': password})
-            plain_message = strip_tags(html_message)
-            try:
-                send_mail(subject=subject,
-                          message=plain_message,
-                          from_email=settings.DEFAULT_FROM_EMAIL,
-                          recipient_list=[email],
-                          html_message=html_message,
-                          fail_silently=False)
-                user.temp_password = encrypted_password
-                user.code = code
-                user.save()
-                return JsonResponse(dict(code=200, msg='发送成功，请前往邮箱重置密码'))
-            except Exception as e:
-                logging.error(e)
-                ding('密码重置邮件发送失败 ' + str(e))
-                return JsonResponse(dict(code=500, msg='发送失败'))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='用户不存在'))
-
-
-@ratelimit(key='ip', rate='5/m', block=True)
-@api_view(['GET'])
+@api_view()
 def forget_password(request):
     """
     忘记密码: 确认重置密码
@@ -246,23 +232,18 @@ def forget_password(request):
     :param request:
     :return:
     """
-
-    if request.method == 'GET':
-        email = request.GET.get('email', '')
-        code = request.GET.get('code', '')
-        temp_password = request.GET.get('token', '')
-        if email and code and temp_password:
-            try:
-                user = User.objects.get(email=email, code=code, is_active=True, temp_password=temp_password)
-                user.password = temp_password
-                user.temp_password = None
-                user.save()
-                return redirect(settings.RESIUM_UI + '/login?msg=密码重置成功')
-            except User.DoesNotExist:
-                return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-        else:
+    email = request.GET.get('email', '')
+    code = request.GET.get('code', '')
+    temp_password = request.GET.get('token', '')
+    if email and code and temp_password:
+        try:
+            user = User.objects.get(email=email, code=code, is_active=True, temp_password=temp_password)
+            user.password = temp_password
+            user.temp_password = None
+            user.save()
+            return redirect(settings.RESIUM_UI + '/login?msg=密码重置成功')
+        except User.DoesNotExist:
             return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-
     else:
         return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
 
@@ -273,27 +254,25 @@ def reset_password(request):
     """
     修改密码
     """
-    if request.method == 'POST':
-        email = request.session.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=True)
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=401, msg='未认证'))
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=401, msg='未认证'))
 
-        old_password = request.data.get('old_password', None)
-        new_password = request.data.get('new_password', None)
-        if not old_password or not new_password:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+    old_password = request.data.get('old_password', None)
+    new_password = request.data.get('new_password', None)
+    if not old_password or not new_password:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        if old_password == new_password:
-            return JsonResponse(dict(code=400, msg='新密码不能和旧密码相同'))
+    if old_password == new_password:
+        return JsonResponse(dict(code=400, msg='新密码不能和旧密码相同'))
 
-        if check_password(old_password, user.password):
-            user.password = make_password(new_password)
-            user.save()
-            return JsonResponse(dict(code=200, msg='密码修改成功'))
-        return JsonResponse(dict(code=400, msg='旧密码不正确'))
-    return JsonResponse(dict(code=400, msg='错误的请求'))
+    if check_password(old_password, user.password):
+        user.password = make_password(new_password)
+        user.save()
+        return JsonResponse(dict(code=200, msg='密码修改成功'))
+    return JsonResponse(dict(code=400, msg='旧密码不正确'))
 
 
 @ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
@@ -301,29 +280,28 @@ def reset_password(request):
 @auth
 @api_view(['POST'])
 def send_phone_code(request):
-    if request.method == 'POST':
-        # 目前只有绑定手机时会用到短信
-        email = request.session.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            if user.phone:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=401, msg='未认证'))
+    # 目前只有绑定手机时会用到短信
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        if user.phone:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=401, msg='未认证'))
 
-        phone = request.data.get('phone', '')
-        if not re.match(r'^1[3456789]\d{9}$', phone):
-            return JsonResponse(dict(code=400, msg='手机号有误'))
+    phone = request.data.get('phone', '')
+    if not re.match(r'^1[3456789]\d{9}$', phone):
+        return JsonResponse(dict(code=400, msg='手机号有误'))
 
-        # Todo: 这时不应该计入请求次数
-        if User.objects.filter(phone=phone, is_active=True).count() > 0:
-            return JsonResponse(dict(code=400, msg='该手机号已绑定其他账号'))
+    # Todo: 这时不应该计入请求次数
+    if User.objects.filter(phone=phone, is_active=True).count() > 0:
+        return JsonResponse(dict(code=400, msg='该手机号已绑定其他账号'))
 
-        code = ''.join(random.sample(string.digits, 6))
-        if send_message(phone, code):
-            cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
-            return JsonResponse(dict(code=200, msg='验证码发送成功'))
-        return JsonResponse(dict(code=500, msg='验证码发送失败'))
+    code = ''.join(random.sample(string.digits, 6))
+    if send_message(phone, code):
+        cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
+        return JsonResponse(dict(code=200, msg='验证码发送成功'))
+    return JsonResponse(dict(code=500, msg='验证码发送失败'))
 
 
 @api_view(['GET', 'POST'])
@@ -504,25 +482,24 @@ def wx(request):
 @auth
 @api_view(['POST'])
 def bind_phone(request):
-    if request.method == 'POST':
-        email = request.session.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            if user.phone:
-                return JsonResponse(dict(code=400, msg='该账号已绑定手机号'))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=401, msg='未认证'))
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        if user.phone:
+            return JsonResponse(dict(code=400, msg='该账号已绑定手机号'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=401, msg='未认证'))
 
-        phone = request.data.get('phone', None)
-        code = request.data.get('code', None)
-        cache_code = cache.get(phone)
-        if code != cache_code:
-            return JsonResponse(dict(code=400, msg='验证码错误'))
+    phone = request.data.get('phone', None)
+    code = request.data.get('code', None)
+    cache_code = cache.get(phone)
+    if code != cache_code:
+        return JsonResponse(dict(code=400, msg='验证码错误'))
 
-        cache.delete(phone)
-        user.phone = phone
-        user.save()
-        return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))
+    cache.delete(phone)
+    user.phone = phone
+    user.save()
+    return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))
 
 
 @auth
@@ -566,35 +543,33 @@ def send_qq_code(request):
 @auth
 @api_view(['POST'])
 def bind_qq(request):
-    if request.method == 'POST':
-        qq = request.data.get('qq', None)
-        code = request.data.get('code', None)
-        if not qq or not code:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+    qq = request.data.get('qq', None)
+    code = request.data.get('code', None)
+    if not qq or not code:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        email = request.session.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=True)
-            if not user.phone:  # 没有绑定手机号，不允许绑定qq
-                return JsonResponse(dict(code=4000, msg='请先进行绑定手机号'))
-            if not user.can_download:  # 没有邀请码，不允许绑定qq
-                return JsonResponse(dict(code=400, msg='该账号不支持绑定QQ'))
-            if user.qq:
-                return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
+    email = request.session.get('email')
+    try:
+        user = User.objects.get(email=email, is_active=True)
+        if not user.phone:  # 没有绑定手机号，不允许绑定qq
+            return JsonResponse(dict(code=4000, msg='请先进行绑定手机号'))
+        if not user.can_download:  # 没有邀请码，不允许绑定qq
+            return JsonResponse(dict(code=400, msg='该账号不支持绑定QQ'))
+        if user.qq:
+            return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
 
-            user.qq = int(qq)
-            user.save()
-            return JsonResponse(dict(code=200, msg='QQ绑定成功', user=UserSerializers(user).data))
+        user.qq = int(qq)
+        user.save()
+        return JsonResponse(dict(code=200, msg='QQ绑定成功', user=UserSerializers(user).data))
 
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='未认证'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='未认证'))
 
 
 @api_view(['POST'])
 def reset_has_check_in_today(request):
-    if request.method == 'POST':
-        token = request.data.get('token', None)
-        if token == settings.ADMIN_TOKEN:
-            User.objects.filter(wx_openid__isnull=False, has_check_in_today=True).update(has_check_in_today=False)
+    token = request.data.get('token', None)
+    if token == settings.ADMIN_TOKEN:
+        User.objects.filter(wx_openid__isnull=False, has_check_in_today=True).update(has_check_in_today=False)
 
-        return HttpResponse('')
+    return HttpResponse('')

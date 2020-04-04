@@ -15,15 +15,14 @@ from downloader.models import Advert
 from downloader.serializers import AdvertSerializers
 
 
-@api_view(['GET'])
+@api_view()
 def get_random_advert(request):
-    if request.method == 'GET':
-        count = request.GET.get('count', None)
-        if count:
-            try:
-                adverts = random.sample(list(Advert.objects.all()), int(count))
-                return JsonResponse(dict(code=200, adverts=AdvertSerializers(adverts, many=True).data))
-            except ValueError:
-                return JsonResponse(dict(code=400, msg='推广数据不足'))
-        advert = random.choice(Advert.objects.all())
-        return JsonResponse(dict(code=200, advert=AdvertSerializers(advert).data))
+    count = request.GET.get('count', None)
+    if count:
+        try:
+            adverts = random.sample(list(Advert.objects.all()), int(count))
+            return JsonResponse(dict(code=200, adverts=AdvertSerializers(adverts, many=True).data))
+        except ValueError:
+            return JsonResponse(dict(code=400, msg='推广数据不足'))
+    advert = random.choice(Advert.objects.all())
+    return JsonResponse(dict(code=200, advert=AdvertSerializers(advert).data))

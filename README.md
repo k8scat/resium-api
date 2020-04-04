@@ -55,6 +55,9 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 日志系统 elk
 * [ ] 代码重构，资源下载的代码多处存在重复
 * [ ] 800m资源下载成功后，check失败
+* [ ] 语音验证码
+* [ ] qq 登录
+    https://connect.qq.com/manage.html#/appinfo/web/101864025
 
 ## CoolQ
 
