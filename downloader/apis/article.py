@@ -26,7 +26,8 @@ def parse_csdn_article(request):
     email = request.session.get('email')
     try:
         user = User.objects.get(email=email, is_active=True)
-        if user.point < settings.ARTICLE_POINT:
+        point = settings.ARTICLE_POINT
+        if user.point < point:
             return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
         if not user.phone:
             return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
@@ -73,6 +74,10 @@ def parse_csdn_article(request):
                 article = Article.objects.create(url=article_url, title=title, content=content,
                                                  author=author, desc=desc, is_vip=is_vip,
                                                  tags=tags, user=user)
+
+                user.point -= point
+                user.used_point += point
+                user.save()
                 return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
 
             ding(f'文章获取失败: {article_url}')

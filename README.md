@@ -58,6 +58,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 语音验证码
 * [ ] qq 登录
     https://connect.qq.com/manage.html#/appinfo/web/101864025
+* [ ] 微云
+    https://open.weiyun.com/api/twoa_restful_api.html
 
 ## CoolQ
 
