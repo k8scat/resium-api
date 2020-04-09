@@ -279,9 +279,16 @@ BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
 PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/download/).+$'
 PATTERN_WENKU = r'^(http(s)?://wenku\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
-PATTERN_ZHIWANG = r'^(http(s)?://kns\.cnki\.net/KCMS/detail/).+$'
+PATTERN_ZHIWANG = r'^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$'
 
 COOLQ_API = 'http://49.235.161.70:5700'
 COOLQ_AUTH_HEADERS = {
     'Authorization': 'Bearer eyJzdWIiOiJoc293YW4ubWVryFUdFEEzz77SBjC3GxleM9uSP'
 }
+
+wenku_accounts = [
+    {
+        'account': '6599362515',
+        'password': '9027855'
+    }
+]

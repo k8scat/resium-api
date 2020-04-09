@@ -60,7 +60,6 @@ class Resource(Base):
     is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
     file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
     wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
-    zhiwang_type = models.CharField(max_length=10, null=True, default=None, verbose_name='知网文献类型(caj/pdf)')
     is_docer_vip_doc = models.BooleanField(default=False, verbose_name='是否是稻壳VIP文档')
     local_path = models.CharField(max_length=200, default=None, null=True, verbose_name='资源本地保存路径')
 
@@ -190,3 +189,12 @@ class DocerPreviewImage(Base):
 
     class Meta:
         db_table = 'docer_preview_image'
+
+
+class TaobaoWenkuAccount(Base):
+    account = models.CharField(max_length=50, verbose_name='账号')
+    password = models.CharField(max_length=50, verbose_name='密码')
+    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+
+    class Meta:
+        db_table = 'taobao_wenku_account'

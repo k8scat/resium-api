@@ -353,22 +353,20 @@ def get_alipay():
     )
 
 
-def check_oss(resource_url, zhiwang_type=None):
+def check_oss(resource_url):
     """
     检查oss是否已存储资源
 
     :param resource_url:
-    :param zhiwang_type:
     :return: Resource
     """
 
     try:
-        resource = Resource.objects.get(url=resource_url, is_audited=1, zhiwang_type=zhiwang_type)
+        resource = Resource.objects.get(url=resource_url, is_audited=1)
         # 虽然数据库中有资源信息记录，但资源可能还未上传到oss
         # 如果oss上没有存储资源，则提醒管理员检查资源
         if not aliyun_oss_check_file(resource.key):
-            resource.is_audited = 0
-            resource.save()
+            resource.delete()
             ding(f'OSS资源未找到，请及时检查资源 {resource.key}')
             return None
         return resource
@@ -406,8 +404,8 @@ def check_download(folder):
             break
 
     else:
-        logging.error('下载失败: 下载超时')
-        ding('下载失败: 下载超时')
+        ding(f'下载超时: {folder}',
+             logger=logging.error)
         return None
 
     # 下载完成后，文件夹下存在唯一的文件
@@ -439,41 +437,34 @@ def get_driver(folder='', load_images=False):
     options.add_experimental_option('prefs', prefs)
 
     caps = DesiredCapabilities.CHROME
-    # 线上使用selenium server
     driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps,
                               options=options)
 
-    # 本地图形界面自动化测试
-    # driver = webdriver.Chrome(options=options)
     return driver
 
 
 def save_resource(resource_url, filename, filepath,
-                  title, tags, desc, used_point, user,
-                  account=None, wenku_type=None, zhiwang_type=None, is_docer_vip_doc=False, ret=False):
+                  resource_info, user, account=None, wenku_type=None,
+                  is_docer_vip_doc=False, ret_url=False):
     """
     保存资源记录并上传到OSS
 
     :param resource_url:
     :param filename:
     :param filepath:
-    :param title:
-    :param tags:
-    :param desc:
-    :param used_point:
+    :param resource_info:
     :param user: 下载资源的用户
     :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
-    :param zhiwang_type: 知网文献类型，pdf/caj
     :param is_docer_vip_doc: 是否是稻壳VIP模板
-    :param ret: 是否返回数据
+    :param ret_url: 是否返回数据
     :return:
     """
 
     with open(filepath, 'rb') as f:
         file_md5 = get_file_md5(f)
     # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter((Q(url=resource_url) & Q(zhiwang_type=zhiwang_type)) | Q(file_md5=file_md5)).count():
+    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
         return None
 
     # 存储在oss中的key
@@ -485,27 +476,28 @@ def save_resource(resource_url, filename, filepath,
     try:
         # 资源文件大小
         size = os.path.getsize(filepath)
-        resource = Resource.objects.create(title=title, filename=filename, size=size,
-                                           url=resource_url, key=key, tags=tags,
-                                           file_md5=file_md5, desc=desc, user_id=1,
-                                           wenku_type=wenku_type, zhiwang_type=zhiwang_type,
+        # django的CharField可以直接保存list，会自动转成str
+        resource = Resource.objects.create(title=resource_info['title'], filename=filename, size=size,
+                                           url=resource_url, key=key, tags=settings.TAG_SEP.join(resource_info['tags']),
+                                           file_md5=file_md5, desc=resource_info['desc'], user_id=1,
+                                           wenku_type=wenku_type,
                                            is_docer_vip_doc=is_docer_vip_doc, local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
                        account=account.email if account else None,
                        download_device=user.login_device,
                        download_ip=user.login_ip,
-                       used_point=used_point).save()
+                       used_point=resource_info['point']).save()
 
-        ding(f'资源保存成功: {title}',
+        ding(f'资源保存成功: {resource_info["title"]}',
              user_email=user.email,
              resource_url=resource_url,
-             used_account=account.email)
+             used_account=account.email if account else '')
 
         t = Thread(target=upload_csdn_resource, args=(resource,))
         t.start()
 
-        if ret:
+        if ret_url:
             return aliyun_oss_sign_url(key)
 
     except Exception as e:

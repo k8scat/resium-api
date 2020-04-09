@@ -60,7 +60,18 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://connect.qq.com/manage.html#/appinfo/web/101864025
 * [ ] 微云
     https://open.weiyun.com/api/twoa_restful_api.html
-
+* [ ] 百度文库pdf解析
+* [ ] 会员账号自主接入，提现
+* [ ] 源自下载小程序
+    https://git.cloudevops.cn/hsowan/resium-app
+* [ ] 淘宝文库账号接入
+    post http://doc110.com/login.php data {account: "6599362515", password: "9027855"}
+    
+    post http://doc110.com/post.php data {docUrl: "https://wenku.baidu.com/view/62c5485ed1d233d4b14e852458fb770bf68a3b76.html?from=search"}
+    return {code: 200, downUrl: "url", times: "746", session: "8671203093", msg: "下载成功!", filename: "租房.doc", path: ""}
+    
+    get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
+    
 ## CoolQ
 
 https://github.com/richardchien/coolq-http-api
@@ -88,8 +99,6 @@ https://github.com/richardchien/coolq-http-api
 * http://www.catalina.com.cn/
 
 * [脚本之家电子书下载](https://www.jb51.net/books/)
-
-## 学生认证
 
 ## Decorator
 
