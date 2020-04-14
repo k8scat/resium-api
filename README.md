@@ -71,7 +71,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     return {code: 200, downUrl: "url", times: "746", session: "8671203093", msg: "下载成功!", filename: "租房.doc", path: ""}
     
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
-    
+* [ ] 管理员上传资源，通过qq分享到群里
+
 ## CoolQ
 
 https://github.com/richardchien/coolq-http-api
