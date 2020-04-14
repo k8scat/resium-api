@@ -872,7 +872,7 @@ def get_resource(request):
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
             preview_images = []
-            if resource.url and re.match(r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$', resource.url):
+            if resource.url and re.match(settings.PATTERN_DOCER, resource.url):
                 preview_images = [
                     {
                         'url': preview_image.url,
@@ -880,9 +880,7 @@ def get_resource(request):
                     } for preview_image in DocerPreviewImage.objects.filter(resource_url=resource.url).all()
                 ]
             resource = ResourceSerializers(resource).data
-            # 清除稻壳模板的desc
-            if re.match(settings.PATTERN_DOCER, resource['url']):
-                resource['desc'] = ''
+            # todo: 可以尝试通过django-rest-framework实现，而不是手动去获取预览图的数据
             resource.setdefault('preview_images', preview_images)
             return JsonResponse(dict(code=200, resource=resource))
         except Resource.DoesNotExist:
