@@ -32,7 +32,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.decorators import auth
 from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount, BaiduAccount, \
-    DocerPreviewImage, TaobaoWenkuAccount
+    DocerPreviewImage
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, get_driver, check_oss, aliyun_oss_check_file, \
@@ -113,7 +113,7 @@ class CsdnResource(BaseResource):
                 ding(f'[CSDN] 今日下载数已用完',
                      user_email=self.user.email,
                      resource_url=self.url,
-                     used_account=csdn_account)
+                     used_account=csdn_account.email)
                 return 403, '下载失败'
         except CsdnAccount.DoesNotExist:
             ding('[CSDN] 没有可用账号',
@@ -306,146 +306,94 @@ class WenkuResource(BaseResource):
         if self.user.point < point:
             return 400, '积分不足，请进行捐赠'
 
-        wenku_type = resource['wenku_type']
-        if wenku_type == '共享文档':
-            taobao_wenku_account = random.choice(TaobaoWenkuAccount.objects.filter(is_enabled=True).all())
-            session = requests.session()
-            headers = {
-                'user-agent': get_random_ua(),
-                'Content-Type': 'application/json; charset=utf-8',
-                'Host': 'doc110.com',
-                'Origin': 'http://doc110.com',
-                'Referer': 'http://doc110.com/',
-            }
-            payload = {
-                'account': taobao_wenku_account.account,
-                'password': taobao_wenku_account.password,
-            }
-            with requests.post('http://doc110.com/login.php', data=payload, headers=headers) as r:
-                print(r.json())
-                print('asdasd')
-                # if r.status_code == requests.codes.OK and r.json()['code'] == 200:
-                #     payload = {
-                #         'docUrl': self.url
-                #     }
-                #     with session.post('http://doc110.com/post.php', data=payload) as _:
-                #         print(_.json())
-                #         if _.status_code == requests.codes.OK and r.json()['code'] == 200:
-                #             with session.get(r.json()['downUrl'], headers=headers, stream=True) as download_resp:
-                #                 if download_resp.status_code == requests.codes.OK:
-                #                     filename = parse.unquote(download_resp.headers['Content-Disposition'].split('"')[1])
-                #                     filepath = os.path.join(self.save_dir, filename)
-                #                     # 写入文件，用于线程上传资源到OSS
-                #                     with open(filepath, 'wb') as f:
-                #                         for chunk in download_resp.iter_content(chunk_size=1024):
-                #                             if chunk:
-                #                                 f.write(chunk)
-                #                     if ret_url:
-                #                         download_url = save_resource(self.url, filename, filepath, resource,
-                #                                                      self.user, ret_url=True,
-                #                                                      account=taobao_wenku_account.account)
-                #                         return 200, dict(download_url=download_url, point=point)
-                #
-                #                     # 上传资源到OSS并保存记录到数据库
-                #                     t = Thread(target=save_resource,
-                #                                args=(self.url, filename, filepath, resource, self.user),
-                #                                kwargs={'account': taobao_wenku_account.account})
-                #                     t.start()
-                #                     return 200, dict(filepath=filepath, filename=filename)
-                #
-                #                 ding('[百度文库] 下载失败',
-                #                      error=download_resp.text,
-                #                      user_email=self.user.email,
-                #                      resource_url=self.url,
-                #                      logger=logging.error)
-                #                 return 500, '下载失败'
-        else:
-            driver = get_driver(self.unique_folder)
+        try:
+            baidu_account = BaiduAccount.objects.get(is_enabled=True)
+        except BaiduAccount.DoesNotExist:
+            ding('没有可用的百度文库账号',
+                 user_email=self.user.email,
+                 resource_url=self.url)
+            return 500, '下载失败'
+        driver = get_driver(self.unique_folder)
+        try:
+            driver.get('https://www.baidu.com/')
+            # 添加cookies
+            cookies = json.loads(baidu_account.cookies)
+            for cookie in cookies:
+                if 'expiry' in cookie:
+                    del cookie['expiry']
+                driver.add_cookie(cookie)
+            driver.get(self.url)
+            wenku_type = resource['wenku_type']
+            if wenku_type == 'VIP免费文档':
+                baidu_account.vip_free_count += 1
+            elif wenku_type == 'VIP专项文档':
+                baidu_account.special_doc_count += 1
+            elif wenku_type == '共享文档':
+                baidu_account.share_doc_count += 1
+
+            # 更新用户积分
+            self.user.point -= point
+            self.user.used_point += point
+            self.user.save()
+            baidu_account.save()
+
+            # 显示下载对话框的按钮
+            show_download_modal_button = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
+            )
+            show_download_modal_button.click()
+            # 下载按钮
             try:
-                baidu_account = BaiduAccount.objects.get(is_enabled=True)
-            except BaiduAccount.DoesNotExist:
-                ding('没有可用的百度文库账号',
-                     user_email=self.user.email,
-                     resource_url=self.url)
-                return 500, '下载失败'
-
-            try:
-                driver.get('https://www.baidu.com/')
-                # 添加cookies
-                cookies = json.loads(baidu_account.cookies)
-                for cookie in cookies:
-                    if 'expiry' in cookie:
-                        del cookie['expiry']
-                    driver.add_cookie(cookie)
-                driver.get(self.url)
-                if wenku_type == 'VIP免费文档':
-                    baidu_account.vip_free_count += 1
-                elif wenku_type == 'VIP专项文档':
-                    baidu_account.special_doc_count += 1
-
-                # 更新用户积分
-                self.user.point -= point
-                self.user.used_point += point
-                self.user.save()
-                baidu_account.save()
-
-                # 显示下载对话框的按钮
-                show_download_modal_button = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
+                # 首次下载
+                download_button = WebDriverWait(driver, 3).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
                 )
-                show_download_modal_button.click()
-                # 下载按钮
-                try:
-                    # 首次下载
-                    download_button = WebDriverWait(driver, 3).until(
-                        EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
+                # 取消转存网盘
+                cancel_wp_upload_check = WebDriverWait(driver, 3).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
+                )
+                cancel_wp_upload_check.click()
+                download_button.click()
+            except TimeoutException:
+                if wenku_type != 'VIP专享文档':
+                    # 已转存过此文档
+                    download_button = WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located((By.ID, 'WkDialogOk'))
                     )
-                    # 取消转存网盘
-                    cancel_wp_upload_check = WebDriverWait(driver, 3).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
-                    )
-                    cancel_wp_upload_check.click()
                     download_button.click()
-                except TimeoutException:
-                    if wenku_type != 'VIP专享文档':
-                        # 已转存过此文档
-                        download_button = WebDriverWait(driver, 5).until(
-                            EC.presence_of_element_located((By.ID, 'WkDialogOk'))
-                        )
-                        download_button.click()
-                    else:
-                        ding('百度文库下载失败',
-                             user_email=self.user.email,
-                             used_account=baidu_account.email,
-                             resource_url=self.url,
-                             logger=logging.error)
-                        return 500, '下载失败'
+                else:
+                    ding('百度文库下载失败',
+                         user_email=self.user.email,
+                         used_account=baidu_account.email,
+                         resource_url=self.url,
+                         logger=logging.error)
+                    return 500, '下载失败'
 
-                filepath, filename = check_download(self.save_dir)
+            filepath, filename = check_download(self.save_dir)
 
-                if ret_url:
-                    download_url = save_resource(self.url, filename, filepath, resource, self.user,
-                                                 account=baidu_account.email, wenku_type=wenku_type, ret_url=True)
-                    return 200, dict(download_url=download_url, point=point)
+            if ret_url:
+                download_url = save_resource(self.url, filename, filepath, resource, self.user,
+                                             account=baidu_account.email, wenku_type=wenku_type, ret_url=True)
+                return 200, dict(download_url=download_url, point=point)
 
-                # 保存资源
-                t = Thread(target=save_resource,
-                           args=(self.url, filename, filepath, resource, self.user),
-                           kwargs={'account': baidu_account.email, 'wenku_type': wenku_type})
-                t.start()
+            # 保存资源
+            t = Thread(target=save_resource,
+                       args=(self.url, filename, filepath, resource, self.user),
+                       kwargs={'account': baidu_account.email, 'wenku_type': wenku_type})
+            t.start()
 
-                return 200, dict(filename=filename, filepath=filepath)
-            except Exception as e:
-                ding('[百度文库] 下载失败',
-                     error=e,
-                     user_email=self.user.email,
-                     used_account=baidu_account.email,
-                     resource_url=self.url)
-                return 500, '下载失败'
+            return 200, dict(filename=filename, filepath=filepath)
+        except Exception as e:
+            ding('[百度文库] 下载失败',
+                 error=e,
+                 user_email=self.user.email,
+                 used_account=baidu_account.email,
+                 resource_url=self.url)
+            return 500, '下载失败'
 
-            finally:
-                driver.quit()
+        finally:
+            driver.quit()
 
 
 class DocerResource(BaseResource):
