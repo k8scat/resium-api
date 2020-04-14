@@ -484,7 +484,7 @@ def save_resource(resource_url, filename, filepath,
                                            is_docer_vip_doc=is_docer_vip_doc, local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
-                       account=account,
+                       account=account.email if account else None,
                        download_device=user.login_device,
                        download_ip=user.login_ip,
                        used_point=resource_info['point']).save()
@@ -492,7 +492,7 @@ def save_resource(resource_url, filename, filepath,
         ding(f'资源保存成功: {resource_info["title"]}',
              user_email=user.email,
              resource_url=resource_url,
-             used_account=account)
+             used_account=account.email if account else '')
 
         t = Thread(target=upload_csdn_resource, args=(resource,))
         t.start()
@@ -505,7 +505,7 @@ def save_resource(resource_url, filename, filepath,
              error=e,
              resource_url=resource_url,
              user_email=user.email,
-             used_account=account,
+             used_account=account.email,
              logger=logging.error)
 
 

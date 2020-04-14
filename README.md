@@ -53,7 +53,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 800m资源下载失败
 * [x] 分离coolq
 * [ ] 日志系统 elk
-* [x] 下载代码重构，资源下载的代码多处存在重复
+* [ ] 代码重构，资源下载的代码多处存在重复
 * [ ] 800m资源下载成功后，check失败
 * [ ] 语音验证码
 * [ ] qq 登录
@@ -64,7 +64,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 会员账号自主接入，提现
 * [ ] 源自下载小程序
     https://git.cloudevops.cn/hsowan/resium-app
-* [ ] bot和web同时下载的问题
 * [ ] 淘宝文库账号接入
     post http://doc110.com/login.php data {account: "6599362515", password: "9027855"}
     
@@ -72,7 +71,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     return {code: 200, downUrl: "url", times: "746", session: "8671203093", msg: "下载成功!", filename: "租房.doc", path: ""}
     
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
-* [ ] 管理员上传的资源，使用QQ进行分享给群友
     
 ## CoolQ
 
