@@ -18,7 +18,7 @@ class User(Base):
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
-    qq_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='QQ唯一标识')
+    qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True)
 

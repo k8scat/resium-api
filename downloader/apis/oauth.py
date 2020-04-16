@@ -70,7 +70,8 @@ def qq(request):
                                         'oauth_consumer_key': settings.QQ_CLIENT_ID,
                                         'openid': qq_openid
                                     }
-                                    with requests.get('https://graph.qq.com/user/get_user_info', params=params) as get_user_info_resp:
+                                    with requests.get('https://graph.qq.com/user/get_user_info',
+                                                      params=params) as get_user_info_resp:
                                         if get_user_info_resp.status_code == requests.codes.OK:
                                             data = get_user_info_resp.json()
                                             logging.info(data)
@@ -78,8 +79,9 @@ def qq(request):
                                                 nickname = data['nickname']
                                                 avatar_url = data['figureurl_2']
                                                 uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
-                                                User.objects.create(uid=uid, qq_openid=qq_openid, nickname=nickname,
-                                                                    avatar_url=avatar_url, login_time=login_time)
+                                                user = User.objects.create(uid=uid, qq_openid=qq_openid,
+                                                                           nickname=nickname, avatar_url=avatar_url,
+                                                                           login_time=login_time)
 
                                 if user:
                                     # 设置token过期时间
@@ -103,4 +105,3 @@ def github(request):
 @api_view()
 def gitee(request):
     return HttpResponse('oauth gitee')
-
