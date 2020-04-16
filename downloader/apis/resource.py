@@ -738,6 +738,7 @@ class QiantuResource(BaseResource):
                         'title': title,
                         'size': size,
                         'tags': tags,
+                        'desc': '',
                         'file_type': file_type,
                         'point': settings.QIANTU_POINT
                     }
