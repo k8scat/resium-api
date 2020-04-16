@@ -91,6 +91,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] session保存用户信息的问题
 * [ ] 302重定向或者303see other 设置cookies会丢失
     解决方案：添加cookie时设置domain
+* [ ] dingtalk + sentry
 
 ## CoolQ
 

@@ -482,8 +482,6 @@ def save_resource(resource_url, filename, filepath,
         DownloadRecord(user=user,
                        resource=resource,
                        account=account,
-                       download_device=user.login_device,
-                       download_ip=user.login_ip,
                        used_point=resource_info['point']).save()
 
         ding(f'资源保存成功: {resource_info["title"]}',
