@@ -89,6 +89,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     例如: rd -resource url 就可以下载资源
 * [ ] 快速切换到更新服务器
 * [ ] session保存用户信息的问题
+* [ ] 302重定向或者303see other 设置cookies会丢失
+    解决方案：添加cookie时设置domain
 
 ## CoolQ
 

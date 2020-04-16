@@ -6,6 +6,7 @@
 
 """
 import datetime
+import logging
 import re
 import time
 import uuid
@@ -57,6 +58,7 @@ def qq(request):
                             if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
                                 qq_openid = get_openid_resp.text.split('callback( {"client_id":"')[1].split('","openid":"')[0]
                                 login_time = datetime.datetime.now()
+                                user = None
                                 try:
                                     user = User.objects.get(qq_openid=qq_openid)
                                     user.login_time = login_time
@@ -71,25 +73,24 @@ def qq(request):
                                     with requests.get('https://graph.qq.com/user/get_user_info', params=params) as get_user_info_resp:
                                         if get_user_info_resp.status_code == requests.codes.OK:
                                             data = get_user_info_resp.json()
+                                            logging.info(data)
                                             if data['ret'] == 0:
                                                 nickname = data['nickname']
                                                 avatar_url = data['figureurl_2']
-                                        else:
-                                            return response
+                                                uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
+                                                User.objects.create(uid=uid, qq_openid=qq_openid, nickname=nickname,
+                                                                    avatar_url=avatar_url, login_time=login_time)
 
-                                    uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
-                                    User.objects.create(uid=uid, qq_openid=qq_openid, nickname=nickname,
-                                                        avatar_url=avatar_url, login_time=login_time)
-
-                                # 设置token过期时间
-                                exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-                                payload = {
-                                    'exp': exp,
-                                    'sub': user.uid
-                                }
-                                token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
-                                # 设置cookie
-                                response.set_cookie('token', token, domain='resium.cn')
+                                if user:
+                                    # 设置token过期时间
+                                    exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+                                    payload = {
+                                        'exp': exp,
+                                        'sub': user.uid
+                                    }
+                                    token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
+                                    # 设置cookie
+                                    response.set_cookie('token', token, domain='resium.cn')
 
     return response
 
