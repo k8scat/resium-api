@@ -91,6 +91,7 @@ def qq(request):
                                         'sub': user.uid
                                     }
                                     token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
+                                    logging.info(token)
                                     # 设置cookie
                                     response.set_cookie('token', token, domain='resium.cn')
 
