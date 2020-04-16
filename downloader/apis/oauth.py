@@ -56,7 +56,7 @@ def qq(request):
                         # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
                         if get_openid_resp.status_code == requests.codes.OK:
                             if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
-                                qq_openid = get_openid_resp.text.split('callback( {"client_id":"')[1].split('","openid":"')[0]
+                                qq_openid = get_openid_resp.text.split('","openid":"')[1].split('"')[0]
                                 login_time = datetime.datetime.now()
                                 user = None
                                 try:
