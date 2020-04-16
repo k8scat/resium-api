@@ -47,7 +47,7 @@ def alipay_notify(request):
             user.save()
 
             ding(f'收入+{total_amount}',
-                 user_email=user.email)
+                 uid=user.uid)
         except Order.DoesNotExist:
             return HttpResponse('failure')
         return HttpResponse('success')
@@ -79,9 +79,9 @@ def list_orders(request):
     需要认证
     """
 
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
+        user = User.objects.get(uid=uid)
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='用户不存在'))
 
@@ -97,11 +97,9 @@ def create_order(request):
     """
 
     # 获取当前用户
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:
-            return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        user = User.objects.get(uid=uid)
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 

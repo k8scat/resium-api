@@ -21,9 +21,9 @@ def list_download_records(request):
 
     需要认证
     """
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
+        user = User.objects.get(uid=uid)
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='用户不存在'))
 

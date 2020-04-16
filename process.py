@@ -17,10 +17,9 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    for user in User.objects.all():
-        uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
-        user.uid = uid
-        user.save()
+
+    print(re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$',
+                   'callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );'))
 
 
 

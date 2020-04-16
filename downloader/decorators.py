@@ -40,10 +40,10 @@ def auth(fn):
             logging.info(e)
             return JsonResponse(dict(code=401, msg='未认证'))
 
-        email = payload.get('sub', None)
-        if email is not None:
-            request.session['email'] = email
-            logging.info(f'Request by {email}: {request.get_full_path()}')
+        uid = payload.get('sub', None)
+        if uid is not None:
+            request.session['uid'] = uid
+            logging.info(f'Request by {uid}: {request.get_full_path()}')
         else:
             return JsonResponse(dict(code=401, msg='未认证'))
         return fn(request)

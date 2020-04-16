@@ -14,14 +14,12 @@ from downloader.models import User
 @api_view(['POST'])
 def set_user_can_download(request):
     token = request.data.get('token', None)
-    email = request.data.get('email', None)
-    if not token or not email or token != settings.BOT_TOKEN:
+    uid = request.data.get('uid', None)
+    if not token or not uid or token != settings.BOT_TOKEN:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:
-            return JsonResponse(dict(code=400, msg='用户为绑定手机号'))
+        user = User.objects.get(uid=uid)
 
         if user.can_download:
             return JsonResponse(dict(code=400, msg='该账号已开启外站资源下载功能'))

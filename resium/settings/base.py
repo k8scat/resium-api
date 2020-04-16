@@ -198,6 +198,7 @@ OSS_RESOURCE_POINT = 1
 ZHIWANG_POINT = 10
 ARTICLE_POINT = 1
 QIANTU_POINT = 2
+LONG_TERM_DWZ_POINT = 1
 
 MY_CSDN_ACCOUNT = '17770040362@163.com'
 
@@ -286,3 +287,9 @@ wenku_accounts = [
         'password': '9027855'
     }
 ]
+
+BAIDU_DWZ_TOKEN = '599899227931471a4e48c50e92495880'
+
+# https://connect.qq.com/manage.html#/appinfo/web/101864025
+QQ_CLIENT_ID = '101864025'
+QQ_CLIENT_SECRET = 'be9503e910cd150287453f0a0bcce9bc'

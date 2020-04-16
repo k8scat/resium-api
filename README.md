@@ -54,13 +54,15 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 分离coolq
 * [ ] 日志系统 elk
 * [ ] 代码重构，资源下载的代码多处存在重复
-* [ ] 800m资源下载成功后，check失败
+* [x] 800m资源下载成功后，aliyun oss check失败
+    解决方案：不check上传资源的完整性，默认上传OK
 * [ ] 语音验证码
 * [ ] qq 登录
     https://connect.qq.com/manage.html#/appinfo/web/101864025
 * [ ] 微云
     https://open.weiyun.com/api/twoa_restful_api.html
-* [ ] 百度文库pdf解析
+* [ ] 百度文库pdf解析，类似于冰点文库
+    http://www.html22.com/doc/
 * [ ] 会员账号自主接入，提现
 * [ ] 源自下载小程序
     https://git.cloudevops.cn/hsowan/resium-app
@@ -79,6 +81,14 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 第三方登录必然是相当于新账号注册，所以需要添加账号注销（也就是添加字段is_delete），以及已注册账号关联第三方账号
 * [ ] github gitee第三方登录
 * [ ] 前后端同时需要添加正则匹配的问题，考虑仅在后端进行判断
+* [ ] 短链接生成
+    https://dwz.cn/
+    https://console.bce.baidu.com/dwz/#/dwz/package/list
+    https://dwz.cn/console/price
+* [ ] 命令行工具 py
+    例如: rd -resource url 就可以下载资源
+* [ ] 快速切换到更新服务器
+* [ ] session保存用户信息的问题
 
 ## CoolQ
 

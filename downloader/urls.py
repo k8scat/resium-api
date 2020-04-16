@@ -7,18 +7,11 @@
 """
 from django.urls import path, re_path
 from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, bot, \
-    oauth
+    oauth, open
 
 
 urlpatterns = [
-    path('login/', user.login),
-    path('register/', user.register),
-    re_path(r'^activate/?$', user.activate),
-    path('reset_password/', user.reset_password),
-    re_path(r'^forget_password/?$', user.forget_password),
-    re_path(r'^reset_email/?$', user.send_forget_password_email),
     re_path(r'^wx/?$', user.wx),
-    path('change_nickname/', user.change_nickname),
     path('get_user/', user.get_user),
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
 
@@ -67,4 +60,6 @@ urlpatterns = [
     re_path(r'^oauth/qq/?$', oauth.qq),
     re_path(r'^oauth/github/?$', oauth.github),
     re_path(r'^oauth/gitee/?$', oauth.gitee),
+
+    path('open/dwz/', open.dwz),
 ]

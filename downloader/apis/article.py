@@ -23,14 +23,12 @@ from downloader.utils import ding
 @auth
 @api_view(['POST'])
 def parse_csdn_article(request):
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
+        user = User.objects.get(uid=uid)
         point = settings.ARTICLE_POINT
         if user.point < point:
             return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
-        if not user.phone:
-            return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
         if not user.can_download:
             return JsonResponse(dict(code=400, msg='错误的请求'))
     except User.DoesNotExist:
@@ -56,7 +54,7 @@ def parse_csdn_article(request):
                 soup = BeautifulSoup(r.text, 'lxml')
                 # VIP文章
                 is_vip = len(soup.select('span.vip_article')) > 0
-                if user.email != 'hsowan.me@gmail.com' and not is_vip:
+                if not is_vip:
                     return JsonResponse(dict(code=400, msg='非VIP文章'))
                 # 文章标题
                 title = soup.select('h1.title-article')[0].string

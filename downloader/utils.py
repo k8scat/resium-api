@@ -44,8 +44,8 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccoun
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
-         error=None, user_email='', used_account='',
-         resource_url='', logger=logging.info, qq=None):
+         error=None, uid='', used_account='',
+         resource_url='', logger=logging.info):
     """
     使用钉钉Webhook Robot监控线上系统
 
@@ -53,11 +53,10 @@ def ding(message, at_mobiles=None, is_at_all=False,
     :param at_mobiles:
     :param is_at_all:
     :param error:
-    :param user_email:
+    :param uid:
     :param used_account:
     :param resource_url:
     :param logger:
-    :param qq:
     :return:
     """
 
@@ -76,9 +75,8 @@ def ding(message, at_mobiles=None, is_at_all=False,
     content = f'## {message}\n' \
               f'- 错误信息：{str(error) if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
-              f'- 用户邮箱：{user_email if user_email else "无"}\n' \
+              f'- 用户：{uid if uid else "无"}\n' \
               f'- 会员账号：{used_account if used_account else "无"}\n' \
-              f'- QQ：{str(qq) if qq else "无"}' \
               f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}'
     logger(content)
 
@@ -489,7 +487,7 @@ def save_resource(resource_url, filename, filepath,
                        used_point=resource_info['point']).save()
 
         ding(f'资源保存成功: {resource_info["title"]}',
-             user_email=user.email,
+             uid=user.uid,
              resource_url=resource_url,
              used_account=account)
 
@@ -500,7 +498,7 @@ def save_resource(resource_url, filename, filepath,
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
              error=e,
              resource_url=resource_url,
-             user_email=user.email,
+             uid=user.uid,
              used_account=account,
              logger=logging.error)
 
@@ -759,3 +757,56 @@ def zip_file(filepath):
     f.close()
     return outfile
 
+
+def get_short_url(url, long_term=False):
+    """
+    生成短网址
+
+    https://dwz.cn/console/apidoc
+
+    :param url:
+    :param long_term
+    :return:
+    """
+
+    headers = {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Token': settings.BAIDU_DWZ_TOKEN
+    }
+    body = {
+        'Url': url,
+        'TermOfValidity': 'long-term' if long_term else '1-year'
+    }
+    with requests.post('https://dwz.cn/admin/v2/create', data=json.dumps(body), headers=headers) as r:
+        if r.status_code == requests.codes.OK and r.json()['Code'] == 0:
+            return r.json()['ShortUrl']
+        else:
+            ding('[短网址] 生成失败',
+                 error=r.text)
+            return None
+
+
+def get_long_url(url):
+    """
+    还原短网址
+
+    https://dwz.cn/console/apidoc
+
+    :param url:
+    :return:
+    """
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Token': settings.BAIDU_DWZ_TOKEN
+    }
+    body = {
+        'shortUrl': url
+    }
+    with requests.post('https://dwz.cn/admin/v2/query', data=json.dumps(body), headers=headers) as r:
+        if r.status_code == requests.codes.OK and r.json()['Code'] == 0:
+            return r.json()['LongUrl']
+        else:
+            ding('[短网址] 生成失败',
+                 error=r.text)
+            return None

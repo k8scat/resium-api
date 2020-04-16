@@ -5,6 +5,8 @@
 @date: 2020/2/15
 
 """
+from downloader.utils import *
+from downloader.models import *
 import json
 import logging
 import os
@@ -15,7 +17,6 @@ import uuid
 from json import JSONDecodeError
 from threading import Thread
 from urllib import parse
-
 import requests
 from PIL import Image
 from bs4 import BeautifulSoup
@@ -29,14 +30,9 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-
 from downloader.decorators import auth
-from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount, BaiduAccount, \
-    DocerPreviewImage, QiantuAccount
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
-from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
-    check_download, get_driver, check_oss, aliyun_oss_check_file, \
-    save_resource, send_email, predict_code, get_random_ua
+
 
 
 class BaseResource:
@@ -108,7 +104,7 @@ class CsdnResource(BaseResource):
                     ding('[CSDN] 资源信息解析失败',
                          error=e,
                          logger=logging.error,
-                         user_email=self.user.email)
+                         uid=self.user.uid)
                     return 500, '资源获取失败'
             return
 
@@ -130,19 +126,19 @@ class CsdnResource(BaseResource):
             # 判断账号当天下载数
             if csdn_account.today_download_count >= 20:
                 ding(f'[CSDN] 今日下载数已用完',
-                     user_email=self.user.email,
+                     uid=self.user.uid,
                      resource_url=self.url,
                      used_account=csdn_account.email)
                 return 403, '下载失败'
         except CsdnAccount.DoesNotExist:
             ding('[CSDN] 没有可用账号',
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  resource_url=self.url)
             return 500, '下载失败'
 
         if resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  resource_url=self.url)
             return 400, '版权受限，无法下载'
 
@@ -160,7 +156,7 @@ class CsdnResource(BaseResource):
                 ding('[CSDN] 下载失败',
                      error=r.text,
                      resource_url=self.url,
-                     user_email=self.user.email,
+                     uid=self.user.uid,
                      used_account=csdn_account.email,
                      logger=logging.error)
                 return 500, '下载失败'
@@ -194,7 +190,7 @@ class CsdnResource(BaseResource):
 
                     ding('[CSDN] 下载失败',
                          error=download_resp.text,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          resource_url=self.url,
                          used_account=csdn_account.email,
                          logger=logging.error)
@@ -207,7 +203,7 @@ class CsdnResource(BaseResource):
 
                 ding('[CSDN] 下载失败',
                      error=resp,
-                     user_email=self.user.email,
+                     uid=self.user.uid,
                      resource_url=self.url,
                      used_account=csdn_account.email,
                      logger=logging.error)
@@ -299,7 +295,7 @@ class WenkuResource(BaseResource):
                 except Exception as e:
                     ding(f'资源信息解析失败: {str(e)}',
                          resource_url=self.url,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          logger=logging.error)
                     return 500, '资源获取失败'
             else:
@@ -324,7 +320,7 @@ class WenkuResource(BaseResource):
             baidu_account = BaiduAccount.objects.get(is_enabled=True)
         except BaiduAccount.DoesNotExist:
             ding('没有可用的百度文库账号',
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  resource_url=self.url)
             return 500, '下载失败'
         driver = get_driver(self.unique_folder)
@@ -378,7 +374,7 @@ class WenkuResource(BaseResource):
                     download_button.click()
                 else:
                     ding('百度文库下载失败',
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          used_account=baidu_account.email,
                          resource_url=self.url,
                          logger=logging.error)
@@ -396,7 +392,7 @@ class WenkuResource(BaseResource):
         except Exception as e:
             ding('[百度文库] 下载失败',
                  error=e,
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  used_account=baidu_account.email,
                  resource_url=self.url)
             return 500, '下载失败'
@@ -485,7 +481,7 @@ class DocerResource(BaseResource):
             docer_account = DocerAccount.objects.get(is_enabled=True)
         except DocerAccount.DoesNotExist:
             ding('没有可以使用的稻壳VIP模板账号',
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  resource_url=self.url,
                  logger=logging.error)
             return 500, '下载失败'
@@ -531,7 +527,7 @@ class DocerResource(BaseResource):
 
                         ding('[稻壳VIP模板] 下载失败',
                              error=download_resp.text,
-                             user_email=self.user.email,
+                             uid=self.user.uid,
                              used_account=docer_account.email,
                              resource_url=self.url,
                              logger=logging.error)
@@ -539,13 +535,13 @@ class DocerResource(BaseResource):
                 else:
                     ding('[稻壳VIP模板] 下载失败',
                          error=r.text,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          resource_url=self.url,
                          logger=logging.error)
                     return 500, '下载失败'
             except JSONDecodeError:
                 ding('[稻壳VIP模板] Cookies失效',
-                     user_email=self.user.email,
+                     uid=self.user.uid,
                      resource_url=self.url,
                      logger=logging.error)
                 return 500, '下载失败'
@@ -590,7 +586,7 @@ class ZhiwangResource(BaseResource):
                     ding('资源获取失败',
                          error=e,
                          logger=logging.error,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          resource_url=self.url)
                     return 500, '资源获取失败'
             else:
@@ -714,7 +710,7 @@ class ZhiwangResource(BaseResource):
         except Exception as e:
             ding('[知网文献] 下载失败',
                  error=e,
-                 user_email=self.user.email,
+                 uid=self.user.uid,
                  resource_url=self.url,
                  logger=logging.error)
             return 500, '下载失败'
@@ -750,7 +746,7 @@ class QiantuResource(BaseResource):
                     ding('资源获取失败',
                          error=e,
                          logger=logging.error,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          resource_url=self.url)
                     return 500, "资源获取失败"
 
@@ -797,7 +793,7 @@ class QiantuResource(BaseResource):
 
                         ding('[千图网] 下载失败',
                              error=download_resp.text,
-                             user_email=self.user.email,
+                             uid=self.user.uid,
                              used_account=qiantu_account.email,
                              resource_url=self.url,
                              logger=logging.error)
@@ -805,7 +801,7 @@ class QiantuResource(BaseResource):
                 except Exception as e:
                     ding('[千图网] 下载失败',
                          error=e,
-                         user_email=self.user.email,
+                         uid=self.user.uid,
                          resource_url=self.url,
                          logger=logging.error)
                     return 500, "下载失败"
@@ -814,11 +810,9 @@ class QiantuResource(BaseResource):
 @auth
 @api_view(['POST'])
 def upload(request):
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:
-            return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        user = User.objects.get(uid=uid)
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -856,12 +850,8 @@ def upload(request):
             t = Thread(target=aliyun_oss_upload, args=(filepath, key))
             t.start()
 
-            # 发送邮件通知
-            subject = '[源自下载] 资源上传成功'
-            content = '您上传的资源将由管理员审核。如果审核通过，当其他用户下载该资源时，您将获得1积分奖励。'
-            send_email(subject, content, user.email)
-
-            ding(f'有新的资源上传 {key}')
+            ding(f'有新的资源上传 {key}',
+                 uid=user.uid)
             return JsonResponse(dict(code=200, msg='资源上传成功'))
         except Exception as e:
             logging.error(e)
@@ -897,9 +887,9 @@ def list_uploaded_resources(request):
     :return:
     """
 
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.get(uid=uid)
         resources = Resource.objects.order_by('-create_time').filter(user=user).all()
         return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
     except User.DoesNotExist:
@@ -1017,18 +1007,16 @@ def download(request):
     资源下载
     """
 
-    email = request.session.get('email')
-    if cache.get(email) and not settings.DEBUG:
+    uid = request.session.get('uid')
+    if cache.get(uid) and not settings.DEBUG:
         return JsonResponse(dict(code=403, msg='下载请求过快'), status=403)
 
     try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:
-            return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        user = User.objects.get(uid=uid)
         if not user.can_download:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
+        cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 
@@ -1130,16 +1118,14 @@ def oss_download(request):
     从OSS上下载资源
     """
 
-    email = request.session.get('email')
-    if cache.get(email):
+    uid = request.session.get('uid')
+    if cache.get(uid):
         return JsonResponse(dict(code=403, msg='下载请求过快'), status=403)
 
     try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:
-            return JsonResponse(dict(code=4000, msg='请前往个人中心进行绑定手机号'))
+        user = User.objects.get(uid=uid)
 
-        cache.set(email, True, timeout=settings.DOWNLOAD_INTERVAL)
+        cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
         point = settings.OSS_RESOURCE_POINT
         if user.point < point:
             return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
@@ -1206,9 +1192,9 @@ def parse_resource(request):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
 
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
+        user = User.objects.get(uid=uid)
     except User.DoesNotExist:
         return JsonResponse(dict(code=403, msg='未认证'))
 

@@ -34,245 +34,18 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, create_coupon, send_message
-
-
-@auth
-@api_view(['POST'])
-def change_nickname(request):
-    user_id = request.data.get('user_id', None)
-    nickname = request.data.get('nickname', None)
-    if user_id and nickname:
-        try:
-            user = User.objects.get(id=user_id, is_active=True)
-            user.nickname = nickname
-            user.save()
-            return JsonResponse(dict(code=200, msg='昵称修改成功', user=UserSerializers(user).data))
-        except User.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-    else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+from downloader.utils import ding
 
 
 @auth
 @api_view()
 def get_user(request):
-    email = request.session.get('email')
+    uid = request.session.get('uid')
     try:
-        user = User.objects.get(email=email, is_active=True)
+        user = User.objects.get(uid=uid, is_active=True)
         return JsonResponse(dict(code=200, user=UserSerializers(user).data))
     except User.DoesNotExist:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-
-
-@api_view(['POST'])
-def login(request):
-    """
-    用户登录
-    """
-    email = request.data.get('email', None)
-    password = request.data.get('password', None)
-    if not email or not password:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    try:
-        user = User.objects.get(email=email, is_active=True)
-        if check_password(password, user.password):
-            login_device = request.META.get('HTTP_USER_AGENT', None)
-            # Fix: remote ip addr is always local ip
-            # https://stackoverflow.com/questions/4581789/how-do-i-get-user-ip-address-in-django
-            if 'HTTP_X_FORWARDED_FOR' in request.META:
-                login_ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
-            else:
-                login_ip = request.META.get('REMOTE_ADDR')
-
-            if login_device and login_ip:
-                user.login_device = login_device
-                user.login_ip = login_ip
-                user.login_time = datetime.datetime.now()
-                user.save()
-            else:
-                return JsonResponse(dict(code=400, msg='登录失败'))
-            # 设置token过期时间
-            exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-            payload = {
-                'exp': exp,
-                'sub': email
-            }
-            token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
-            return JsonResponse(dict(code=200, msg="登录成功", token=token, user=UserSerializers(user).data))
-        return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='邮箱或密码不正确'))
-
-
-@api_view(['POST'])
-def register(request):
-    """
-    用户注册
-    """
-    email = request.data.get('email', None)
-    password = request.data.get('password', None)
-
-    if not email or not password:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    # 检查邮箱是否已注册
-    if User.objects.filter(email=email, is_active=True).count() != 0:
-        return JsonResponse(dict(code=400, msg='邮箱已注册'))
-
-    encrypted_password = make_password(password)
-    code = ''.join(random.sample(string.digits, 6))
-    fake = Faker('zh_CN')
-    nickname = fake.name()
-    uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
-    User(email=email, password=encrypted_password,
-         code=code, nickname=nickname, uid=uid).save()
-
-    activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
-                         safe=':/?=&')
-    subject = '[源自下载] 用户注册'
-    html_message = render_to_string('downloader/register.html', {'activate_url': activate_url})
-    plain_message = strip_tags(html_message)
-    try:
-        send_mail(subject=subject,
-                  message=plain_message,
-                  from_email=settings.DEFAULT_FROM_EMAIL,
-                  recipient_list=[email],
-                  html_message=html_message,
-                  fail_silently=False)
-        return JsonResponse(dict(code=200, msg='注册成功，请前往邮箱激活账号'))
-    except Exception as e:
-        if str(e).count('Mailbox not found or access denied'):
-            return JsonResponse(dict(code=400, msg='当前邮箱不可用，请使用其他邮箱注册'))
-        ding('注册激活邮件发送失败',
-             error=e,
-             logger=logging.error,
-             user_email=email)
-        return JsonResponse(dict(code=500, msg='激活邮件发送失败，请尝试使用其他邮箱注册'))
-
-
-@api_view()
-def activate(request):
-    """
-    账号激活
-    """
-    email = request.GET.get('email', None)
-    code = request.GET.get('code', None)
-    if email is None or code is None:
-        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-
-    if User.objects.filter(email=email, is_active=True).count():
-        return redirect(settings.RESIUM_UI + '/login?msg=账号已激活')
-
-    try:
-        user = User.objects.get(email=email, code=code, is_active=False)
-        user.is_active = True
-        user.save()
-
-        # 优惠券
-        if not create_coupon(user, '新用户注册'):
-            return JsonResponse(dict(code=500, msg='注册失败'))
-
-        User.objects.filter(email=email, is_active=False).delete()
-        return redirect(settings.RESIUM_UI + '/login?msg=激活成功')
-
-    except User.DoesNotExist:
-        return redirect(settings.RESIUM_UI + '/login?msg=账号不存在')
-
-
-@ratelimit(key='ip', rate='5/m', block=True)
-@api_view()
-def send_forget_password_email(request):
-    """
-    发送重置密码的邮件
-    """
-    email = request.GET.get('email', None)
-    try:
-        user = User.objects.get(email=email, is_active=True)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='用户不存在'))
-
-    try:
-        code = ''.join(random.sample(string.digits, 6))
-        password = ''.join(random.sample(string.digits + string.ascii_letters, 16))
-        encrypted_password = make_password(password)
-        reset_password_url = quote(settings.RESIUM_API + '/forget_password/?token=' + encrypted_password + '&email=' + email + '&code=' + code,
-                                   encoding='utf-8',
-                                   safe=':/?=&')
-        subject = '[源自下载] 密码重置'
-        html_message = render_to_string('downloader/forget_password.html',
-                                        {'reset_password_url': reset_password_url, 'password': password})
-        plain_message = strip_tags(html_message)
-        try:
-            send_mail(subject=subject,
-                      message=plain_message,
-                      from_email=settings.DEFAULT_FROM_EMAIL,
-                      recipient_list=[email],
-                      html_message=html_message,
-                      fail_silently=False)
-            user.temp_password = encrypted_password
-            user.code = code
-            user.save()
-            return JsonResponse(dict(code=200, msg='发送成功，请前往邮箱重置密码'))
-        except Exception as e:
-            logging.error(e)
-            ding('密码重置邮件发送失败 ' + str(e))
-            return JsonResponse(dict(code=500, msg='发送失败'))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='用户不存在'))
-
-
-@ratelimit(key='ip', rate='5/m', block=True)
-@api_view()
-def forget_password(request):
-    """
-    忘记密码: 确认重置密码
-
-    :param request:
-    :return:
-    """
-    email = request.GET.get('email', '')
-    code = request.GET.get('code', '')
-    temp_password = request.GET.get('token', '')
-    if email and code and temp_password:
-        try:
-            user = User.objects.get(email=email, code=code, is_active=True, temp_password=temp_password)
-            user.password = temp_password
-            user.temp_password = None
-            user.save()
-            return redirect(settings.RESIUM_UI + '/login?msg=密码重置成功')
-        except User.DoesNotExist:
-            return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-    else:
-        return redirect(settings.RESIUM_UI + '/login?msg=错误的请求')
-
-
-@auth
-@api_view(['POST'])
-def reset_password(request):
-    """
-    修改密码
-    """
-    email = request.session.get('email')
-    try:
-        user = User.objects.get(email=email, is_active=True)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
-
-    old_password = request.data.get('old_password', None)
-    new_password = request.data.get('new_password', None)
-    if not old_password or not new_password:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    if old_password == new_password:
-        return JsonResponse(dict(code=400, msg='新密码不能和旧密码相同'))
-
-    if check_password(old_password, user.password):
-        user.password = make_password(new_password)
-        user.save()
-        return JsonResponse(dict(code=200, msg='密码修改成功'))
-    return JsonResponse(dict(code=400, msg='旧密码不正确'))
 
 
 @api_view(['GET', 'POST'])
@@ -402,7 +175,7 @@ def wx(request):
                 user = User.objects.get(wx_openid=msg.source)
                 user.wx_openid = None
                 user.save()
-                ding(f'源自下载用户{user.email}取消关注公众号')
+                ding(f'源自下载用户{user.uid}取消关注公众号')
             except User.DoesNotExist:
                 ding('公众号关注 -1')
 

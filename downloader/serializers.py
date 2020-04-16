@@ -53,12 +53,12 @@ class CouponSerializers(serializers.ModelSerializer):
 
 
 class ResourceCommentSerializers(serializers.ModelSerializer):
-    email = serializers.CharField(source='user.email')
+    avatar_url = serializers.CharField(source='user.avatar_url')
     nickname = serializers.CharField(source='user.nickname')
 
     class Meta:
         model = ResourceComment
-        fields = ['id', 'content', 'email', 'nickname', 'create_time']
+        fields = ['id', 'content', 'avatar_url', 'nickname', 'create_time']
 
 
 class AdvertSerializers(serializers.ModelSerializer):

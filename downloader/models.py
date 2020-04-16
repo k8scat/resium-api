@@ -12,20 +12,13 @@ class Base(models.Model):
 class User(Base):
     uid = models.CharField(max_length=100, verbose_name='用户的唯一标识')
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
-    phone = models.CharField(max_length=20, null=True, default=None, verbose_name='手机号')
-    email = models.EmailField(verbose_name='邮箱')
-    password = models.CharField(max_length=100, verbose_name='密码')
-    temp_password = models.CharField(max_length=100, default=None, null=True, verbose_name='修改密码时保存的临时密码')
-    is_active = models.BooleanField(default=False, verbose_name='是否激活')
-    # 用于激活用户和修改密码
-    code = models.CharField(max_length=6, verbose_name='验证码')
+    avatar_url = models.CharField(max_length=240, verbose_name='头像地址')
+    email = models.EmailField(verbose_name='邮箱', default=None, null=True)
     point = models.IntegerField(default=0, verbose_name='下载积分')
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
-    login_device = models.TextField(null=True, default=None, verbose_name='登录设备')
-    login_ip = models.CharField(max_length=100, null=True, default=None, verbose_name='登录IP')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
-    qq = models.BigIntegerField(default=None, null=True)
+    qq_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True)
 
@@ -210,3 +203,13 @@ class TaobaoWenkuAccount(Base):
 
     class Meta:
         db_table = 'taobao_wenku_account'
+
+
+class DwzRecord(Base):
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    url = models.CharField(max_length=240, verbose_name='原网址')
+    generated_url = models.CharField(max_length=240, verbose_name='生成的网址')
+    point = models.SmallIntegerField(default=0, verbose_name='消耗的积分')
+
+    class Meta:
+        db_table = 'dwz_record'
