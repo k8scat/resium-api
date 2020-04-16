@@ -10,6 +10,7 @@ class Base(models.Model):
 
 
 class User(Base):
+    uid = models.CharField(max_length=100, verbose_name='用户的唯一标识')
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     phone = models.CharField(max_length=20, null=True, default=None, verbose_name='手机号')
     email = models.EmailField(verbose_name='邮箱')
@@ -116,7 +117,7 @@ class CsdnAccount(Base):
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
-    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
 
     class Meta:
         db_table = 'csdn_account'
@@ -125,7 +126,7 @@ class CsdnAccount(Base):
 class BaiduAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
-    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
     vip_free_count = models.IntegerField(default=0, verbose_name='VIP免费文档使用数')
     share_doc_count = models.IntegerField(default=0, verbose_name='共享文档使用数')
     special_doc_count = models.IntegerField(default=0, verbose_name='VIP专享文档使用数')
@@ -138,11 +139,22 @@ class DocerAccount(Base):
     cookies = models.TextField(null=True, default=None)
     email = models.EmailField(verbose_name='联系邮箱')
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
-    is_enabled = models.BooleanField(default=True, verbose_name='是否使用该账号')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
+    # todo: 定时任务：每月更新下载数
     month_used_count = models.IntegerField(default=0, verbose_name='当月已使用VIP下载数')
 
     class Meta:
         db_table = 'docer_account'
+
+
+class QiantuAccount(Base):
+    cookies = models.TextField(null=True, default=None)
+    email = models.EmailField(verbose_name='账号拥有者的联系邮箱')
+    used_count = models.IntegerField(default=0, verbose_name='使用下载数')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
+
+    class Meta:
+        db_table = 'qiantu_account'
 
 
 class ResourceComment(Base):

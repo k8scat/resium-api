@@ -32,7 +32,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.decorators import auth
 from downloader.models import Resource, User, ResourceComment, DownloadRecord, CsdnAccount, DocerAccount, BaiduAccount, \
-    DocerPreviewImage
+    DocerPreviewImage, QiantuAccount
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 from downloader.utils import aliyun_oss_upload, get_file_md5, ding, aliyun_oss_sign_url, \
     check_download, get_driver, check_oss, aliyun_oss_check_file, \
@@ -43,8 +43,16 @@ class BaseResource:
     def __init__(self, url, user):
         self.url = url
         self.user = user
+        self.unique_folder = None
+        self.save_dir = None
 
     def before_download(self):
+        """
+        调用download前必须调用before_download
+
+        :return:
+        """
+
         logging.info(f'资源下载: {self.url}')
 
         # 生成资源存放的唯一子目录
@@ -57,6 +65,12 @@ class BaseResource:
             else:
                 os.mkdir(self.save_dir)
                 break
+
+    def parse(self):
+        pass
+
+    def download(self):
+        pass
 
 
 class CsdnResource(BaseResource):
@@ -98,8 +112,13 @@ class CsdnResource(BaseResource):
                     return 500, '资源获取失败'
             return
 
-    def download(self, ret_url=False):
+    def download(self):
         self.before_download()
+
+        status, result = self.parse()
+        if status != 200:
+            return status, result
+        resource = result
 
         try:
             csdn_account = CsdnAccount.objects.get(is_enabled=True)
@@ -121,10 +140,6 @@ class CsdnResource(BaseResource):
                  resource_url=self.url)
             return 500, '下载失败'
 
-        status, result = self.parse()
-        if status != 200:
-            return status, result
-        resource = result
         if resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
                  user_email=self.user.email,
@@ -169,10 +184,6 @@ class CsdnResource(BaseResource):
                             for chunk in download_resp.iter_content(chunk_size=1024):
                                 if chunk:
                                     f.write(chunk)
-                        if ret_url:
-                            download_url = save_resource(self.url, filename, filepath, resource, self.user,
-                                                         account=csdn_account.email, ret_url=True)
-                            return 200, dict(download_url=download_url, point=point)
 
                         # 上传资源到OSS并保存记录到数据库
                         t = Thread(target=save_resource,
@@ -191,6 +202,8 @@ class CsdnResource(BaseResource):
             else:
                 if resp.get('message', None) == '当前资源不开放下载功能':
                     return 400, 'CSDN未开放该资源的下载功能'
+                elif resp.get('message', None) == '短信验证':
+                    return 500, '此次下载存在需要验证，请联系管理员'
 
                 ding('[CSDN] 下载失败',
                      error=resp,
@@ -292,13 +305,14 @@ class WenkuResource(BaseResource):
             else:
                 return 500, '资源获取失败'
 
-    def download(self, ret_url=False):
+    def download(self):
         self.before_download()
 
         status, result = self.parse()
         if status != 200:
             return status, result
         resource = result
+
         point = resource['point']
         if point is None:
             return 400, '该资源不支持下载'
@@ -371,11 +385,6 @@ class WenkuResource(BaseResource):
                     return 500, '下载失败'
 
             filepath, filename = check_download(self.save_dir)
-
-            if ret_url:
-                download_url = save_resource(self.url, filename, filepath, resource, self.user,
-                                             account=baidu_account.email, wenku_type=wenku_type, ret_url=True)
-                return 200, dict(download_url=download_url, point=point)
 
             # 保存资源
             t = Thread(target=save_resource,
@@ -460,8 +469,13 @@ class DocerResource(BaseResource):
 
             return 500, '资源获取失败'
 
-    def download(self, ret_url=False):
+    def download(self):
         self.before_download()
+
+        status, result = self.parse()
+        if status != 200:
+            return status, result
+        resource = result
 
         point = settings.DOCER_POINT
         if self.user.point < point:
@@ -507,17 +521,6 @@ class DocerResource(BaseResource):
                                     if chunk:
                                         f.write(chunk)
 
-                            status, result = self.parse()
-                            if status != 200:
-                                return status, result
-                            resource = result
-
-                            if ret_url:
-                                download_url = save_resource(self.url, filename, filepath, resource, self.user,
-                                                             account=docer_account.email, is_docer_vip_doc=resource['is_docer_vip_doc'],
-                                                             ret_url=True)
-                                return 200, dict(download_url=download_url, point=point)
-
                             # 保存资源
                             t = Thread(target=save_resource,
                                        args=(self.url, filename, filepath, resource, self.user),
@@ -553,6 +556,12 @@ class ZhiwangResource(BaseResource):
         super().__init__(url, user)
 
     def parse(self):
+        """
+        需要注意的是知网官方网站和使用了VPN访问的网站是不一样的
+
+        :return:
+        """
+
         headers = {
             'referer': self.url,
             'user-agent': get_random_ua()
@@ -566,7 +575,7 @@ class ZhiwangResource(BaseResource):
                     for tag in soup.select('p.keywords a'):
                         tags.append(tag.string.strip()[:-1])
 
-                    title = soup.select('div.wx-tit h1')[0].text
+                    title = soup.select('div.wxTitle h2')[0].text
                     desc = soup.find('span', attrs={'id': 'ChDivSummary'}).string
                     has_pdf = True if soup.find('a', attrs={'id': 'pdfDown'}) else False
                     resource = {
@@ -587,8 +596,13 @@ class ZhiwangResource(BaseResource):
             else:
                 return 500, '资源获取失败'
 
-    def download(self, ret_url=False):
+    def download(self):
         self.before_download()
+
+        status, result = self.parse()
+        if status != 200:
+            return status, result
+        resource = result
 
         point = settings.ZHIWANG_POINT
         if self.user.point < point:
@@ -685,15 +699,6 @@ class ZhiwangResource(BaseResource):
 
             finally:
                 filepath, filename = check_download(self.save_dir)
-                status, result = self.parse()
-                if status != 200:
-                    return status, result
-                resource = result
-
-                if ret_url:
-                    download_url = save_resource(self.url, filename, filepath,
-                                                 resource, self.user, ret_url=True)
-                    return 200, dict(download_url=download_url, point=point)
 
                 # 保存资源
                 t = Thread(target=save_resource,
@@ -716,6 +721,94 @@ class ZhiwangResource(BaseResource):
 
         finally:
             driver.close()
+
+
+class QiantuResource(BaseResource):
+    def __init__(self, url, user):
+        super().__init__(url, user)
+
+    def parse(self):
+        with requests.get(self.url) as r:
+            if r.status_code == requests.codes.OK:
+                try:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    title = soup.select('span.pic-title.fl')[0].string
+                    info = soup.select('div.material-info p')
+                    size = info[2].string.replace('文件大小：', '')
+                    # Tag有find方法，但没有select方法
+                    file_type = info[4].find('span').contents[0]
+                    tags = [tag.string for tag in soup.select('div.mainRight-tagBox a')]
+                    resource = {
+                        'title': title,
+                        'size': size,
+                        'tags': tags,
+                        'file_type': file_type,
+                        'point': settings.QIANTU_POINT
+                    }
+                    return 200, resource
+                except Exception as e:
+                    ding('资源获取失败',
+                         error=e,
+                         logger=logging.error,
+                         user_email=self.user.email,
+                         resource_url=self.url)
+                    return 500, "资源获取失败"
+
+    def download(self):
+        self.before_download()
+
+        status, result = self.parse()
+        if status != 200:
+            return status, result
+        resource = result
+
+        try:
+            qiantu_account = QiantuAccount.objects.get(is_enabled=True)
+        except QiantuAccount.DoesNotExist:
+            return 500, "[千图网] 没有可用账号"
+
+        headers = {
+            'cookie': qiantu_account.cookies,
+            'referer': self.url,
+            'user-agent': get_random_ua()
+        }
+        download_url = self.url.replace('https://www.58pic.com/newpic/', 'https://dl.58pic.com/')
+        with requests.get(download_url, headers=headers) as r:
+            if r.status_code == requests.codes.OK:
+                try:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    download_url = soup.select('a.clickRecord.autodown')[0]['href']
+                    filename = download_url.split('?')[0].split('/')[-1]
+                    filepath = os.path.join(self.save_dir, filename)
+                    with requests.get(download_url, stream=True, headers=headers) as download_resp:
+                        if download_resp.status_code == requests.codes.OK:
+                            with open(filepath, 'wb') as f:
+                                for chunk in download_resp.iter_content(chunk_size=1024):
+                                    if chunk:
+                                        f.write(chunk)
+
+                            # 保存资源
+                            t = Thread(target=save_resource,
+                                       args=(self.url, filename, filepath, resource, self.user),
+                                       kwargs={'account': qiantu_account.email})
+                            t.start()
+
+                            return 200, dict(filepath=filepath, filename=filename)
+
+                        ding('[千图网] 下载失败',
+                             error=download_resp.text,
+                             user_email=self.user.email,
+                             used_account=qiantu_account.email,
+                             resource_url=self.url,
+                             logger=logging.error)
+                        return 500, '下载失败'
+                except Exception as e:
+                    ding('[千图网] 下载失败',
+                         error=e,
+                         user_email=self.user.email,
+                         resource_url=self.url,
+                         logger=logging.error)
+                    return 500, "下载失败"
 
 
 @auth
@@ -1007,6 +1100,9 @@ def download(request):
     elif re.match(settings.PATTERN_DOCER, resource_url):
         resource = DocerResource(resource_url, user)
 
+    elif re.match(settings.PATTERN_QIANTU, resource_url):
+        resource = QiantuResource(resource_url, user)
+
     # 知网下载
     # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
     # https://kns.cnki.net/KCMS/detail/ 官网
@@ -1134,12 +1230,13 @@ def parse_resource(request):
     elif re.match(settings.PATTERN_ZHIWANG, resource_url):
         resource = ZhiwangResource(resource_url, user)
 
+    elif re.match(settings.PATTERN_QIANTU, resource_url):
+        resource = QiantuResource(resource_url, user)
+
     else:
         return JsonResponse(dict(code=400, msg='资源地址有误'))
 
     status, result = resource.parse()
-    if status != 200:
-        return JsonResponse(dict(code=status, msg=result))
     return JsonResponse(dict(code=status, resource=result))
 
 

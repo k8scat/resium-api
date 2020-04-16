@@ -9,15 +9,14 @@ import datetime
 import hashlib
 import logging
 import random
-import re
 import string
+import time
+import uuid
 from urllib.parse import quote
 
 import jwt
-import requests
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
-from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
@@ -126,8 +125,9 @@ def register(request):
     code = ''.join(random.sample(string.digits, 6))
     fake = Faker('zh_CN')
     nickname = fake.name()
+    uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
     User(email=email, password=encrypted_password,
-         code=code, nickname=nickname).save()
+         code=code, nickname=nickname, uid=uid).save()
 
     activate_url = quote(settings.RESIUM_API + '/activate/?email=' + email + '&code=' + code, encoding='utf-8',
                          safe=':/?=&')
@@ -275,35 +275,6 @@ def reset_password(request):
     return JsonResponse(dict(code=400, msg='旧密码不正确'))
 
 
-@ratelimit(key='ip', rate='3/h', block=settings.RATELIMIT_BLOCK)
-@ratelimit(key='ip', rate='1/m', block=settings.RATELIMIT_BLOCK)
-@auth
-@api_view(['POST'])
-def send_phone_code(request):
-    # 目前只有绑定手机时会用到短信
-    email = request.session.get('email')
-    try:
-        user = User.objects.get(email=email, is_active=True)
-        if user.phone:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
-
-    phone = request.data.get('phone', '')
-    if not re.match(r'^1[3456789]\d{9}$', phone):
-        return JsonResponse(dict(code=400, msg='手机号有误'))
-
-    # Todo: 这时不应该计入请求次数
-    if User.objects.filter(phone=phone, is_active=True).count() > 0:
-        return JsonResponse(dict(code=400, msg='该手机号已绑定其他账号'))
-
-    code = ''.join(random.sample(string.digits, 6))
-    if send_message(phone, code):
-        cache.set(phone, code, timeout=settings.PHONE_CODE_EXPIRE)
-        return JsonResponse(dict(code=200, msg='验证码发送成功'))
-    return JsonResponse(dict(code=500, msg='验证码发送失败'))
-
-
 @api_view(['GET', 'POST'])
 def wx(request):
     """
@@ -421,36 +392,32 @@ def wx(request):
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
             content = '你好，欢迎关注源自开发者！' \
-                      '\n\n每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享'
+                      '\n\n每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享' \
+                      '\n\n在线资源下载平台：https://resium.cn'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
         elif isinstance(msg, UnsubscribeEvent):
-            ding('公众号关注 -1')
+            try:
+                user = User.objects.get(wx_openid=msg.source)
+                user.wx_openid = None
+                user.save()
+                ding(f'源自下载用户{user.email}取消关注公众号')
+            except User.DoesNotExist:
+                ding('公众号关注 -1')
 
         # 文本消息
         elif isinstance(msg, TextMessage):
             msg_content = msg.content.strip()
-            email_password = msg_content.split(' ')
-            if len(msg_content.split(' ')) == 2:
-                email = email_password[0]
-                password = email_password[1]
+            if len(msg_content.split('.')) == 3:
                 try:
-                    user = User.objects.get(email=email, is_active=True)
-                    if not user.phone:
-                        content = '账号未绑定手机号'
-                    elif user.wx_openid:
+                    user = User.objects.get(uid=msg_content, is_active=True)
+                    if user.wx_openid:
                         content = f'该账号已被微信绑定'
-                    elif check_password(password, user.password):
-                        try:
-                            u = User.objects.get(wx_openid=msg.source)
-                            content = f'该微信已绑定账号{u.email}'
-                        except User.DoesNotExist:
-                            user.wx_openid = msg.source
-                            user.save()
-                            content = '账号绑定成功'
                     else:
-                        content = '邮箱或密码不正确'
+                        user.wx_openid = msg.source
+                        user.save()
+                        content = '账号绑定成功'
                 except User.DoesNotExist:
                     content = '用户不存在'
                 reply = TextReply(content=content, message=msg)
@@ -460,8 +427,8 @@ def wx(request):
                     if user.has_check_in_today:
                         content = '今日已签到'
                     else:
-                        random_points = [1]
-                        point = random.choice(random_points)
+                        points = [1, 2, 3]
+                        point = random.choice(points)
                         user.point += point
                         user.has_check_in_today = True
                         user.save()
@@ -477,93 +444,6 @@ def wx(request):
         return HttpResponse(encrypted_xml, content_type="text/xml")
     else:
         return HttpResponse('')
-
-
-@auth
-@api_view(['POST'])
-def bind_phone(request):
-    email = request.session.get('email')
-    try:
-        user = User.objects.get(email=email, is_active=True)
-        if user.phone:
-            return JsonResponse(dict(code=400, msg='该账号已绑定手机号'))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
-
-    phone = request.data.get('phone', None)
-    code = request.data.get('code', None)
-    cache_code = cache.get(phone)
-    if code != cache_code:
-        return JsonResponse(dict(code=400, msg='验证码错误'))
-
-    cache.delete(phone)
-    user.phone = phone
-    user.save()
-    return JsonResponse(dict(code=200, msg='手机号绑定成功', user=UserSerializers(user).data))
-
-
-@auth
-@api_view(['POST'])
-def send_qq_code(request):
-    """
-    发送qq验证码
-    """
-
-    qq = request.data.get('qq', None)
-    if not qq:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    email = request.session.get('email')
-    try:
-        user = User.objects.get(email=email, is_active=True)
-        if user.qq:
-            return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
-
-        code = ''.join(random.sample(string.digits, 6))
-        payload = {
-            'user_id': int(qq),
-            'message': code
-        }
-        with requests.post(settings.COOLQ_API + '/send_private_msg',
-                           data=payload,
-                           headers=settings.COOLQ_AUTH_HEADERS) as _:
-            if _.status_code == requests.codes.OK and _.json()['status'] == 'ok':
-                cache.set(qq, code, settings.QQ_CODE_EXPIRE)
-                return JsonResponse(dict(code=200, msg='QQ验证码发送成功'))
-            else:
-                if _.json()['retcode'] == -23:
-                    return JsonResponse(dict(code=500, msg='请检查QQ是否输入正确'))
-                logging.info(_.json())
-                return JsonResponse(dict(code=500, msg='请先添加QQ342430384为好友'))
-
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='未认证'))
-
-
-@auth
-@api_view(['POST'])
-def bind_qq(request):
-    qq = request.data.get('qq', None)
-    code = request.data.get('code', None)
-    if not qq or not code:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    email = request.session.get('email')
-    try:
-        user = User.objects.get(email=email, is_active=True)
-        if not user.phone:  # 没有绑定手机号，不允许绑定qq
-            return JsonResponse(dict(code=4000, msg='请先进行绑定手机号'))
-        if not user.can_download:  # 没有邀请码，不允许绑定qq
-            return JsonResponse(dict(code=400, msg='该账号不支持绑定QQ'))
-        if user.qq:
-            return JsonResponse(dict(code=400, msg='该账号已绑定QQ'))
-
-        user.qq = int(qq)
-        user.save()
-        return JsonResponse(dict(code=200, msg='QQ绑定成功', user=UserSerializers(user).data))
-
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='未认证'))
 
 
 @api_view(['POST'])

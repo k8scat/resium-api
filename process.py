@@ -9,16 +9,18 @@
 """
 import os
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
 django.setup()
 
-from downloader.models import DocerPreviewImage
+from downloader.models import User
 from downloader.utils import *
-from django.core.cache import cache
 
 
 if __name__ == '__main__':
-    Resource.objects.filter(url__icontains='docer.com').update(desc='')
+    for user in User.objects.all():
+        uid = f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
+        user.uid = uid
+        user.save()
 
 
 

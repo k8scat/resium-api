@@ -72,6 +72,13 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
 * [ ] 管理员上传资源，通过qq分享到群里
+* [ ] 废弃手机绑定
+* [ ] https://converter.baidu.com/?origin=wenkuConverterOther
+* [ ] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
+* [ ] 公众号添加百度文库VIP免费文档下载功能
+* [ ] 第三方登录必然是相当于新账号注册，所以需要添加账号注销（也就是添加字段is_delete），以及已注册账号关联第三方账号
+* [ ] github gitee第三方登录
+* [ ] 前后端同时需要添加正则匹配的问题，考虑仅在后端进行判断
 
 ## CoolQ
 

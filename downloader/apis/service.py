@@ -35,6 +35,7 @@ def list_points(request):
         'zhiwang': settings.ZHIWANG_POINT,
         'docer': settings.DOCER_POINT,
         'oss_resource': settings.OSS_RESOURCE_POINT,
-        'article': settings.ARTICLE_POINT
+        'article': settings.ARTICLE_POINT,
+        'qiantu': settings.QIANTU_POINT
     }
     return JsonResponse(dict(code=200, points=points))

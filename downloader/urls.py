@@ -10,12 +10,7 @@ from downloader.apis import user, service, order, resource, advert, coupon, acco
     oauth
 
 
-def trigger_error(request):
-    division_by_zero = 1 / 0
-
-
 urlpatterns = [
-    path('sentry-debug/', trigger_error),
     path('login/', user.login),
     path('register/', user.register),
     re_path(r'^activate/?$', user.activate),
@@ -25,10 +20,6 @@ urlpatterns = [
     re_path(r'^wx/?$', user.wx),
     path('change_nickname/', user.change_nickname),
     path('get_user/', user.get_user),
-    path('send_phone_code/', user.send_phone_code),
-    path('bind_phone/', user.bind_phone),
-    path('bind_qq/', user.bind_qq),
-    path('send_qq_code/', user.send_qq_code),
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
 
     path('list_services/', service.list_services),
@@ -70,9 +61,9 @@ urlpatterns = [
     path('get_article_count/', article.get_article_count),
     re_path(r'^get_article/?$', article.get_article),
 
-    path('bot/download/', bot.download),
-    path('bot/check_can_download/', bot.check_can_download),
     path('bot/set_user_can_download/', bot.set_user_can_download),
 
-    re_path(r'^oauth/qq/?$', oauth.qq)
+    re_path(r'^oauth/qq/?$', oauth.qq),
+    re_path(r'^oauth/github/?$', oauth.github),
+    re_path(r'^oauth/gitee/?$', oauth.gitee),
 ]

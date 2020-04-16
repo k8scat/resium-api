@@ -445,7 +445,7 @@ def get_driver(folder='', load_images=False):
 
 def save_resource(resource_url, filename, filepath,
                   resource_info, user, account=None, wenku_type=None,
-                  is_docer_vip_doc=False, ret_url=False):
+                  is_docer_vip_doc=False):
     """
     保存资源记录并上传到OSS
 
@@ -457,7 +457,6 @@ def save_resource(resource_url, filename, filepath,
     :param account: 使用的会员账号
     :param wenku_type: 百度文库文档类型
     :param is_docer_vip_doc: 是否是稻壳VIP模板
-    :param ret_url: 是否返回数据
     :return:
     """
 
@@ -496,9 +495,6 @@ def save_resource(resource_url, filename, filepath,
 
         t = Thread(target=upload_csdn_resource, args=(resource,))
         t.start()
-
-        if ret_url:
-            return aliyun_oss_sign_url(key)
 
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',

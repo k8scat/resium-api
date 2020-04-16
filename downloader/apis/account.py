@@ -122,3 +122,8 @@ def reset_csdn_today_download_count(request):
             ding('[CSDN] 今日下载数已重置',
                  used_account=csdn_account.email)
     return HttpResponse('')
+
+
+@api_view(['POST'])
+def check_qiantu_cookies(request):
+    pass
