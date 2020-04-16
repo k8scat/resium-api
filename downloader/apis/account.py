@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view
 from django.conf import settings
 from django.http import HttpResponse
 
-from downloader.models import DocerAccount, CsdnAccount, BaiduAccount
+from downloader.models import DocerAccount, CsdnAccount, BaiduAccount, QiantuAccount
 from downloader.utils import ding, get_random_ua
 
 
@@ -126,4 +126,18 @@ def reset_csdn_today_download_count(request):
 
 @api_view(['POST'])
 def check_qiantu_cookies(request):
-    pass
+    qiantu_accounts = QiantuAccount.objects.all()
+    for qiantu_account in qiantu_accounts:
+        headers = {
+            'cookie': qiantu_account.cookies,
+            'user-agent': get_random_ua()
+        }
+        with requests.get('https://www.58pic.com/', headers=headers) as r:
+            if r.status_code == requests.codes.OK:
+                if r.text.count('NCU程序媛') > 0:
+                    ding('[千图网] Cookies仍有效',
+                         used_account=qiantu_account.email)
+                else:
+                    ding('[千图网] Cookies已失效, 请尽快更新！',
+                         used_account=qiantu_account.email)
+    return HttpResponse('')

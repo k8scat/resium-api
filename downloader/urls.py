@@ -35,6 +35,7 @@ urlpatterns = [
     re_path(r'^check_baidu_cookies/?$', account.check_baidu_cookies),
     re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
     re_path(r'^check_docer_cookies/?$', account.check_docer_cookies),
+    re_path(r'^check_qiantu_cookies/?$', account.check_qiantu_cookies),
     re_path(r'^reset_csdn_today_download_count/?$', account.reset_csdn_today_download_count),
 
     path('list_download_records/', download_record.list_download_records),

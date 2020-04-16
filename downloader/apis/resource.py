@@ -203,7 +203,7 @@ class CsdnResource(BaseResource):
                 if resp.get('message', None) == '当前资源不开放下载功能':
                     return 400, 'CSDN未开放该资源的下载功能'
                 elif resp.get('message', None) == '短信验证':
-                    return 500, '此次下载存在需要验证，请联系管理员'
+                    return 500, '此次下载存在风险，请联系管理员'
 
                 ding('[CSDN] 下载失败',
                      error=resp,
