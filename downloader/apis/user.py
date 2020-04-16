@@ -5,25 +5,11 @@
 @date: 2020/2/9
 
 """
-import datetime
 import hashlib
 import logging
 import random
-import string
-import time
-import uuid
-from urllib.parse import quote
-
-import jwt
 from django.conf import settings
-from django.contrib.auth.hashers import check_password, make_password
-from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import redirect
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from faker import Faker
-from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -42,7 +28,7 @@ from downloader.utils import ding
 def get_user(request):
     uid = request.session.get('uid')
     try:
-        user = User.objects.get(uid=uid, is_active=True)
+        user = User.objects.get(uid=uid)
         return JsonResponse(dict(code=200, user=UserSerializers(user).data))
     except User.DoesNotExist:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -184,7 +170,7 @@ def wx(request):
             msg_content = msg.content.strip()
             if len(msg_content.split('.')) == 3:
                 try:
-                    user = User.objects.get(uid=msg_content, is_active=True)
+                    user = User.objects.get(uid=msg_content)
                     if user.wx_openid:
                         content = f'该账号已被微信绑定'
                     else:
