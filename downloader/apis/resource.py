@@ -1047,8 +1047,6 @@ def download(request):
         # 新增下载记录
         DownloadRecord(user=user,
                        resource=oss_resource,
-                       download_device=user.login_device,
-                       download_ip=user.login_ip,
                        used_point=point).save()
         # 更新用户积分
         user.point -= point
@@ -1158,8 +1156,6 @@ def oss_download(request):
 
     DownloadRecord.objects.create(user=user,
                                   resource=oss_resource,
-                                  download_device=user.login_device,
-                                  download_ip=user.login_ip,
                                   used_point=settings.OSS_RESOURCE_POINT)
 
     # 更新用户积分
