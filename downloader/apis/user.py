@@ -8,6 +8,10 @@
 import hashlib
 import logging
 import random
+import re
+import string
+import uuid
+
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
@@ -18,9 +22,9 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User
+from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article
 from downloader.serializers import UserSerializers
-from downloader.utils import ding
+from downloader.utils import ding, send_email
 
 
 @auth
@@ -195,6 +199,51 @@ def wx(request):
                 except User.DoesNotExist:
                     content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
+
+            elif re.match(r'^.+@.+\..+', msg_content):  # 发送邮箱验证码
+                try:
+                    email = msg_content
+                    user = User.objects.get(email=email)
+                    code = str(uuid.uuid1()).replace('-', '')
+                    user.code = code
+                    user.save()
+                    try:
+                        send_email('[源自下载] 账号迁移', f'迁移码：{code}', email)
+                        content = '迁移码已发送至您的邮箱，请注意查收！部分邮件服务商可能会将系统邮件当作垃圾邮件, 请注意检查！'
+                    except Exception as e:
+                        ding('迁移码邮件发送失败',
+                             error=e,
+                             used_account=email,
+                             logger=logging.error)
+                        content = '邮件发送失败，请重新尝试或联系管理员！'
+                except User.DoesNotExist:
+                    content = '账号不存在'
+                reply = TextReply(content=content, message=msg)
+
+            elif len(msg_content.split(' ')) == 2:
+                uid = msg_content.split(' ')[0]
+                if re.match(r'.+\..+\..+', uid):
+                    code = msg_content.split(' ')[1]
+                    try:
+                        new_user = User.objects.get(uid=uid)
+                        try:
+                            old_user = User.objects.get(code=code)
+                            new_user.point += old_user.point
+                            new_user.used_point += old_user.used_point
+                            new_user.save()
+                            Order.objects.filter(user=old_user).update(user=new_user)
+                            DownloadRecord.objects.filter(user=old_user, is_deleted=False).update(user=new_user)
+                            Resource.objects.filter(user=old_user).update(user=new_user)
+                            ResourceComment.objects.filter(user=old_user).update(user=new_user)
+                            DwzRecord.objects.filter(user=old_user).update(user=new_user)
+                            Article.objects.filter(user=old_user).update(user=new_user)
+                            content = '账号迁移成功'
+                        except User.DoesNotExist:
+                            content = '旧账号不存在'
+                    except User.DoesNotExist:
+                        content = '新账号不存在'
+
+                    reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
         ret_xml = reply.render()

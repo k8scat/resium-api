@@ -7,7 +7,7 @@ from downloader.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'point', 'used_point', 'login_time')
+    list_display = ('id', 'point', 'used_point', 'login_time')
     list_per_page = 50
 
 

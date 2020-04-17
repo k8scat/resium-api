@@ -6,6 +6,7 @@
 
 """
 import base64
+import datetime
 import hashlib
 import hmac
 import json
@@ -21,6 +22,7 @@ from threading import Thread
 from urllib import parse
 
 import alipay
+import jwt
 import requests
 from django.conf import settings
 
@@ -808,3 +810,17 @@ def get_long_url(url):
             ding('[短网址] 生成失败',
                  error=r.text)
             return None
+
+
+def generate_uid():
+    return f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
+
+
+def generate_jwt(sub):
+    # 设置token过期时间
+    exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+    payload = {
+        'exp': exp,
+        'sub': sub
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()

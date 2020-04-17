@@ -13,7 +13,6 @@ class User(Base):
     uid = models.CharField(max_length=100, verbose_name='用户的唯一标识')
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     avatar_url = models.CharField(max_length=240, verbose_name='头像地址')
-    email = models.EmailField(verbose_name='邮箱', default=None, null=True)
     point = models.IntegerField(default=0, verbose_name='下载积分')
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
@@ -21,6 +20,12 @@ class User(Base):
     qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True)
+    github_id = models.IntegerField(default=None, null=True, unique=True)
+    gitee_id = models.IntegerField(default=None, null=True, unique=True)
+
+    # 废弃的字段
+    email = models.EmailField(verbose_name='邮箱', default=None, null=True)
+    code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
 
     class Meta:
         db_table = 'user'

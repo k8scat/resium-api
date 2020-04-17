@@ -49,3 +49,7 @@ RATELIMIT_BLOCK = False
 
 from . import prod
 ALIPAY_APP_NOTIFY_URL = prod.RESIUM_API + '/alipay_notify/'
+
+COOKIE_DOMAIN = 'localhost'
+
+DEV_UID = '6feb03847f9311eab478a0999b0715d5.1587008180.2814999'

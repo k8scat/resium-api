@@ -293,3 +293,15 @@ BAIDU_DWZ_TOKEN = '599899227931471a4e48c50e92495880'
 # https://connect.qq.com/manage.html#/appinfo/web/101864025
 QQ_CLIENT_ID = '101864025'
 QQ_CLIENT_SECRET = 'be9503e910cd150287453f0a0bcce9bc'
+QQ_REDIRECT_URI = 'https://api.resium.cn/oauth/qq'
+
+# https://github.com/settings/applications/1269223
+GITHUB_CLIENT_ID = 'd91f5182093a379e63b7'
+GITHUB_CLIENT_SECRET = '4ada14d10f0af0c77e7ea50e34f73fe29a26ce2a'
+
+# https://gitee.com/api/v5/oauth_doc#/
+GITEE_CLIENT_ID = '77b39c9e80ef1a308c1f684c954b20f6b0820f84a0624490e9741c44ba8e30f4'
+GITEE_CLIENT_SECRET = 'e4f814cff8d0a9684a9daac4b1c0c5e8d7f8775f9706cda1b5ecd3ec03006903'
+GITEE_REDIRECT_URI = 'https://api.resium.cn/oauth/gitee/'
+
+JWT_COOKIE_KEY = 'token'
