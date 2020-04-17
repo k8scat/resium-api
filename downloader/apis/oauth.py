@@ -198,8 +198,8 @@ def gitee(request):
                                                avatar_url=avatar_url, nickname=nickname,
                                                login_time=login_time)
 
-        if user:
-            token = generate_jwt(user.uid)
-            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+                if user:
+                    token = generate_jwt(user.uid)
+                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
