@@ -316,76 +316,114 @@ class WenkuResource(BaseResource):
         if self.user.point < point:
             return 400, '积分不足，请进行捐赠'
 
-        try:
-            baidu_account = BaiduAccount.objects.get(is_enabled=True)
-        except BaiduAccount.DoesNotExist:
-            ding('没有可用的百度文库账号',
-                 uid=self.user.uid,
-                 resource_url=self.url)
-            return 500, '下载失败'
+        # 更新用户积分
+        self.user.point -= point
+        self.user.used_point += point
+        self.user.save()
+
         driver = get_driver(self.unique_folder)
+        account = None
         try:
-            driver.get('https://www.baidu.com/')
-            # 添加cookies
-            cookies = json.loads(baidu_account.cookies)
-            for cookie in cookies:
-                if 'expiry' in cookie:
-                    del cookie['expiry']
-                driver.add_cookie(cookie)
-            driver.get(self.url)
             wenku_type = resource['wenku_type']
-            if wenku_type == 'VIP免费文档':
-                baidu_account.vip_free_count += 1
-            elif wenku_type == 'VIP专项文档':
-                baidu_account.special_doc_count += 1
-            elif wenku_type == '共享文档':
-                baidu_account.share_doc_count += 1
-
-            # 更新用户积分
-            self.user.point -= point
-            self.user.used_point += point
-            self.user.save()
-            baidu_account.save()
-
-            # 显示下载对话框的按钮
-            show_download_modal_button = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
-            )
-            show_download_modal_button.click()
-            # 下载按钮
-            try:
-                # 首次下载
-                download_button = WebDriverWait(driver, 3).until(
+            if wenku_type == '共享文档':
+                account = random.choice(TaobaoWenkuAccount.objects.filter(is_enabled=True).all())
+                driver.get('http://doc110.com/#/login/')
+                account_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
-                )
-                # 取消转存网盘
-                cancel_wp_upload_check = WebDriverWait(driver, 3).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
-                )
-                cancel_wp_upload_check.click()
-                download_button.click()
-            except TimeoutException:
-                if wenku_type != 'VIP专享文档':
-                    # 已转存过此文档
-                    download_button = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.ID, 'WkDialogOk'))
+                        (By.XPATH, "(//input[@type='text'])[2]")
                     )
-                    download_button.click()
-                else:
-                    ding('百度文库下载失败',
+                )
+                account_input.send_keys(account.account)
+                password_input = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "(//input[@type='password'])[2]")
+                    )
+                )
+                password_input.send_keys(account.password)
+                login_button = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "(//a[contains(text(),'立即登陆')])[2]")
+                    )
+                )
+                login_button.click()
+
+                url_input = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='is-accept']/input[@class='input']")
+                    )
+                )
+                url_input.send_keys(self.url)
+
+                download_button = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='is-accept']/a[@class='btn-lg'][1]")
+                    )
+                )
+                download_button.click()
+            else:
+                try:
+                    account = BaiduAccount.objects.get(is_enabled=True)
+                except BaiduAccount.DoesNotExist:
+                    ding('没有可用的百度文库账号',
                          uid=self.user.uid,
-                         used_account=baidu_account.email,
-                         resource_url=self.url,
-                         logger=logging.error)
+                         resource_url=self.url)
                     return 500, '下载失败'
+
+                driver.get('https://www.baidu.com/')
+                # 添加cookies
+                cookies = json.loads(account.cookies)
+                for cookie in cookies:
+                    if 'expiry' in cookie:
+                        del cookie['expiry']
+                    driver.add_cookie(cookie)
+                driver.get(self.url)
+                wenku_type = resource['wenku_type']
+                if wenku_type == 'VIP免费文档':
+                    account.vip_free_count += 1
+                elif wenku_type == 'VIP专项文档':
+                    account.special_doc_count += 1
+                account.save()
+
+                # 显示下载对话框的按钮
+                show_download_modal_button = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
+                )
+                show_download_modal_button.click()
+                # 下载按钮
+                try:
+                    # 首次下载
+                    download_button = WebDriverWait(driver, 3).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
+                    )
+                    # 取消转存网盘
+                    cancel_wp_upload_check = WebDriverWait(driver, 3).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
+                    )
+                    cancel_wp_upload_check.click()
+                    download_button.click()
+                except TimeoutException:
+                    if wenku_type != 'VIP专享文档':
+                        # 已转存过此文档
+                        download_button = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((By.ID, 'WkDialogOk'))
+                        )
+                        download_button.click()
+                    else:
+                        ding('百度文库下载失败',
+                             uid=self.user.uid,
+                             used_account=account.email,
+                             resource_url=self.url,
+                             logger=logging.error)
+                        return 500, '下载失败'
 
             filepath, filename = check_download(self.save_dir)
 
             # 保存资源
             t = Thread(target=save_resource,
                        args=(self.url, filename, filepath, resource, self.user),
-                       kwargs={'account': baidu_account.email, 'wenku_type': wenku_type})
+                       kwargs={'account': account.email if isinstance(account, BaiduAccount) else account.account,
+                               'wenku_type': wenku_type})
             t.start()
 
             return 200, dict(filename=filename, filepath=filepath)
@@ -393,12 +431,11 @@ class WenkuResource(BaseResource):
             ding('[百度文库] 下载失败',
                  error=e,
                  uid=self.user.uid,
-                 used_account=baidu_account.email,
+                 used_account=account.email if isinstance(account, BaiduAccount) else account.account,
                  resource_url=self.url)
             return 500, '下载失败'
-
         finally:
-            driver.quit()
+            driver.close()
 
 
 class DocerResource(BaseResource):
