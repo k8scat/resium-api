@@ -22,7 +22,7 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article
+from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email
 
@@ -239,6 +239,8 @@ def wx(request):
                             ResourceComment.objects.filter(user=old_user).update(user=new_user)
                             DwzRecord.objects.filter(user=old_user).update(user=new_user)
                             Article.objects.filter(user=old_user).update(user=new_user)
+                            Coupon.objects.filter(user=old_user).update(user=new_user)
+                            old_user.delete()
                             content = '账号迁移成功'
                         except User.DoesNotExist:
                             content = '旧账号不存在'

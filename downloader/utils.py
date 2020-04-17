@@ -478,7 +478,7 @@ def save_resource(resource_url, filename, filepath,
         # django的CharField可以直接保存list，会自动转成str
         resource = Resource.objects.create(title=resource_info['title'], filename=filename, size=size,
                                            url=resource_url, key=key, tags=settings.TAG_SEP.join(resource_info['tags']),
-                                           file_md5=file_md5, desc=resource_info['desc'], user_id=1,
+                                           file_md5=file_md5, desc=resource_info['desc'], user=user,
                                            wenku_type=wenku_type,
                                            is_docer_vip_doc=is_docer_vip_doc, local_path=filepath)
         DownloadRecord(user=user,
