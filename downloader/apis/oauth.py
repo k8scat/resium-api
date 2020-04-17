@@ -66,40 +66,49 @@ def qq(request):
                     params = {
                         'access_token': access_token
                     }
-                    with requests.get('https://graph.qq.com/oauth2.0/me', params=params) as get_openid_resp:
-                        # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
-                        if get_openid_resp.status_code == requests.codes.OK:
-                            if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
-                                qq_openid = get_openid_resp.text.split('","openid":"')[1].split('"')[0]
-                                params = {
-                                    'access_token': access_token,
-                                    'oauth_consumer_key': settings.QQ_CLIENT_ID,
-                                    'openid': qq_openid
-                                }
-                                with requests.get('https://graph.qq.com/user/get_user_info',
-                                                  params=params) as get_user_info_resp:
-                                    if get_user_info_resp.status_code == requests.codes.OK:
-                                        data = get_user_info_resp.json()
-                                        if data['ret'] == 0:
-                                            nickname = data['nickname']
-                                            avatar_url = data['figureurl_2']
-                                            uid = generate_uid()
-                                            login_time = datetime.datetime.now()
-                                            try:
-                                                user = User.objects.get(qq_openid=qq_openid)
-                                                user.nickname = nickname
-                                                user.avatar_url = avatar_url
-                                                user.login_time = login_time
-                                                user.save()
-                                            except User.DoesNotExist:
-                                                user = User.objects.create(uid=uid, qq_openid=qq_openid,
-                                                                           nickname=nickname, avatar_url=avatar_url,
-                                                                           login_time=login_time)
+                else:
+                    return response
+            else:
+                return response
 
-                                if user:
-                                    token = generate_jwt(user.uid)
-                                    # 设置cookie
-                                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+        with requests.get('https://graph.qq.com/oauth2.0/me', params=params) as get_openid_resp:
+            # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
+            if get_openid_resp.status_code == requests.codes.OK:
+                if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
+                    qq_openid = get_openid_resp.text.split('","openid":"')[1].split('"')[0]
+                    params = {
+                        'access_token': access_token,
+                        'oauth_consumer_key': settings.QQ_CLIENT_ID,
+                        'openid': qq_openid
+                    }
+                else:
+                    return response
+            else:
+                return response
+
+        with requests.get('https://graph.qq.com/user/get_user_info', params=params) as get_user_info_resp:
+            if get_user_info_resp.status_code == requests.codes.OK:
+                data = get_user_info_resp.json()
+                if data['ret'] == 0:
+                    nickname = data['nickname']
+                    avatar_url = data['figureurl_2']
+                    uid = generate_uid()
+                    login_time = datetime.datetime.now()
+                    try:
+                        user = User.objects.get(qq_openid=qq_openid)
+                        user.nickname = nickname
+                        user.avatar_url = avatar_url
+                        user.login_time = login_time
+                        user.save()
+                    except User.DoesNotExist:
+                        user = User.objects.create(uid=uid, qq_openid=qq_openid,
+                                                   nickname=nickname, avatar_url=avatar_url,
+                                                   login_time=login_time)
+
+                    if user:
+                        token = generate_jwt(user.uid)
+                        # 设置cookie
+                        response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 
@@ -122,29 +131,32 @@ def github(request):
                 headers = {
                     'Authorization': f'token {access_token}'
                 }
-                with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
-                    if get_user_resp.status_code == requests.codes.OK:
-                        # Refer: https://developer.github.com/v3/users/#get-a-single-user
-                        github_user = get_user_resp.json()
-                        github_id = github_user['id']
-                        nickname = github_user['login']
-                        avatar_url = github_user['avatar_url']
-                        login_time = datetime.datetime.now()
-                        try:
-                            user = User.objects.get(github_id=github_id)
-                            user.nickname = nickname
-                            user.avatar_url = avatar_url
-                            user.login_time = login_time
-                            user.save()
-                        except User.DoesNotExist:
-                            uid = generate_uid()
-                            user = User.objects.create(uid=uid, github_id=github_id,
-                                                       nickname=nickname, avatar_url=avatar_url,
-                                                       login_time=login_time)
+            else:
+                return response
 
-                if user:
-                    token = generate_jwt(user.uid)
-                    response.set_cookie(settings.JWT_COOKIE_KEY, token, settings.COOKIE_DOMAIN)
+        with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
+            if get_user_resp.status_code == requests.codes.OK:
+                # Refer: https://developer.github.com/v3/users/#get-a-single-user
+                github_user = get_user_resp.json()
+                github_id = github_user['id']
+                nickname = github_user['login']
+                avatar_url = github_user['avatar_url']
+                login_time = datetime.datetime.now()
+                try:
+                    user = User.objects.get(github_id=github_id)
+                    user.nickname = nickname
+                    user.avatar_url = avatar_url
+                    user.login_time = login_time
+                    user.save()
+                except User.DoesNotExist:
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, github_id=github_id,
+                                               nickname=nickname, avatar_url=avatar_url,
+                                               login_time=login_time)
+
+        if user:
+            token = generate_jwt(user.uid)
+            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 
@@ -168,23 +180,26 @@ def gitee(request):
                 params = {
                     'access_toke': access_token
                 }
-                with requests.get('https://gitee.com/api/v5/user', params=params) as get_user_resp:
-                    if get_user_resp.status_code == requests.codes.OK:
-                        gitee_user = get_user_resp.json()
-                        gitee_id = gitee_user['id']
-                        nickname = gitee_user['login']
-                        avatar_url = gitee_user['avatar_url']
-                        login_time = datetime.datetime.now()
-                        try:
-                            user = User.objects.get(gitee_id=gitee_id)
-                        except User.DoesNotExist:
-                            uid = generate_uid()
-                            user = User.objects.create(uid=uid, gitee_id=gitee_id,
-                                                       avatar_url=avatar_url, nickname=nickname,
-                                                       login_time=login_time)
+            else:
+                return response
 
-                if user:
-                    token = generate_jwt(user.uid)
-                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+        with requests.get('https://gitee.com/api/v5/user', params=params) as get_user_resp:
+            if get_user_resp.status_code == requests.codes.OK:
+                gitee_user = get_user_resp.json()
+                gitee_id = gitee_user['id']
+                nickname = gitee_user['login']
+                avatar_url = gitee_user['avatar_url']
+                login_time = datetime.datetime.now()
+                try:
+                    user = User.objects.get(gitee_id=gitee_id)
+                except User.DoesNotExist:
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, gitee_id=gitee_id,
+                                               avatar_url=avatar_url, nickname=nickname,
+                                               login_time=login_time)
+
+        if user:
+            token = generate_jwt(user.uid)
+            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
