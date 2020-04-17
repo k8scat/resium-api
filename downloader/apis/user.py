@@ -172,35 +172,8 @@ def wx(request):
         # 文本消息
         elif isinstance(msg, TextMessage):
             msg_content = msg.content.strip()
-            if len(msg_content.split('.')) == 3:
-                try:
-                    user = User.objects.get(uid=msg_content)
-                    if user.wx_openid:
-                        content = f'该账号已被微信绑定'
-                    else:
-                        user.wx_openid = msg.source
-                        user.save()
-                        content = '账号绑定成功'
-                except User.DoesNotExist:
-                    content = '用户不存在'
-                reply = TextReply(content=content, message=msg)
-            elif msg_content == '签到':
-                try:
-                    user = User.objects.get(wx_openid=msg.source)
-                    if user.has_check_in_today:
-                        content = '今日已签到'
-                    else:
-                        points = [1, 2, 3]
-                        point = random.choice(points)
-                        user.point += point
-                        user.has_check_in_today = True
-                        user.save()
-                        content = f'签到成功，获得{point}积分'
-                except User.DoesNotExist:
-                    content = '请先绑定账号'
-                reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^.+@.+\..+', msg_content):  # 发送邮箱验证码
+            if re.match(r'^.+@.+\..+', msg_content):  # 发送邮箱验证码
                 try:
                     email = msg_content
                     user = User.objects.get(email=email)
@@ -218,6 +191,35 @@ def wx(request):
                         content = '邮件发送失败，请重新尝试或联系管理员！'
                 except User.DoesNotExist:
                     content = '账号不存在'
+                reply = TextReply(content=content, message=msg)
+
+            elif re.match(r'.+\..+\..+', msg_content):
+                try:
+                    user = User.objects.get(uid=msg_content)
+                    if user.wx_openid:
+                        content = f'该账号已被微信绑定'
+                    else:
+                        user.wx_openid = msg.source
+                        user.save()
+                        content = '账号绑定成功'
+                except User.DoesNotExist:
+                    content = '用户不存在'
+                reply = TextReply(content=content, message=msg)
+
+            elif msg_content == '签到':
+                try:
+                    user = User.objects.get(wx_openid=msg.source)
+                    if user.has_check_in_today:
+                        content = '今日已签到'
+                    else:
+                        points = [1, 2, 3]
+                        point = random.choice(points)
+                        user.point += point
+                        user.has_check_in_today = True
+                        user.save()
+                        content = f'签到成功，获得{point}积分'
+                except User.DoesNotExist:
+                    content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
             elif len(msg_content.split(' ')) == 2:
