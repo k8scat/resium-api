@@ -132,32 +132,30 @@ def github(request):
                 headers = {
                     'Authorization': f'token {access_token}'
                 }
-            else:
-                return response
 
-        with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
-            if get_user_resp.status_code == requests.codes.OK:
-                # Refer: https://developer.github.com/v3/users/#get-a-single-user
-                github_user = get_user_resp.json()
-                github_id = github_user['id']
-                nickname = github_user['login']
-                avatar_url = github_user['avatar_url']
-                login_time = datetime.datetime.now()
-                try:
-                    user = User.objects.get(github_id=github_id)
-                    user.nickname = nickname
-                    user.avatar_url = avatar_url
-                    user.login_time = login_time
-                    user.save()
-                except User.DoesNotExist:
-                    uid = generate_uid()
-                    user = User.objects.create(uid=uid, github_id=github_id,
-                                               nickname=nickname, avatar_url=avatar_url,
-                                               login_time=login_time)
+                with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
+                    if get_user_resp.status_code == requests.codes.OK:
+                        # Refer: https://developer.github.com/v3/users/#get-a-single-user
+                        github_user = get_user_resp.json()
+                        github_id = github_user['id']
+                        nickname = github_user['login']
+                        avatar_url = github_user['avatar_url']
+                        login_time = datetime.datetime.now()
+                        try:
+                            user = User.objects.get(github_id=github_id)
+                            user.nickname = nickname
+                            user.avatar_url = avatar_url
+                            user.login_time = login_time
+                            user.save()
+                        except User.DoesNotExist:
+                            uid = generate_uid()
+                            user = User.objects.create(uid=uid, github_id=github_id,
+                                                       nickname=nickname, avatar_url=avatar_url,
+                                                       login_time=login_time)
 
-        if user:
-            token = generate_jwt(user.uid)
-            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+                        if user:
+                            token = generate_jwt(user.uid)
+                            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 
@@ -182,27 +180,25 @@ def gitee(request):
                 params = {
                     'access_token': access_token
                 }
-            else:
-                return response
 
-        with requests.get('https://gitee.com/api/v5/user', params=params) as get_user_resp:
-            logging.error(get_user_resp.text)
-            if get_user_resp.status_code == requests.codes.OK:
-                gitee_user = get_user_resp.json()
-                gitee_id = gitee_user['id']
-                nickname = gitee_user['login']
-                avatar_url = gitee_user['avatar_url']
-                login_time = datetime.datetime.now()
-                try:
-                    user = User.objects.get(gitee_id=gitee_id)
-                except User.DoesNotExist:
-                    uid = generate_uid()
-                    user = User.objects.create(uid=uid, gitee_id=gitee_id,
-                                               avatar_url=avatar_url, nickname=nickname,
-                                               login_time=login_time)
+                with requests.get('https://gitee.com/api/v5/user', params=params) as get_user_resp:
+                    logging.error(get_user_resp.text)
+                    if get_user_resp.status_code == requests.codes.OK:
+                        gitee_user = get_user_resp.json()
+                        gitee_id = gitee_user['id']
+                        nickname = gitee_user['login']
+                        avatar_url = gitee_user['avatar_url']
+                        login_time = datetime.datetime.now()
+                        try:
+                            user = User.objects.get(gitee_id=gitee_id)
+                        except User.DoesNotExist:
+                            uid = generate_uid()
+                            user = User.objects.create(uid=uid, gitee_id=gitee_id,
+                                                       avatar_url=avatar_url, nickname=nickname,
+                                                       login_time=login_time)
 
-                if user:
-                    token = generate_jwt(user.uid)
-                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+                        if user:
+                            token = generate_jwt(user.uid)
+                            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
