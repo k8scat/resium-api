@@ -66,49 +66,41 @@ def qq(request):
                     params = {
                         'access_token': access_token
                     }
-                else:
-                    return response
-            else:
-                return response
 
-        with requests.get('https://graph.qq.com/oauth2.0/me', params=params) as get_openid_resp:
-            # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
-            if get_openid_resp.status_code == requests.codes.OK:
-                if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
-                    qq_openid = get_openid_resp.text.split('","openid":"')[1].split('"')[0]
-                    params = {
-                        'access_token': access_token,
-                        'oauth_consumer_key': settings.QQ_CLIENT_ID,
-                        'openid': qq_openid
-                    }
-                else:
-                    return response
-            else:
-                return response
+                    with requests.get('https://graph.qq.com/oauth2.0/me', params=params) as get_openid_resp:
+                        # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
+                        if get_openid_resp.status_code == requests.codes.OK:
+                            if re.match(r'^callback\( {"client_id":".+","openid":".+"} \);$', get_openid_resp.text):
+                                qq_openid = get_openid_resp.text.split('","openid":"')[1].split('"')[0]
+                                params = {
+                                    'access_token': access_token,
+                                    'oauth_consumer_key': settings.QQ_CLIENT_ID,
+                                    'openid': qq_openid
+                                }
 
-        with requests.get('https://graph.qq.com/user/get_user_info', params=params) as get_user_info_resp:
-            if get_user_info_resp.status_code == requests.codes.OK:
-                data = get_user_info_resp.json()
-                if data['ret'] == 0:
-                    nickname = data['nickname']
-                    avatar_url = data['figureurl_2']
-                    uid = generate_uid()
-                    login_time = datetime.datetime.now()
-                    try:
-                        user = User.objects.get(qq_openid=qq_openid)
-                        user.nickname = nickname
-                        user.avatar_url = avatar_url
-                        user.login_time = login_time
-                        user.save()
-                    except User.DoesNotExist:
-                        user = User.objects.create(uid=uid, qq_openid=qq_openid,
-                                                   nickname=nickname, avatar_url=avatar_url,
-                                                   login_time=login_time)
+                                with requests.get('https://graph.qq.com/user/get_user_info', params=params) as get_user_info_resp:
+                                    if get_user_info_resp.status_code == requests.codes.OK:
+                                        data = get_user_info_resp.json()
+                                        if data['ret'] == 0:
+                                            nickname = data['nickname']
+                                            avatar_url = data['figureurl_2']
+                                            uid = generate_uid()
+                                            login_time = datetime.datetime.now()
+                                            try:
+                                                user = User.objects.get(qq_openid=qq_openid)
+                                                user.nickname = nickname
+                                                user.avatar_url = avatar_url
+                                                user.login_time = login_time
+                                                user.save()
+                                            except User.DoesNotExist:
+                                                user = User.objects.create(uid=uid, qq_openid=qq_openid,
+                                                                           nickname=nickname, avatar_url=avatar_url,
+                                                                           login_time=login_time)
 
-                    if user:
-                        token = generate_jwt(user.uid)
-                        # 设置cookie
-                        response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+                                            if user:
+                                                token = generate_jwt(user.uid)
+                                                # 设置cookie
+                                                response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 

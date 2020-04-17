@@ -57,8 +57,9 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 800m资源下载成功后，aliyun oss check失败
     解决方案：不check上传资源的完整性，默认上传OK
 * [ ] 语音验证码
-* [ ] qq 登录
+* [x] qq 登录
     https://connect.qq.com/manage.html#/appinfo/web/101864025
+    * [ ] 或许可以优化
 * [ ] 微云
     https://open.weiyun.com/api/twoa_restful_api.html
 * [ ] 百度文库pdf解析，类似于冰点文库
@@ -66,7 +67,10 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 会员账号自主接入，提现
 * [ ] 源自下载小程序
     https://git.cloudevops.cn/hsowan/resium-app
-* [ ] 淘宝文库账号接入
+* [x] 淘宝文库账号接入
+    暂时无法解决服务端返回的set-cookie
+    最终解决方案selenium
+    
     post http://doc110.com/login.php data {account: "6599362515", password: "9027855"}
     
     post http://doc110.com/post.php data {docUrl: "https://wenku.baidu.com/view/62c5485ed1d233d4b14e852458fb770bf68a3b76.html?from=search"}
@@ -74,14 +78,14 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
 * [ ] 管理员上传资源，通过qq分享到群里
-* [ ] 废弃手机绑定
+* [x] 废弃手机绑定
 * [ ] https://converter.baidu.com/?origin=wenkuConverterOther
 * [ ] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
 * [ ] 公众号添加百度文库VIP免费文档下载功能
 * [ ] 第三方登录必然是相当于新账号注册，所以需要添加账号注销（也就是添加字段is_delete），以及已注册账号关联第三方账号
-* [ ] github gitee第三方登录
+* [x] github gitee第三方登录
 * [ ] 前后端同时需要添加正则匹配的问题，考虑仅在后端进行判断
-* [ ] 短链接生成
+* [x] 短链接生成
     https://dwz.cn/
     https://console.bce.baidu.com/dwz/#/dwz/package/list
     https://dwz.cn/console/price
@@ -89,9 +93,10 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     例如: rd -resource url 就可以下载资源
 * [ ] 快速切换到更新服务器
 * [ ] session保存用户信息的问题
-* [ ] 302重定向或者303see other 设置cookies会丢失
+* [x] 302重定向或者303see other 设置cookies会丢失
     解决方案：添加cookie时设置domain
-* [ ] dingtalk + sentry
+* [x] dingtalk + sentry
+    解决方案：sentry + slack
 * [ ] 百度网盘开发平台
     https://pan.baidu.com/union
 
