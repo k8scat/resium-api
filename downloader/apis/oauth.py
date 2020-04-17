@@ -6,7 +6,6 @@
 
 """
 import datetime
-import logging
 import re
 
 import jwt
@@ -174,7 +173,6 @@ def gitee(request):
             'redirect_uri': settings.GITEE_REDIRECT_URI
         }
         with requests.post('https://gitee.com/oauth/token', params=params) as get_access_token_resp:
-            logging.error(get_access_token_resp.text)
             if get_access_token_resp.status_code == requests.codes.OK:
                 access_token = get_access_token_resp.json()['access_token']
                 params = {
@@ -182,7 +180,6 @@ def gitee(request):
                 }
 
                 with requests.get('https://gitee.com/api/v5/user', params=params) as get_user_resp:
-                    logging.error(get_user_resp.text)
                     if get_user_resp.status_code == requests.codes.OK:
                         gitee_user = get_user_resp.json()
                         gitee_id = gitee_user['id']

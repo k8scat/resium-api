@@ -222,7 +222,7 @@ def wx(request):
                     content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
-            elif len(msg_content.split(' ')) == 2:
+            elif re.match(r'^.+\..+\..+ .+$', msg_content):
                 uid = msg_content.split(' ')[0]
                 if re.match(r'.+\..+\..+', uid):
                     code = msg_content.split(' ')[1]
