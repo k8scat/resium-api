@@ -193,7 +193,7 @@ def wx(request):
                     content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'.+\..+\..+', msg_content):
+            elif re.match(r'^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+$', msg_content):
                 try:
                     user = User.objects.get(uid=msg_content)
                     if user.wx_openid:
@@ -203,7 +203,7 @@ def wx(request):
                         user.save()
                         content = '账号绑定成功'
                 except User.DoesNotExist:
-                    content = '用户不存在'
+                    content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
             elif msg_content == '签到':
@@ -222,7 +222,7 @@ def wx(request):
                     content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^.+\..+\..+ .+$', msg_content):
+            elif re.match(r'^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+ [a-z0-9]+$', msg_content):
                 uid = msg_content.split(' ')[0]
                 if re.match(r'.+\..+\..+', uid):
                     code = msg_content.split(' ')[1]
