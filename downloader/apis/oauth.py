@@ -180,7 +180,7 @@ def gitee(request):
             if get_access_token_resp.status_code == requests.codes.OK:
                 access_token = get_access_token_resp.json()['access_token']
                 params = {
-                    'access_toke': access_token
+                    'access_token': access_token
                 }
             else:
                 return response
