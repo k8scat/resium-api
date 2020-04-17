@@ -193,7 +193,7 @@ def wx(request):
                     content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+$', msg_content):  # 绑定公众号
+            elif re.match(r'^[a-z0-9]+\.\d+\.\d+$', msg_content):  # 绑定公众号
                 try:
                     user = User.objects.get(uid=msg_content)
                     if user.wx_openid:
@@ -222,7 +222,7 @@ def wx(request):
                     content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]+ [a-z0-9]+$', msg_content):  # 账号迁移
+            elif re.match(r'^[a-z0-9]+\.\d+\.\d+ [a-z0-9]+$', msg_content):  # 账号迁移
                 uid = msg_content.split(' ')[0]
                 if re.match(r'.+\..+\..+', uid):
                     code = msg_content.split(' ')[1]

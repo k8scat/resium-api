@@ -15,7 +15,7 @@ from downloader.models import User
 def set_user_can_download(request):
     token = request.data.get('token', None)
     uid = request.data.get('uid', None)
-    if not token or not uid or token != settings.BOT_TOKEN:
+    if token != settings.BOT_TOKEN or not uid:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
