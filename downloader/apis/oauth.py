@@ -6,6 +6,7 @@
 
 """
 import datetime
+import json
 import logging
 import re
 import time
@@ -266,7 +267,8 @@ def dingtalk(request):
         payload = {
             'tmp_auth_code': code
         }
-        with requests.post('https://oapi.dingtalk.com/sns/getuserinfo_bycode', data=payload, params=params, headers=headers) as get_user_resp:
+        with requests.post('https://oapi.dingtalk.com/sns/getuserinfo_bycode',
+                           data=json.dumps(payload), params=params, headers=headers) as get_user_resp:
             logging.error(get_user_resp.text)
             if get_user_resp.status_code == requests.codes.OK and get_user_resp.json()['errcode'] == 0:
                 dingtalk_user = get_user_resp.json()['user_info']
