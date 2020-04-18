@@ -211,7 +211,7 @@ def baidu(request):
             'code': code,
             'client_id': settings.BAIDU_CLIENT_ID,
             'client_secret': settings.BAIDU_CLIENT_SECRET,
-            'redirect_uri': parse.quote(settings.BAIDU_REDIRECT_URI)
+            'redirect_uri': settings.BAIDU_REDIRECT_URI
         }
         with requests.get('https://openapi.baidu.com/oauth/2.0/token', params=params) as get_access_token_resp:
             logging.error(get_access_token_resp.text)
