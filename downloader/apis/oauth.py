@@ -255,6 +255,9 @@ def dingtalk(request):
     code = request.GET.get('code', None)
     if code:
         timestamp = str(int(round(time.time() * 1000)))  # 当前时间戳，单位是毫秒
+        headers = {
+            'Content-Type': 'application/json'
+        }
         params = {
             'accessKey': settings.DINGTALK_APP_ID,
             'timestamp': timestamp,
@@ -263,7 +266,7 @@ def dingtalk(request):
         payload = {
             'tmp_auth_code': code
         }
-        with requests.post('https://oapi.dingtalk.com/sns/getuserinfo_bycode', data=payload, params=params) as get_user_resp:
+        with requests.post('https://oapi.dingtalk.com/sns/getuserinfo_bycode', data=payload, params=params, headers=headers) as get_user_resp:
             logging.error(get_user_resp.text)
             if get_user_resp.status_code == requests.codes.OK and get_user_resp.json()['errcode'] == 0:
                 dingtalk_user = get_user_resp.json()['user_info']
