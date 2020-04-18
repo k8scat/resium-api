@@ -92,6 +92,12 @@ class DwzRecordAdmin(admin.ModelAdmin):
     list_per_page = 50
 
 
+@admin.register(TaobaoWenkuAccount)
+class TaobaoWenkuAccountAdmin(admin.ModelAdmin):
+    list_display = ('id', 'is_enabled', 'account', 'password')
+    list_per_page = 50
+
+
 admin.site.site_header = '源自下载后台'
 admin.site.site_title = '源自下载后台'
 admin.site.site_url = settings.RESIUM_UI
