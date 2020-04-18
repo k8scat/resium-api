@@ -212,7 +212,6 @@ class DwzRecord(Base):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
     url = models.CharField(max_length=240, verbose_name='原网址')
     generated_url = models.CharField(max_length=240, verbose_name='生成的网址')
-    point = models.SmallIntegerField(default=0, verbose_name='消耗的积分')
 
     class Meta:
         db_table = 'dwz_record'

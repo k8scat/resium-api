@@ -99,6 +99,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     解决方案：sentry + slack
 * [ ] 百度网盘开发平台
     https://pan.baidu.com/union
+* [ ] 数据库集群
 
 ## CoolQ
 

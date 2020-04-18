@@ -80,6 +80,18 @@ class ArticleAdmin(admin.ModelAdmin):
     search_fields = ['title', 'url', 'author']
 
 
+@admin.register(CheckInRecord)
+class CheckInRecordAdmin(admin.ModelAdmin):
+    list_display = ('id', 'create_time', 'user', 'point')
+    list_per_page = 50
+
+
+@admin.register(DwzRecord)
+class DwzRecordAdmin(admin.ModelAdmin):
+    list_display = ('id', 'create_time', 'user', 'url', 'generated_url')
+    list_per_page = 50
+
+
 admin.site.site_header = '源自下载后台'
 admin.site.site_title = '源自下载后台'
 admin.site.site_url = settings.RESIUM_UI
