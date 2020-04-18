@@ -222,23 +222,22 @@ def baidu(request):
                         'access_token': access_token
                     }
                     with requests.get('https://openapi.baidu.com/rest/2.0/passport/users/getInfo', params=params) as get_user_resp:
-                        logging.error(get_user_resp.text)
                         if get_user_resp.status_code == requests.codes.OK:
                             baidu_user = get_user_resp.json()
-                            baidu_user_id = baidu_user.get('userid', None)
-                            if baidu_user_id:  # 表示获取信息成功
+                            baidu_openid = baidu_user.get('userid', None)
+                            if baidu_openid:  # 表示获取信息成功
                                 login_time = datetime.datetime.now()
                                 nickname = baidu_user['username']
                                 avatar_url = f'http://tb.himg.baidu.com/sys/portrait/item/{baidu_user["portrait"]}'
                                 try:
-                                    user = User.objects.get(baidu_user_id=baidu_user_id)
+                                    user = User.objects.get(baidu_openid=baidu_openid)
                                     user.nickname = nickname
                                     user.avatar_url = avatar_url
                                     user.login_time = login_time
                                     user.save()
                                 except User.DoesNotExist:
                                     uid = generate_uid()
-                                    user = User.objects.create(uid=uid, baidu_user_id=baidu_user_id,
+                                    user = User.objects.create(uid=uid, baidu_user_id=baidu_openid,
                                                                nickname=nickname, avatar_url=avatar_url,
                                                                login_time=login_time)
 
