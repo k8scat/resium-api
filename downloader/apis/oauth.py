@@ -8,6 +8,7 @@
 import datetime
 import logging
 import re
+from urllib import parse
 
 import jwt
 import requests
@@ -67,7 +68,6 @@ def qq(request):
                     params = {
                         'access_token': access_token
                     }
-
                     with requests.get('https://graph.qq.com/oauth2.0/me', params=params) as get_openid_resp:
                         # callback( {"client_id":"101864025","openid":"C0207FA138ECDA39D1504427C82C3001"} );
                         if get_openid_resp.status_code == requests.codes.OK:
@@ -205,46 +205,46 @@ def baidu(request):
     response = redirect(settings.RESIUM_UI)
 
     code = request.GET.get('code', None)
-    if not code:
-        return response
+    if code:
+        params = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'client_id': settings.BAIDU_CLIENT_ID,
+            'client_secret': settings.BAIDU_CLIENT_SECRET,
+            'redirect_uri': parse.quote(settings.BAIDU_REDIRECT_URI)
+        }
+        with requests.get('https://openapi.baidu.com/oauth/2.0/token', params=params) as get_access_token_resp:
+            logging.error(get_access_token_resp.text)
+            if get_access_token_resp.status_code == requests.codes.OK:
+                access_token = get_access_token_resp.json().get('access_token', None)
+                if access_token:
+                    params = {
+                        'access_token': access_token
+                    }
+                    with requests.get('https://openapi.baidu.com/rest/2.0/passport/users/getInfo', params=params) as get_user_resp:
+                        logging.error(get_user_resp.text)
+                        if get_user_resp.status_code == requests.codes.OK:
+                            baidu_user = get_user_resp.json()
+                            baidu_user_id = baidu_user.get('userid', None)
+                            if baidu_user_id:  # 表示获取信息成功
+                                login_time = datetime.datetime.now()
+                                nickname = baidu_user['username']
+                                avatar_url = f'http://tb.himg.baidu.com/sys/portrait/item/{baidu_user["portrait"]}'
+                                try:
+                                    user = User.objects.get(baidu_user_id=baidu_user_id)
+                                    user.nickname = nickname
+                                    user.avatar_url = avatar_url
+                                    user.login_time = login_time
+                                    user.save()
+                                except User.DoesNotExist:
+                                    uid = generate_uid()
+                                    user = User.objects.create(uid=uid, baidu_user_id=baidu_user_id,
+                                                               nickname=nickname, avatar_url=avatar_url,
+                                                               login_time=login_time)
 
-    params = {
-        'grant_type': 'authorization_code',
-        'code': code,
-        'client_id': settings.BAIDU_CLIENT_ID,
-        'client_secret': settings.BAIDU_CLIENT_SECRET,
-        'redirect_uri': settings.BAIDU_REDIRECT_URI
-    }
-    with requests.get('https://openapi.baidu.com/oauth/2.0/token', params=params) as get_access_token_resp:
-        if get_access_token_resp.status_code == requests.codes.OK:
-            access_token = get_access_token_resp.json().get('access_token', None)
-            if access_token:
-                params = {
-                    'access_token': access_token
-                }
-                with requests.get('https://openapi.baidu.com/rest/2.0/passport/users/getInfo', params=params) as get_user_resp:
-                    if get_user_resp.status_code == requests.codes.OK:
-                        baidu_user = get_user_resp.json()
-                        baidu_user_id = baidu_user.get('userid', None)
-                        if baidu_user_id:  # 表示获取信息成功
-                            login_time = datetime.datetime.now()
-                            nickname = baidu_user['username']
-                            avatar_url = f'http://tb.himg.baidu.com/sys/portrait/item/{baidu_user["portrait"]}'
-                            try:
-                                user = User.objects.get(baidu_user_id=baidu_user_id)
-                                user.nickname = nickname
-                                user.avatar_url = avatar_url
-                                user.login_time = login_time
-                                user.save()
-                            except User.DoesNotExist:
-                                uid = generate_uid()
-                                user = User.objects.create(uid=uid, baidu_user_id=baidu_user_id,
-                                                           nickname=nickname, avatar_url=avatar_url,
-                                                           login_time=login_time)
-
-                            if user:
-                                token = generate_jwt(user.uid)
-                                response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+                                if user:
+                                    token = generate_jwt(user.uid)
+                                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 
