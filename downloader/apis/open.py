@@ -34,7 +34,6 @@ def dwz(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=400, msg='未认证'))
 
-    point = 0
     if command == 'create':
         # 生成一年有效的短网址
         generated_url = get_short_url(url)
@@ -53,7 +52,7 @@ def dwz(request):
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    DwzRecord(user=user, url=url, generated_url=generated_url, point=point).save()
+    DwzRecord(user=user, url=url, generated_url=generated_url).save()
     return JsonResponse(dict(code=200, url=generated_url))
 
 
