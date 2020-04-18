@@ -109,6 +109,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     
     修改图片大小的工具：https://www.sojson.com/image/change.html
 * [ ] 下载失败清除用户redis uid
+* [ ] Django 时间、时区的问题
+    DwzRecord.objects.filter(user=user, create_time__day=datetime.date.today().day).count()
     
 ## CoolQ
 

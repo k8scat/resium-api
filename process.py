@@ -12,12 +12,17 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 
-from downloader.models import User, Order
+from downloader.models import User, Order, DwzRecord
 from downloader.utils import *
 
 
 if __name__ == '__main__':
-    Order.objects.filter(has_paid=False).update(is_deleted=True)
+    user = User.objects.get(qq_openid='C0207FA138ECDA39D1504427C82C3001')
+    print(datetime.date.today().day)
+    count = DwzRecord.objects.filter(user=user, create_time__day=datetime.date.today().day).count()
+    print(DwzRecord.objects.get(id=5).create_time)
+    print(datetime.datetime.now())
+    print(count)
 
 
 

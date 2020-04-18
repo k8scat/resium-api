@@ -5,6 +5,7 @@
 @date: 2020/4/16
 
 """
+import datetime
 import os
 import re
 import string
@@ -31,6 +32,9 @@ def dwz(request):
 
     try:
         user = User.objects.get(uid=uid)
+        if DwzRecord.objects.filter(user=user, create_time__day=datetime.date.today().day).count() >= 100:
+            return JsonResponse(dict(code=400, msg='今日请求数已达上限'))
+
     except User.DoesNotExist:
         return JsonResponse(dict(code=400, msg='未认证'))
 
@@ -52,7 +56,8 @@ def dwz(request):
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    DwzRecord(user=user, url=url, generated_url=generated_url).save()
+    # 手动设置create_time，保证时间
+    DwzRecord(create_time=datetime.datetime.now(), user=user, url=url, generated_url=generated_url).save()
     return JsonResponse(dict(code=200, url=generated_url))
 
 
