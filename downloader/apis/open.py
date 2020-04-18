@@ -15,6 +15,7 @@ from urllib import parse
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse, FileResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view
 
 from downloader.apis.resource import CsdnResource, WenkuResource, DocerResource, QiantuResource, ZhiwangResource
@@ -32,7 +33,7 @@ def dwz(request):
 
     try:
         user = User.objects.get(uid=uid)
-        if DwzRecord.objects.filter(user=user, create_time__day=datetime.date.today().day).count() >= 100:
+        if DwzRecord.objects.filter(user=user, create_time__day=timezone.now().day).count() >= 100:
             return JsonResponse(dict(code=400, msg='今日请求数已达上限'))
 
     except User.DoesNotExist:
@@ -56,8 +57,7 @@ def dwz(request):
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    # 手动设置create_time，保证时间
-    DwzRecord(create_time=datetime.datetime.now(), user=user, url=url, generated_url=generated_url).save()
+    DwzRecord(user=user, url=url, generated_url=generated_url).save()
     return JsonResponse(dict(code=200, url=generated_url))
 
 
