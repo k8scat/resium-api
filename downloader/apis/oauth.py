@@ -254,7 +254,7 @@ def dingtalk(request):
 
     code = request.GET.get('code', None)
     if code:
-        timestamp = int(round(time.time() * 1000))  # 当前时间戳，单位是毫秒
+        timestamp = str(int(round(time.time() * 1000)))  # 当前时间戳，单位是毫秒
         params = {
             'accessKey': settings.DINGTALK_APP_ID,
             'timestamp': timestamp,
