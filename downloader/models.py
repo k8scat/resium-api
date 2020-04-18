@@ -20,8 +20,9 @@ class User(Base):
     qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True)
-    github_id = models.IntegerField(default=None, null=True, unique=True)
-    gitee_id = models.IntegerField(default=None, null=True, unique=True)
+    github_id = models.IntegerField(default=None, null=True)
+    gitee_id = models.IntegerField(default=None, null=True)
+    baidu_user_id = models.IntegerField(default=None, null=True)
 
     # 废弃的字段
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)

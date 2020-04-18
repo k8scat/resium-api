@@ -57,9 +57,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 800m资源下载成功后，aliyun oss check失败
     解决方案：不check上传资源的完整性，默认上传OK
 * [ ] 语音验证码
-* [x] qq 登录
-    https://connect.qq.com/manage.html#/appinfo/web/101864025
-    * [ ] 或许可以优化
 * [ ] 微云
     https://open.weiyun.com/api/twoa_restful_api.html
 * [ ] 百度文库pdf解析，类似于冰点文库
@@ -100,7 +97,19 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 百度网盘开发平台
     https://pan.baidu.com/union
 * [ ] 数据库集群
-
+* [ ] OAuth
+    * [x] QQ https://connect.qq.com/manage.html#/appinfo/web/101864025
+        * [ ] 或许可以优化
+    * [x] GitHub
+    * [x] Gitee https://gitee.com/oauth/applications/3833
+    * [ ] OSC https://www.oschina.net/openapi/client
+    * [ ] renren http://app.renren.com/developers/newapp/600758/main
+    * [ ] sina https://open.weibo.com/developers/identity
+    * [ ] baidu http://developer.baidu.com/console#app/19467092
+    
+    修改图片大小的工具：https://www.sojson.com/image/change.html
+* [ ] 下载失败清除用户redis uid
+    
 ## CoolQ
 
 https://github.com/richardchien/coolq-http-api

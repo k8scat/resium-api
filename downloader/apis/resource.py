@@ -1098,27 +1098,14 @@ def download(request):
         user.used_point += point
         user.save()
 
-        # 生成临时下载地址
-        url = aliyun_oss_sign_url(oss_resource.key)
+        # 生成临时下载地址，10分钟有效
+        url = get_short_url(aliyun_oss_sign_url(oss_resource.key))
 
         # 更新资源的下载次数
         oss_resource.download_count += 1
         oss_resource.save()
 
         return JsonResponse(dict(code=200, url=url))
-
-    # 生成资源存放的唯一子目录
-    unique_folder = str(uuid.uuid1())
-    save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-    while True:
-        if os.path.exists(save_dir):
-            unique_folder = str(uuid.uuid1())
-            save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-        else:
-            os.mkdir(save_dir)
-            break
-    # 将资源存放的路径记录到日志
-    logging.info(f'资源[{resource_url}]保存路径: {save_dir}')
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
