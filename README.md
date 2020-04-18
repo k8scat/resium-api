@@ -98,6 +98,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://pan.baidu.com/union
 * [ ] 数据库集群
 * [ ] OAuth
+    https://gitee.com/yadong.zhang/JustAuth?_from=gitee_search
+
     * [x] QQ https://connect.qq.com/manage.html#/appinfo/web/101864025
         * [ ] 或许可以优化
     * [x] GitHub
@@ -106,6 +108,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [ ] renren http://app.renren.com/developers/newapp/600758/main
     * [ ] sina https://open.weibo.com/developers/identity
     * [x] baidu http://developer.baidu.com/console#app/19467092
+    * [ ] dingtalk https://ding-doc.dingtalk.com/doc#/serverapi2/kymkv6
+        https://oapi.dingtalk.com/connect/qrconnect?appid=dingoawbeug9zmphewuplb&response_type=code&scope=snsapi_login&state=success&redirect_uri=https://api.resium.cn/oauth/dingtalk/
     
     修改图片大小的工具：https://www.sojson.com/image/change.html
 * [ ] 下载失败清除用户redis uid

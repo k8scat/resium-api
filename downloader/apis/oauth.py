@@ -8,6 +8,7 @@
 import datetime
 import logging
 import re
+import time
 from urllib import parse
 
 import jwt
@@ -17,7 +18,7 @@ from django.shortcuts import redirect
 from rest_framework.decorators import api_view
 
 from downloader.models import User
-from downloader.utils import generate_uid, generate_jwt
+from downloader.utils import generate_uid, generate_jwt, get_ding_talk_signature
 
 
 @api_view()
@@ -247,4 +248,41 @@ def baidu(request):
     return response
 
 
+@api_view()
+def dingtalk(request):
+    response = redirect(settings.RESIUM_UI)
 
+    code = request.GET.get('code', None)
+    if code:
+        timestamp = str(time.time()).replace('.', '')[:-3]
+        params = {
+            'accessKey': settings.DINGTALK_APP_ID,
+            'timestamp': timestamp,
+            'signature': get_ding_talk_signature(settings.DINGTALK_APP_SECRET, timestamp)
+        }
+        payload = {
+            'tmp_auth_code': code
+        }
+        with requests.post('https://oapi.dingtalk.com/sns/getuserinfo_bycode', data=payload, params=params) as get_user_resp:
+            if get_user_resp.status_code == requests.codes.OK and get_user_resp.json()['errcode'] == 0:
+                dingtalk_user = get_user_resp.json()['user_info']
+                dingtalk_openid = dingtalk_user['openid']
+                nickname = dingtalk_user['nick']
+                login_time = datetime.datetime.now()
+                avatar_url = 'https://gw.alicdn.com/tfs/TB1H1qBb7yWBuNjy0FpXXassXXa-300-300.png'
+                try:
+                    user = User.objects.get(dingtalk_openid=dingtalk_openid)
+                    user.nickname = nickname
+                    user.login_time = login_time
+                    user.save()
+                except User.DoesNotExist:
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, dingtalk_openid=dingtalk_openid,
+                                               nickname=nickname, avatar_url=avatar_url,
+                                               login_time=login_time)
+
+                if user:
+                    token = generate_jwt(user.uid)
+                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+
+    return response

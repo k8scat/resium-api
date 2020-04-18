@@ -62,6 +62,7 @@ urlpatterns = [
     re_path(r'^oauth/github/?$', oauth.github),
     re_path(r'^oauth/gitee/?$', oauth.gitee),
     re_path(r'^oauth/baidu/?$', oauth.baidu),
+    re_path(r'^oauth/dingtalk/?$', oauth.dingtalk),
 
     path('open/dwz/', open.dwz),
     path('open/download/', open.download)

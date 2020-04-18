@@ -824,3 +824,19 @@ def generate_jwt(sub):
         'sub': sub
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
+
+
+def get_ding_talk_signature(app_secret, utc_timestamp):
+    """
+    https://www.cnblogs.com/zepc007/p/12154253.html
+
+    :param app_secret: 钉钉开发者文档创建的app密钥
+    :param utc_timestamp: 官方文档中要签名的数据，单位是毫秒时间戳
+    :return: 为所需要的签名值，此值为可逆的
+    """
+
+    digest = hmac.HMAC(key=app_secret.encode('utf8'),
+                       msg=utc_timestamp.encode('utf8'),
+                       digestmod=hmac._hashlib.sha256).digest()
+    signature = base64.standard_b64encode(digest).decode('utf8')
+    return signature
