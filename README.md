@@ -105,7 +105,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [ ] OSC https://www.oschina.net/openapi/client
     * [ ] renren http://app.renren.com/developers/newapp/600758/main
     * [ ] sina https://open.weibo.com/developers/identity
-    * [ ] baidu http://developer.baidu.com/console#app/19467092
+    * [x] baidu http://developer.baidu.com/console#app/19467092
     
     修改图片大小的工具：https://www.sojson.com/image/change.html
 * [ ] 下载失败清除用户redis uid

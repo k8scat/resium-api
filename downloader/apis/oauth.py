@@ -236,7 +236,7 @@ def baidu(request):
                                     user.save()
                                 except User.DoesNotExist:
                                     uid = generate_uid()
-                                    user = User.objects.create(uid=uid, baidu_user_id=baidu_openid,
+                                    user = User.objects.create(uid=uid, baidu_openid=baidu_openid,
                                                                nickname=nickname, avatar_url=avatar_url,
                                                                login_time=login_time)
 
