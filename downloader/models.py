@@ -23,6 +23,7 @@ class User(Base):
     github_id = models.IntegerField(default=None, null=True)
     gitee_id = models.IntegerField(default=None, null=True)
     baidu_openid = models.CharField(max_length=100, default=None, null=True)
+    dingtalk_openid = models.CharField(max_length=100, default=None, null=True)
 
     # 废弃的字段
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
