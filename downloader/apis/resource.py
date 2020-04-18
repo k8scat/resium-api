@@ -34,7 +34,6 @@ from downloader.decorators import auth
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers
 
 
-
 class BaseResource:
     def __init__(self, url, user):
         self.url = url
@@ -557,7 +556,8 @@ class DocerResource(BaseResource):
                             # 保存资源
                             t = Thread(target=save_resource,
                                        args=(self.url, filename, filepath, resource, self.user),
-                                       kwargs={'account': docer_account.email, 'is_docer_vip_doc': resource['is_docer_vip_doc']})
+                                       kwargs={'account': docer_account.email,
+                                               'is_docer_vip_doc': resource['is_docer_vip_doc']})
                             t.start()
 
                             return 200, dict(filepath=filepath, filename=filename)
@@ -1069,8 +1069,16 @@ def download(request):
     oss_resource = check_oss(resource_url)
     if oss_resource:
         point = request.data.get('point', None)
-        if not point:
+        if point is None or \
+                (re.match(settings.PATTERN_CSDN, resource_url) and point != settings.CSDN_POINT) or \
+                (re.match(settings.PATTERN_WENKU, resource_url) and point not in [settings.WENKU_SHARE_DOC_POINT,
+                                                                                  settings.WENKU_SPECIAL_DOC_POINT,
+                                                                                  settings.WENKU_VIP_FREE_DOC_POINT]) or \
+                (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
+                (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
+                (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
             return JsonResponse(dict(code=400, msg='错误的请求'))
+
         if user.point < point:
             return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
