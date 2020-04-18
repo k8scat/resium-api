@@ -211,10 +211,9 @@ def baidu(request):
             'code': code,
             'client_id': settings.BAIDU_CLIENT_ID,
             'client_secret': settings.BAIDU_CLIENT_SECRET,
-            'redirect_uri': settings.BAIDU_REDIRECT_URI
+            'redirect_uri': settings.BAIDU_REDIRECT_URI  # 前后端都不要urlencode，否则会报错：回调地址不正确
         }
         with requests.get('https://openapi.baidu.com/oauth/2.0/token', params=params) as get_access_token_resp:
-            logging.error(get_access_token_resp.text)
             if get_access_token_resp.status_code == requests.codes.OK:
                 access_token = get_access_token_resp.json().get('access_token', None)
                 if access_token:
@@ -224,7 +223,7 @@ def baidu(request):
                     with requests.get('https://openapi.baidu.com/rest/2.0/passport/users/getInfo', params=params) as get_user_resp:
                         if get_user_resp.status_code == requests.codes.OK:
                             baidu_user = get_user_resp.json()
-                            baidu_openid = baidu_user.get('userid', None)
+                            baidu_openid = baidu_user.get('openid', None)
                             if baidu_openid:  # 表示获取信息成功
                                 login_time = datetime.datetime.now()
                                 nickname = baidu_user['username']
