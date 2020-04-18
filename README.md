@@ -115,6 +115,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://www.jianshu.com/p/c1dee7d3cbb9
     timezone.now() UTC
     timezone.datetime.now() UTC+8
+* [ ] csdn账号当天下载量到达时，尝试自动切换
     
 ## CoolQ
 

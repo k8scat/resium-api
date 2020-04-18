@@ -133,7 +133,7 @@ class CsdnResource(BaseResource):
             ding('[CSDN] 没有可用账号',
                  uid=self.user.uid,
                  resource_url=self.url)
-            return 500, '下载失败'
+            return 500, '下载失败, '
 
         if resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
@@ -198,6 +198,12 @@ class CsdnResource(BaseResource):
                 if resp.get('message', None) == '当前资源不开放下载功能':
                     return 400, 'CSDN未开放该资源的下载功能'
                 elif resp.get('message', None) == '短信验证':
+                    ding('[CSDN] 下载失败',
+                         error=resp,
+                         uid=self.user.uid,
+                         resource_url=self.url,
+                         used_account=csdn_account.email,
+                         logger=logging.error)
                     return 500, '此次下载存在风险，请联系管理员'
 
                 ding('[CSDN] 下载失败',
