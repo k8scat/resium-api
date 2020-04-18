@@ -216,3 +216,8 @@ class DwzRecord(Base):
 
     class Meta:
         db_table = 'dwz_record'
+
+
+class CheckInRecord(Base):
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    point = models.SmallIntegerField(verbose_name='签到获得的积分')

@@ -22,7 +22,8 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon
+from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon, \
+    CheckInRecord
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email
 
@@ -212,8 +213,12 @@ def wx(request):
                     if user.has_check_in_today:
                         content = '今日已签到'
                     else:
-                        points = [1, 2, 3]
+                        # 随机获取积分
+                        points = [1, 2]
                         point = random.choice(points)
+                        # 保存签到记录
+                        CheckInRecord(user=user, point=point).save()
+                        # 更新用户积分
                         user.point += point
                         user.has_check_in_today = True
                         user.save()
