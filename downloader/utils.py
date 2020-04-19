@@ -840,3 +840,29 @@ def get_ding_talk_signature(app_secret, utc_timestamp):
                        digestmod=hmac._hashlib.sha256).digest()
     signature = base64.standard_b64encode(digest).decode('utf8')
     return signature
+
+
+def switch_csdn_account(csdn_account, need_sms_validate=False):
+    """
+    切换到可用账号
+
+    :param csdn_account:
+    :param need_sms_validate:
+    :return:
+    """
+
+    valid_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
+                                                     today_download_count__lte=20,
+                                                     need_sms_valid=False).all()
+    if len(valid_csdn_accounts) > 0:
+        # 随机开启一个可用账号
+        new_csdn_account = random.choice(valid_csdn_accounts)
+        new_csdn_account.is_enabled = True
+        new_csdn_account.save()
+        # 禁用下载数用完的账号
+        csdn_account.need_sms_validate = need_sms_validate
+        csdn_account.is_enabled = False
+        csdn_account.save()
+        ding('[CSDN] 自动切换账号成功')
+    else:
+        ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号')

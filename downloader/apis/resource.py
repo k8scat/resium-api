@@ -128,12 +128,14 @@ class CsdnResource(BaseResource):
                      uid=self.user.uid,
                      resource_url=self.url,
                      used_account=csdn_account.email)
-                return 403, '下载失败'
+                # 自动切换CSDN
+                switch_csdn_account(csdn_account)
+                return 403, '下载出了点小问题，请尝试重新下载'
         except CsdnAccount.DoesNotExist:
             ding('[CSDN] 没有可用账号',
                  uid=self.user.uid,
                  resource_url=self.url)
-            return 500, '下载失败, '
+            return 500, '下载失败'
 
         if resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
@@ -149,65 +151,76 @@ class CsdnResource(BaseResource):
         }
         with requests.get(f'https://download.csdn.net/source/download?source_id={resource_id}',
                           headers=headers) as r:
-            try:
-                resp = r.json()
-            except JSONDecodeError:
-                ding('[CSDN] 下载失败',
-                     error=r.text,
-                     resource_url=self.url,
-                     uid=self.user.uid,
-                     used_account=csdn_account.email,
-                     logger=logging.error)
-                return 500, '下载失败'
-            if resp['code'] == 200:
-                # 更新账号今日下载数
-                csdn_account.today_download_count += 1
-                csdn_account.used_count += 1
-                csdn_account.save()
-
-                # 更新用户的剩余积分和已用积分
-                self.user.point -= point
-                self.user.used_point += point
-                self.user.save()
-
-                with requests.get(resp['data'], headers=headers, stream=True) as download_resp:
-                    if download_resp.status_code == requests.codes.OK:
-                        filename = parse.unquote(download_resp.headers['Content-Disposition'].split('"')[1])
-                        filepath = os.path.join(self.save_dir, filename)
-                        # 写入文件，用于线程上传资源到OSS
-                        with open(filepath, 'wb') as f:
-                            for chunk in download_resp.iter_content(chunk_size=1024):
-                                if chunk:
-                                    f.write(chunk)
-
-                        # 上传资源到OSS并保存记录到数据库
-                        t = Thread(target=save_resource,
-                                   args=(self.url, filename, filepath, resource, self.user),
-                                   kwargs={'account': csdn_account.email})
-                        t.start()
-                        return 200, dict(filepath=filepath, filename=filename)
-
+            if r.status_code == requests.codes.OK:
+                try:
+                    resp = r.json()
+                except JSONDecodeError:
                     ding('[CSDN] 下载失败',
-                         error=download_resp.text,
-                         uid=self.user.uid,
+                         error=r.text,
                          resource_url=self.url,
+                         uid=self.user.uid,
                          used_account=csdn_account.email,
                          logger=logging.error)
                     return 500, '下载失败'
-            else:
-                if resp.get('message', None) == '当前资源不开放下载功能':
-                    return 400, 'CSDN未开放该资源的下载功能'
-                elif resp.get('message', None) == '短信验证':
+                if resp['code'] == 200:
+                    # 更新账号今日下载数
+                    csdn_account.today_download_count += 1
+                    csdn_account.used_count += 1
+                    csdn_account.save()
+
+                    # 更新用户的剩余积分和已用积分
+                    self.user.point -= point
+                    self.user.used_point += point
+                    self.user.save()
+
+                    with requests.get(resp['data'], headers=headers, stream=True) as download_resp:
+                        if download_resp.status_code == requests.codes.OK:
+                            filename = parse.unquote(download_resp.headers['Content-Disposition'].split('"')[1])
+                            filepath = os.path.join(self.save_dir, filename)
+                            # 写入文件，用于线程上传资源到OSS
+                            with open(filepath, 'wb') as f:
+                                for chunk in download_resp.iter_content(chunk_size=1024):
+                                    if chunk:
+                                        f.write(chunk)
+
+                            # 上传资源到OSS并保存记录到数据库
+                            t = Thread(target=save_resource,
+                                       args=(self.url, filename, filepath, resource, self.user),
+                                       kwargs={'account': csdn_account.email})
+                            t.start()
+                            return 200, dict(filepath=filepath, filename=filename)
+
+                        ding('[CSDN] 下载失败',
+                             error=download_resp.text,
+                             uid=self.user.uid,
+                             resource_url=self.url,
+                             used_account=csdn_account.email,
+                             logger=logging.error)
+                        return 500, '下载失败'
+                else:
+                    if resp.get('message', None) == '当前资源不开放下载功能':
+                        return 400, 'CSDN未开放该资源的下载功能'
+                    elif resp.get('message', None) == '短信验证':
+                        ding('[CSDN] 下载失败，需要短信验证',
+                             error=resp,
+                             uid=self.user.uid,
+                             resource_url=self.url,
+                             used_account=csdn_account.email,
+                             logger=logging.error)
+                        # 自动切换CSDN
+                        switch_csdn_account(csdn_account, need_sms_validate=True)
+                        return 500, '下载出了点小问题，请尝试重新下载'
+
                     ding('[CSDN] 下载失败',
                          error=resp,
                          uid=self.user.uid,
                          resource_url=self.url,
                          used_account=csdn_account.email,
                          logger=logging.error)
-                    return 500, '此次下载存在风险，请联系管理员'
-
+                    return 500, '下载失败'
+            else:
                 ding('[CSDN] 下载失败',
-                     error=resp,
+                     error=r.text,
                      uid=self.user.uid,
                      resource_url=self.url,
                      used_account=csdn_account.email,
@@ -1052,8 +1065,11 @@ def download(request):
     """
 
     uid = request.session.get('uid')
+    resource_url = request.data.get('url', None)
     if cache.get(uid) and not settings.DEBUG:
         return JsonResponse(dict(code=403, msg='下载请求过快'), status=403)
+    if not resource_url:
+        return JsonResponse(dict(code=400, msg='资源地址不能为空'))
 
     try:
         user = User.objects.get(uid=uid)
@@ -1064,9 +1080,6 @@ def download(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 
-    resource_url = request.data.get('url', None)
-    if not resource_url:
-        return JsonResponse(dict(code=400, msg='资源地址不能为空'))
     if not re.match(settings.PATTERN_ZHIWANG, resource_url):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
@@ -1083,9 +1096,11 @@ def download(request):
                 (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                 (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
                 (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
+            cache.delete(user.uid)
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         if user.point < point:
+            cache.delete(user.uid)
             return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
         # 判断用户是否下载过该资源
@@ -1138,7 +1153,8 @@ def download(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     status, result = resource.download()
-    if status != 200:
+    if status != 200:  # 下载失败
+        cache.delete(user.uid)
         return JsonResponse(dict(code=status, msg=result))
 
     response = FileResponse(open(result['filepath'], 'rb'))
@@ -1163,25 +1179,32 @@ def oss_download(request):
         user = User.objects.get(uid=uid)
 
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
-        point = settings.OSS_RESOURCE_POINT
-        if user.point < point:
-            return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 
+    point = settings.OSS_RESOURCE_POINT
+    if user.point < point:
+        cache.delete(user.uid)
+        return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+
     key = request.GET.get('key', None)
     if not key:
+        cache.delete(user.uid)
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
         oss_resource = Resource.objects.get(key=key)
         if not aliyun_oss_check_file(oss_resource.key):
             logging.error(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
-            ding(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
+            ding(f'OSS资源不存在，请及时检查资源 {oss_resource.key}',
+                 uid=user.uid,
+                 logger=logging.error)
             oss_resource.is_audited = 0
             oss_resource.save()
+            cache.delete(user.uid)
             return JsonResponse(dict(code=400, msg='该资源暂时无法下载'))
     except Resource.DoesNotExist:
+        cache.delete(user.uid)
         return JsonResponse(dict(code=400, msg='资源不存在'))
 
     # 判断用户是否下载过该资源

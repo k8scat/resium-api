@@ -117,6 +117,7 @@ class CsdnAccount(Base):
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
+    need_sms_validate = models.BooleanField(default=False, verbose_name='是否需要短信验证')
 
     class Meta:
         db_table = 'csdn_account'

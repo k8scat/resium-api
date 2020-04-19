@@ -226,7 +226,8 @@ def wx(request):
                         user.save()
                         today_check_in_count = CheckInRecord.objects.filter(create_time__day=timezone.now().day).count()
                         today_check_in_point = CheckInRecord.objects.filter(create_time__day=timezone.now().day).aggregate(nums=Sum('point'))
-                        ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分')
+                        ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
+                             uid=user.uid)
                         content = f'签到成功，获得{point}积分'
                 except User.DoesNotExist:
                     content = '请先绑定账号'

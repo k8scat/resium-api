@@ -9,6 +9,7 @@
 """
 import os
 import django
+from django.core.cache import cache
 from django.db.models import Sum
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
@@ -20,7 +21,10 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    print(CheckInRecord.objects.filter(create_time__day=timezone.now().day).aggregate(nums=Sum('point')))
+    cache.set('key', 'value')
+    print(cache.get('key'))
+    cache.delete('key')
+    print(cache.get('key'))
 
 
 

@@ -5,11 +5,8 @@
 @date: 2020/4/16
 
 """
-import datetime
-import os
 import re
 import string
-import uuid
 from urllib import parse
 
 from django.conf import settings
@@ -90,9 +87,11 @@ def download(request):
                 (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                 (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
                 (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
+            cache.delete(user.uid)
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         if user.point < point:
+            cache.delete(user.uid)
             return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
         # 判断用户是否下载过该资源
@@ -145,7 +144,8 @@ def download(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     status, result = resource.download()
-    if status != 200:
+    if status != 200:  # 下载失败
+        cache.delete(user.uid)
         return JsonResponse(dict(code=status, msg=result))
 
     response = FileResponse(open(result['filepath'], 'rb'))
