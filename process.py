@@ -9,11 +9,13 @@
 """
 import os
 import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
+django.setup()
+
 from django.core.cache import cache
 from django.db.models import Sum
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
-django.setup()
+
 from django.utils import timezone
 
 from downloader.models import User, Order, DwzRecord, CheckInRecord
@@ -21,13 +23,7 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    cache.set('key', 'value')
-    print(cache.get('key'))
-    cache.delete('key')
-    print(cache.get('key'))
-
-
-
+    print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
 
 
 

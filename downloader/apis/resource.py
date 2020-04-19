@@ -5,6 +5,8 @@
 @date: 2020/2/15
 
 """
+from time import sleep
+
 from downloader.utils import *
 from downloader.models import *
 import json
@@ -1293,3 +1295,95 @@ def check_resource_existed(request):
 
     is_resource_existed = Resource.objects.filter(url=url).count() > 0
     return JsonResponse(dict(code=200, is_existed=is_resource_existed))
+
+
+@auth
+@api_view(['POST'])
+def doc_convert(request):
+    command = request.POST.get('c', None)
+    file = request.FILES.get('file', None)
+    if not command or not file:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    if command == 'pdf2word':
+        url = 'https://converter.baidu.com/detail?type=1'
+    elif command == 'word2pdf':
+        url = 'https://converter.baidu.com/detail?type=12'
+    elif command == 'img2pdf':
+        url = 'https://converter.baidu.com/detail?type=16'
+    elif command == 'pdf2html':
+        url = 'https://converter.baidu.com/detail?type=3'
+    elif command == 'pdf2ppt':
+        url = 'https://converter.baidu.com/detail?type=8'
+    elif command == 'pdf2img':
+        url = 'https://converter.baidu.com/detail?type=11'
+    elif command == 'ppt2pdf':
+        url = 'https://converter.baidu.com/detail?type=14'
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+        point = settings.DOC_CONVERT_POINT
+        if user.point < point:
+            return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=401, msg='未认证'))
+
+    if file.size > 100 * 1000 * 1000:
+        return JsonResponse(dict(code=400, msg='上传资源大小不能超过100MB'))
+
+    unique_folder = str(uuid.uuid1())
+    save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+    while True:
+        if os.path.exists(save_dir):
+            unique_folder = str(uuid.uuid1())
+            save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+        else:
+            os.mkdir(save_dir)
+            break
+    filepath = os.path.join(save_dir, file.name)
+    with open(filepath, 'wb') as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+
+    driver = get_driver(unique_folder)
+    try:
+        driver.get('https://converter.baidu.com/')
+        baidu_account = BaiduAccount.objects.get(is_enabled=True)
+        cookies = json.loads(baidu_account.cookies)
+        for cookie in cookies:
+            if 'expiry' in cookie:
+                del cookie['expiry']
+            driver.add_cookie(cookie)
+        driver.get(url)
+        sleep(3)
+        upload_input = WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located((By.ID, 'upload_file'))
+        )
+        upload_input.send_keys(filepath)
+        try:
+            WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//p[@class='converterNameV']"))
+            )
+            download_url = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//a[@class='dwon-document']"))
+            ).get_attribute('href')
+            # 保存文档转换记录
+            DocConvertRecord(user=user, download_url=download_url,
+                             point=point).save()
+            # 更新用户积分
+            user.point -= point
+            user.used_point += point
+            user.save()
+            ding(f'[文档转换] 转换成功，{download_url}',
+                 uid=user.uid)
+            return JsonResponse(dict(code=200, url=get_short_url(download_url)))
+        except TimeoutException:
+            DocConvertRecord(user=user).save()
+            ding(f'[文档转换] 转换失败，{command}，{filepath}')
+            return JsonResponse(dict(code=500, msg='出了点小问题，请尝试重新转换'))
+
+    finally:
+        driver.close()

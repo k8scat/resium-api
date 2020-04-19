@@ -11,7 +11,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 用户是否正在下载状态: 数据库 -> redis
     通过限制用户下载频率来达到用户
 * [x] 集成稻壳模板
-* [ ] 换绑手机号、邮箱
 * [ ] tags 单独创建一个表
 * [x] django-cors-headers 并没有返回 Access-Control-Allow-Origin
     use middleware to return Access-Control-Allow-Origin
@@ -40,6 +39,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
 * [ ] 开放API
+    * [x] 短网址
+    * [x] 资源下载
 * [ ] Use sha512 over md5 to verify file integrity
 * [ ] 下载和保存上传资源是分开的
 * [ ] 毕设、大作业代做
@@ -76,7 +77,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
 * [ ] 管理员上传资源，通过qq分享到群里
 * [x] 废弃手机绑定
-* [ ] https://converter.baidu.com/?origin=wenkuConverterOther
+* [ ] 百度文档格式转换 
+    https://converter.baidu.com/?origin=wenkuConverterOther
 * [ ] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
 * [ ] 公众号添加百度文库VIP免费文档下载功能
 * [ ] 第三方登录必然是相当于新账号注册，所以需要添加账号注销（也就是添加字段is_delete），以及已注册账号关联第三方账号
@@ -126,7 +128,12 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] csdn账号当天下载量到达时，尝试自动切换
 * [ ] 合作
     http://dl.ipaycenter.cn/Index.gspx
-    
+* [ ] 积分使用记录表
+   
+## 支付宝
+
+
+ 
 ## CoolQ
 
 https://github.com/richardchien/coolq-http-api

@@ -47,6 +47,7 @@ urlpatterns = [
     path('get_resource_count/', resource.get_resource_count),
     re_path(r'^parse_resource/?$', resource.parse_resource),
     path('check_resource_existed/', resource.check_resource_existed),
+    path('doc_convert/', resource.doc_convert),
 
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
 

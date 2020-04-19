@@ -224,3 +224,15 @@ class DwzRecord(Base):
 class CheckInRecord(Base):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
     point = models.SmallIntegerField(verbose_name='签到获得的积分')
+
+    class Meta:
+        db_table = 'check_in_record'
+
+
+class DocConvertRecord(Base):
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    download_url = models.CharField(max_length=240, default=None, null=True, verbose_name='转换成功后的下载链接')
+    point = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'doc_convert_record'
