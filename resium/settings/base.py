@@ -310,4 +310,8 @@ BAIDU_REDIRECT_URI = 'https://api.resium.cn/oauth/baidu/'
 DINGTALK_APP_ID = 'dingoawbeug9zmphewuplb'
 DINGTALK_APP_SECRET = 'js9LlqncZKLLWhqvbXLUxW9hCGuZ-LMxa8Gou2P7DMO-iNHvNf-oOafXV-T5BqVw'
 
+CODING_CLIENT_ID = '18f2ccbef6126bd5723adfab7c2ea1b5'
+CODING_CLIENT_SECRET = 'b648811b65c885b6066f3cf683a9b40a4e06fe44'
+CODING_TEAM = 'resium'
+
 JWT_COOKIE_KEY = 'token'

@@ -10,7 +10,6 @@ import json
 import logging
 import re
 import time
-from urllib import parse
 
 import jwt
 import requests
@@ -290,5 +289,52 @@ def dingtalk(request):
                 if user:
                     token = generate_jwt(user.uid)
                     response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+
+    return response
+
+
+@api_view()
+def coding(request):
+    response = redirect(settings.RESIUM_UI)
+
+    code = request.GET.get('code', None)
+    scope = request.GET.get('scope', None)
+    team = request.GET.get('team', None)
+    if code and re.match(r'.*user.*', scope) and team == settings.CODING_TEAM:
+        params = {
+            'client_id': settings.CODING_CLIENT_ID,
+            'client_secret': settings.CODING_CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'code': code
+        }
+        with requests.get(f'http://{settings.CODING_TEAM}.coding.net/api/oauth/access_token', params=params) as get_access_token_resp:
+            if get_access_token_resp.status_code == requests.codes.OK:
+                access_token = get_access_token_resp.json().get('access_token', None)
+                if access_token:
+                    params = {
+                        'access_token': access_token
+                    }
+                    with requests.get('https://anywhere.coding.net/api/current_user', params=params) as get_user_resp:
+                        if get_user_resp.status_code == requests.codes.OK and get_user_resp.json()['code'] == 0:
+                            coding_user = get_user_resp.json()['data']
+                            nickname = coding_user['name']
+                            avatar_url = coding_user['avatar']
+                            coding_user_id = coding_user['id']
+                            login_time = datetime.datetime.now()
+                            try:
+                                user = User.objects.get(coding_user_id=coding_user_id)
+                                user.nickname = nickname
+                                user.avatar_url = avatar_url
+                                user.login_time = login_time
+                                user.save()
+                            except User.DoesNotExist:
+                                uid = generate_uid()
+                                user = User.objects.create(uid=uid, coding_user_id=coding_user_id,
+                                                           nickname=nickname, avatar_url=avatar_url,
+                                                           login_time=login_time)
+
+                            if user:
+                                token = generate_jwt(user.uid)
+                                response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response

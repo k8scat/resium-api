@@ -13,7 +13,9 @@ import string
 import uuid
 
 from django.conf import settings
+from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -222,6 +224,9 @@ def wx(request):
                         user.point += point
                         user.has_check_in_today = True
                         user.save()
+                        today_check_in_count = CheckInRecord.objects.filter(create_time__day=timezone.now().day).count()
+                        today_check_in_point = CheckInRecord.objects.filter(create_time__day=timezone.now().day).aggregate(nums=Sum('point'))
+                        ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分')
                         content = f'签到成功，获得{point}积分'
                 except User.DoesNotExist:
                     content = '请先绑定账号'

@@ -9,19 +9,18 @@
 """
 import os
 import django
+from django.db.models import Sum
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 from django.utils import timezone
 
-from downloader.models import User, Order, DwzRecord
+from downloader.models import User, Order, DwzRecord, CheckInRecord
 from downloader.utils import *
 
 
 if __name__ == '__main__':
-    a = str(time.time()).replace('.', '')
-    print(a)
-    print(a[:-3])
-
+    print(CheckInRecord.objects.filter(create_time__day=timezone.now().day).aggregate(nums=Sum('point')))
 
 
 
