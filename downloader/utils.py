@@ -852,8 +852,8 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
     """
 
     valid_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
-                                                     today_download_count__lte=20,
-                                                     need_sms_valid=False).all()
+                                                     today_download_count__lt=20,
+                                                     need_sms_validate=False).all()
     if len(valid_csdn_accounts) > 0:
         # 随机开启一个可用账号
         new_csdn_account = random.choice(valid_csdn_accounts)
