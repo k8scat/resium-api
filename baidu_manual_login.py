@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/3/3
 
+获取并保存百度的cookies
+
 """
 import json
 import os

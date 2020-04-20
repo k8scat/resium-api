@@ -245,12 +245,13 @@ def wx(request):
                             new_user.used_point += old_user.used_point
                             new_user.save()
                             Order.objects.filter(user=old_user).update(user=new_user)
-                            DownloadRecord.objects.filter(user=old_user, is_deleted=False).update(user=new_user)
+                            DownloadRecord.objects.filter(user=old_user).update(user=new_user)
                             Resource.objects.filter(user=old_user).update(user=new_user)
                             ResourceComment.objects.filter(user=old_user).update(user=new_user)
                             DwzRecord.objects.filter(user=old_user).update(user=new_user)
                             Article.objects.filter(user=old_user).update(user=new_user)
                             Coupon.objects.filter(user=old_user).update(user=new_user)
+                            CheckInRecord.objects.filter(user=old_user).update(user=new_user)
                             old_user.delete()
                             content = '账号迁移成功'
                         except User.DoesNotExist:
