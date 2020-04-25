@@ -315,9 +315,4 @@ CODING_CLIENT_ID = '18f2ccbef6126bd5723adfab7c2ea1b5'
 CODING_CLIENT_SECRET = 'b648811b65c885b6066f3cf683a9b40a4e06fe44'
 CODING_TEAM = 'resium'
 
-OSC_CLIENT_ID = 'onAPOjqxW314nKVAaWiW'
-OSC_CLIENT_SECRET = 'SOLqANylQ3NqcAh4l5F9XxRClJj6iDzC'
-OSC_REDIRECT_URI = 'https://api.resium.cn/oauth/osc/'
-OSC_API_BASE_URL = 'https://www.oschina.net'
-
 JWT_COOKIE_KEY = 'token'
