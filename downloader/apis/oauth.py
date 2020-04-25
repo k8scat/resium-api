@@ -360,6 +360,7 @@ def osc(request):
     response = redirect(settings.RESIUM_UI)
 
     code = request.GET.get('code', None)
+    logging.error(code)
     if code:
         params = {
             'client_id': settings.OSC_CLIENT_ID,
@@ -370,6 +371,7 @@ def osc(request):
             'dataType': 'json'
         }
         with requests.get(f'{settings.OSC_API_BASE_URL}/action/openapi/token', params=params) as get_access_token_resp:
+            logging.error(get_access_token_resp.text)
             if get_access_token_resp.status_code == requests.codes.OK:
                 access_token = get_access_token_resp.json().get('access_token', None)
                 if access_token:
@@ -379,6 +381,7 @@ def osc(request):
                     }
                     with requests.get(f'{settings.OSC_API_BASE_URL}/action/openapi/user_information',
                                       params=params) as get_user_resp:
+                        logging.error(get_user_resp.text)
                         if get_user_resp.status_code == requests.codes.OK:
                             osc_user = get_user_resp.json()
                             osc_user_id = osc_user.get('id', None)
