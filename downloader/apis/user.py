@@ -5,6 +5,7 @@
 @date: 2020/2/9
 
 """
+import datetime
 import hashlib
 import logging
 import random
@@ -224,8 +225,9 @@ def wx(request):
                         user.point += point
                         user.has_check_in_today = True
                         user.save()
-                        today_check_in_count = CheckInRecord.objects.filter(create_time__day=timezone.now().day).count()
-                        today_check_in_point = CheckInRecord.objects.filter(create_time__day=timezone.now().day).aggregate(nums=Sum('point'))
+                        today = datetime.datetime.now().day
+                        today_check_in_count = CheckInRecord.objects.filter(create_time__day=today).count()
+                        today_check_in_point = CheckInRecord.objects.filter(create_time__day=today).aggregate(nums=Sum('point'))
                         ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
                              uid=user.uid)
                         content = f'签到成功，获得{point}积分'

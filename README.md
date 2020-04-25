@@ -106,7 +106,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
         * [ ] 或许可以优化
     * [x] GitHub
     * [x] Gitee https://gitee.com/oauth/applications/3833
-    * [ ] OSC https://www.oschina.net/openapi/client
+    * [x] OSC https://www.oschina.net/openapi/client
     * [ ] renren http://app.renren.com/developers/newapp/600758/main
     * [ ] sina https://open.weibo.com/developers/identity
     * [x] baidu http://developer.baidu.com/console#app/19467092

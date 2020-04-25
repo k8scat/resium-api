@@ -295,6 +295,13 @@ def dingtalk(request):
 
 @api_view()
 def coding(request):
+    """
+    https://open.coding.net/oauth/
+
+    :param request:
+    :return:
+    """
+
     response = redirect(settings.RESIUM_UI)
 
     code = request.GET.get('code', None)
@@ -307,14 +314,15 @@ def coding(request):
             'grant_type': 'authorization_code',
             'code': code
         }
-        with requests.get(f'http://{settings.CODING_TEAM}.coding.net/api/oauth/access_token', params=params) as get_access_token_resp:
+        with requests.get(f'https://{settings.CODING_TEAM}.coding.net/api/oauth/access_token', params=params) as get_access_token_resp:
             if get_access_token_resp.status_code == requests.codes.OK:
                 access_token = get_access_token_resp.json().get('access_token', None)
                 if access_token:
                     params = {
                         'access_token': access_token
                     }
-                    with requests.get('https://anywhere.coding.net/api/current_user', params=params) as get_user_resp:
+                    with requests.get('https://anywhere.coding.net/api/current_user',
+                                      params=params) as get_user_resp:
                         if get_user_resp.status_code == requests.codes.OK and get_user_resp.json()['code'] == 0:
                             coding_user = get_user_resp.json()['data']
                             nickname = coding_user['name']
@@ -336,5 +344,62 @@ def coding(request):
                             if user:
                                 token = generate_jwt(user.uid)
                                 response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+
+    return response
+
+
+@api_view()
+def osc(request):
+    """
+    https://www.oschina.net/openapi/client
+
+    :param request:
+    :return:
+    """
+
+    response = redirect(settings.RESIUM_UI)
+
+    code = request.GET.get('code', None)
+    if code:
+        params = {
+            'client_id': settings.OSC_CLIENT_ID,
+            'client_secret': settings.OSC_CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': settings.OSC_REDIRECT_URI,
+            'dataType': 'json'
+        }
+        with requests.get(f'{settings.OSC_API_BASE_URL}/action/openapi/token', params=params) as get_access_token_resp:
+            if get_access_token_resp.status_code == requests.codes.OK:
+                access_token = get_access_token_resp.json().get('access_token', None)
+                if access_token:
+                    params = {
+                        'access_token': access_token,
+                        'dataType': 'json'
+                    }
+                    with requests.get(f'{settings.OSC_API_BASE_URL}/action/openapi/user_information',
+                                      params=params) as get_user_resp:
+                        if get_user_resp.status_code == requests.codes.OK:
+                            osc_user = get_user_resp.json()
+                            osc_user_id = osc_user.get('id', None)
+                            if osc_user_id is not None:
+                                nickname = osc_user['name']
+                                avatar_url = osc_user['avatar']
+                                login_time = datetime.datetime.now()
+                                try:
+                                    user = User.objects.get(osc_user_id=osc_user_id)
+                                    user.nickname = nickname
+                                    user.avatar_url = avatar_url
+                                    user.login_time = login_time
+                                    user.save()
+                                except User.DoesNotExist:
+                                    uid = generate_uid()
+                                    user = User.objects.create(uid=uid, osc_user_id=osc_user_id,
+                                                               nickname=nickname, avatar_url=avatar_url,
+                                                               login_time=login_time)
+
+                                if user:
+                                    token = generate_jwt(user.uid)
+                                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
