@@ -679,7 +679,7 @@ def get_random_ua():
 def upload_csdn_resource(resource):
     logging.info(f'开始上传资源到CSDN: {resource.url}')
     headers = {
-        'cookie': CsdnAccount.objects.get(email='hsowan.v@gmail.com').cookies,
+        'cookie': CsdnAccount.objects.get(email='18770934387@163.com').cookies,
         'user-agent': get_random_ua(),
         'referer': 'https://download.csdn.net/upload',
         'origin': 'https://download.csdn.net',
