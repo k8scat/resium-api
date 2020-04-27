@@ -121,6 +121,7 @@ def download(request):
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
+        return JsonResponse(dict(code=400, msg='资源异常'))
         resource = CsdnResource(resource_url, user)
 
     # 百度文库文档下载
