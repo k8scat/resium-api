@@ -200,9 +200,8 @@ ARTICLE_POINT = 1
 QIANTU_POINT = 1
 DOC_CONVERT_POINT = 1
 
-MY_CSDN_ACCOUNT = '17770040362@163.com'
-
 # http://www.fateadm.com/user_home.php
+# hsowan.me@gmail.com
 PD_ID = '120959'
 PD_KEY = 'pxnfBZw6RfkAXOh5uOygeHoCy52e6wRp'
 SCREENSHOT_IMAGE = os.path.join(BASE_DIR, 'screenshot.png')
@@ -214,7 +213,6 @@ NCU_VPN_PASSWORD = 'holdon7868'
 
 # 资源下载间隔
 DOWNLOAD_INTERVAL = 60
-COOLQ_DOWNLOAD_INTERVAL = 180
 
 # https://note.qidong.name/2018/11/django-logging/
 LOGGING = {

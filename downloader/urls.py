@@ -48,6 +48,7 @@ urlpatterns = [
     re_path(r'^parse_resource/?$', resource.parse_resource),
     path('check_resource_existed/', resource.check_resource_existed),
     path('doc_convert/', resource.doc_convert),
+    path('get_download_interval/', resource.get_download_interval),
 
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
 
@@ -66,7 +67,6 @@ urlpatterns = [
     re_path(r'^oauth/dingtalk/?$', oauth.dingtalk),
     re_path(r'^oauth/coding/?$', oauth.coding),
 
-    path('open/dwz/', open.dwz),
-    path('open/download/', open.download)
+    path('open/dwz/', open.dwz)
 ]
 

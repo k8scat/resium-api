@@ -1387,3 +1387,9 @@ def doc_convert(request):
 
     finally:
         driver.close()
+
+
+@api_view()
+def get_download_interval(request):
+    return JsonResponse(dict(code=200, download_interval=settings.DOWNLOAD_INTERVAL))
+
