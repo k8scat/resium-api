@@ -1122,7 +1122,7 @@ def download(request):
         user.save()
 
         # 生成临时下载地址，10分钟有效
-        url = get_short_url(aliyun_oss_sign_url(oss_resource.key))
+        url = aliyun_oss_sign_url(oss_resource.key)
 
         # 更新资源的下载次数
         oss_resource.download_count += 1
