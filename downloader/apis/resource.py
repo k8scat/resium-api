@@ -1191,13 +1191,13 @@ def download(request):
     # 下载返回类型（不包括直接在OSS找到的资源），file或者url，默认file
     t = request.data.get('t', 'file')
     if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=403, msg='下载请求过快'), status=403)
+        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
     if not resource_url:
         return JsonResponse(dict(code=400, msg='资源地址不能为空'))
 
     try:
         user = User.objects.get(uid=uid)
-        if not user.can_download:
+        if not user.is_admin and not user.can_download:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
@@ -1211,28 +1211,24 @@ def download(request):
     # 检查OSS是否存有该资源
     oss_resource = check_oss(resource_url)
     if oss_resource:
-        point = request.data.get('point', None)
-        if point is None or \
-                (re.match(settings.PATTERN_CSDN, resource_url) and point != settings.CSDN_POINT) or \
-                (re.match(settings.PATTERN_WENKU, resource_url) and point not in [settings.WENKU_SHARE_DOC_POINT,
-                                                                                  settings.WENKU_SPECIAL_DOC_POINT,
-                                                                                  settings.WENKU_VIP_FREE_DOC_POINT]) or \
-                (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
-                (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
-                (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
-            cache.delete(user.uid)
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+        if user.is_admin:
+            point = 0
+        else:
+            point = request.data.get('point', None)
+            if point is None or \
+                    (re.match(settings.PATTERN_CSDN, resource_url) and point != settings.CSDN_POINT) or \
+                    (re.match(settings.PATTERN_WENKU, resource_url) and point not in [settings.WENKU_SHARE_DOC_POINT,
+                                                                                      settings.WENKU_SPECIAL_DOC_POINT,
+                                                                                      settings.WENKU_VIP_FREE_DOC_POINT]) or \
+                    (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
+                    (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
+                    (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
+                cache.delete(user.uid)
+                return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        if user.point < point:
-            cache.delete(user.uid)
-            return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
-
-        # 判断用户是否下载过该资源
-        # 若没有，则给上传资源的用户赠送积分
-        if user != oss_resource.user:
-            if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
-                oss_resource.user.point += 1
-                oss_resource.user.save()
+            if user.point < point:
+                cache.delete(user.uid)
+                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
         # 新增下载记录
         DownloadRecord(user=user,
@@ -1341,14 +1337,6 @@ def oss_download(request):
     except Resource.DoesNotExist:
         cache.delete(user.uid)
         return JsonResponse(dict(code=400, msg='资源不存在'))
-
-    # 判断用户是否下载过该资源
-    # 若没有，则给上传资源的用户赠送积分
-    # 上传者下载自己的资源不会获得积分
-    if user != oss_resource.user:
-        if not DownloadRecord.objects.filter(user=user, resource=oss_resource).count():
-            oss_resource.user.point += 1
-            oss_resource.user.save()
 
     DownloadRecord.objects.create(user=user,
                                   resource=oss_resource,
