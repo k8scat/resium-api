@@ -394,7 +394,7 @@ def check_download(folder):
                 time.sleep(0.1)
                 continue
             else:
-                return None
+                return 500, '检查下载文件不存在'
         elif files[0].endswith('.crdownload'):
             time.sleep(0.1)
             continue
@@ -406,14 +406,14 @@ def check_download(folder):
     else:
         ding(f'下载超时: {folder}',
              logger=logging.error)
-        return None
+        return 500, '检查下载文件超时'
 
     # 下载完成后，文件夹下存在唯一的文件
     filename = files[0]
     # 生成文件的绝对路径
     filepath = os.path.join(folder, filename)
 
-    return filepath, filename
+    return 200, dict(filename=filename, filepath=filepath)
 
 
 def get_driver(folder='', load_images=False):
@@ -444,8 +444,7 @@ def get_driver(folder='', load_images=False):
 
 
 def save_resource(resource_url, filename, filepath,
-                  resource_info, user, account=None, wenku_type=None,
-                  is_docer_vip_doc=False):
+                  resource_info, user, account=None):
     """
     保存资源记录并上传到OSS
 
@@ -455,16 +454,17 @@ def save_resource(resource_url, filename, filepath,
     :param resource_info:
     :param user: 下载资源的用户
     :param account: 使用的会员账号
-    :param wenku_type: 百度文库文档类型
-    :param is_docer_vip_doc: 是否是稻壳VIP模板
     :return:
     """
 
     with open(filepath, 'rb') as f:
         file_md5 = get_file_md5(f)
-    # 判断资源记录是否已存在，如果已存在则直接返回
-    if Resource.objects.filter(Q(url=resource_url) | Q(file_md5=file_md5)).count():
-        return None
+    # 判断资源记录是否已存在，如果已存在则返回OSS下载链接
+    try:
+        existed_resource = Resource.objects.get(Q(url=resource_url) | Q(file_md5=file_md5))
+        return aliyun_oss_sign_url(existed_resource.key)
+    except Resource.DoesNotExist:
+        pass
 
     # 存储在oss中的key
     key = str(uuid.uuid1()) + '-' + filename
@@ -479,8 +479,8 @@ def save_resource(resource_url, filename, filepath,
         resource = Resource.objects.create(title=resource_info['title'], filename=filename, size=size,
                                            url=resource_url, key=key, tags=settings.TAG_SEP.join(resource_info['tags']),
                                            file_md5=file_md5, desc=resource_info['desc'], user=user,
-                                           wenku_type=wenku_type,
-                                           is_docer_vip_doc=is_docer_vip_doc, local_path=filepath)
+                                           wenku_type=resource_info.get('wenku_type', None),
+                                           is_docer_vip_doc=resource_info.get('is_docer_vip_doc', False), local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
                        account=account,
@@ -494,6 +494,8 @@ def save_resource(resource_url, filename, filepath,
         t = Thread(target=upload_csdn_resource, args=(resource,))
         t.start()
 
+        return aliyun_oss_sign_url(key)
+
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
              error=e,
@@ -501,6 +503,7 @@ def save_resource(resource_url, filename, filepath,
              uid=user.uid,
              used_account=account,
              logger=logging.error)
+        return None
 
 
 def get_file_md5(f):
