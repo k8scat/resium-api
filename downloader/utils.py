@@ -702,11 +702,11 @@ def upload_csdn_resource(resource):
         tags = ','.join(tags)
 
     if len(resource.desc) < 50:
-        desc = resource.desc + ' 该资源是由 weixin_46449765 用户进行上传的，来源于网络，如有侵权，请联系本人进行删除！'
+        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
     elif re.match(settings.PATTERN_DOCER, resource.url):
-        desc = '该资源是由 weixin_46449765 用户进行上传的，来源于网络，如有侵权，请联系本人进行删除！'
+        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
     else:
-        desc = resource.desc
+        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
 
     payload = {
         'fileMd5': file_md5,
