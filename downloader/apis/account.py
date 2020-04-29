@@ -130,11 +130,14 @@ def check_qiantu_cookies(request):
     for qiantu_account in qiantu_accounts:
         headers = {
             'cookie': qiantu_account.cookies,
+            'referer': 'https://www.58pic.com/newpic/35979263.html',
             'user-agent': get_random_ua()
         }
-        with requests.get('https://www.58pic.com/', headers=headers) as r:
+        with requests.get('https://dl.58pic.com/35979263.html', headers=headers) as r:
             if r.status_code == requests.codes.OK:
-                if r.text.count('NCU程序媛') > 0:
+                soup = BeautifulSoup(r.text, 'lxml')
+                # download_url = soup.select('a.clickRecord.autodown')[0]['href']
+                if len(soup.select('a.clickRecord.autodown')) > 0:
                     ding('[千图网] Cookies仍有效',
                          used_account=qiantu_account.email)
                 else:
