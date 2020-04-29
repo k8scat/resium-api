@@ -47,9 +47,9 @@ class BaseResource:
         self.resource = None
         self.account = None
 
-    def __before_download(self):
+    def _before_download(self):
         """
-        调用download前必须调用__before_download
+        调用download前必须调用_before_download
 
         :return:
         """
@@ -132,7 +132,7 @@ class CsdnResource(BaseResource):
             return
 
     def __download(self):
-        self.__before_download()
+        self._before_download()
 
         status, result = self.parse()
         if status != 200:
@@ -363,7 +363,7 @@ class WenkuResource(BaseResource):
                 return 500, '资源获取失败'
 
     def __download(self):
-        self.__before_download()
+        self._before_download()
 
         status, result = self.parse()
         if status != 200:
@@ -585,7 +585,7 @@ class DocerResource(BaseResource):
             return 500, '资源获取失败'
 
     def __download(self):
-        self.__before_download()
+        self._before_download()
 
         status, result = self.parse()
         if status != 200:
@@ -730,7 +730,7 @@ class ZhiwangResource(BaseResource):
                 return 500, '资源获取失败'
 
     def __download(self):
-        self.__before_download()
+        self._before_download()
 
         status, result = self.parse()
         if status != 200:
@@ -911,7 +911,7 @@ class QiantuResource(BaseResource):
                     return 500, "资源获取失败"
 
     def __download(self):
-        self.__before_download()
+        self._before_download()
 
         status, result = self.parse()
         if status != 200:
