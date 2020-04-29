@@ -9,6 +9,7 @@ services:
       - resium_net
     volumes:
       - /srv/resium/download:/resium/download
+      - /srv/resium/resium.log:/resium/resium.log
     restart: always
     container_name: resium
   selenium:
