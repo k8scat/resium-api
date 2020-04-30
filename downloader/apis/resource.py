@@ -1078,7 +1078,8 @@ def list_uploaded_resources(request):
 @api_view()
 def get_resource(request):
     resource_id = request.GET.get('id', None)
-    if resource_id:
+    if resource_id and resource_id.isnumeric():
+        resource_id = int(resource_id)
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
             preview_images = []
@@ -1101,8 +1102,9 @@ def get_resource(request):
 
 @api_view()
 def list_comments(request):
-    resource_id = request.GET.get('resource_id', None)
-    if resource_id:
+    resource_id = request.GET.get('id', None)
+    if resource_id and resource_id.isnumeric():
+        resource_id = int(resource_id)
         try:
             comments = ResourceComment.objects.filter(resource_id=resource_id).all()
             return JsonResponse(dict(code=200, comments=ResourceCommentSerializers(comments, many=True).data))
@@ -1117,9 +1119,11 @@ def list_comments(request):
 @api_view(['POST'])
 def create_comment(request):
     content = request.data.get('content', None)
-    resource_id = request.data.get('resource_id', None)
+    resource_id = request.data.get('id', None)
     user_id = request.data.get('user_id', None)
-    if content and resource_id and user_id:
+    if content and resource_id and user_id and resource_id.isnumeric() and user_id.isnumeric():
+        resource_id = int(resource_id)
+        user_id = int(user_id)
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
             user = User.objects.get(id=user_id)
@@ -1136,11 +1140,25 @@ def list_resources(request):
     """
     分页获取资源
     """
-    page = int(request.GET.get('page', 1))
-    count = int(request.GET.get('count', 5))
-    key = request.GET.get('key', '')
-    if page < 1:
+    page = request.GET.get('page', None)
+    if page is None:
         page = 1
+    elif page and page.isnumeric():
+        page = int(page)
+        if page < 1:
+            page = 1
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    count = request.GET.get('count', None)
+    if count is None:
+        count = 5
+    elif count and count.isnumeric():
+        count = int(count)
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    key = request.GET.get('key', '')
 
     start = count * (page - 1)
     end = start + count
