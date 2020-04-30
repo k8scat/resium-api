@@ -13,6 +13,7 @@ import re
 import string
 import uuid
 
+import requests
 from django.conf import settings
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
@@ -281,3 +282,24 @@ def reset_has_check_in_today(request):
         User.objects.filter(wx_openid__isnull=False, has_check_in_today=True).update(has_check_in_today=False)
 
     return HttpResponse('')
+
+
+@api_view()
+def mp_login(request):
+    code = request.GET.get('code', None)
+    if not code:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    params = {
+        'appid': settings.WX_MP_APP_ID,
+        'secret': settings.WX_MP_APP_SECRET,
+        'js_code': code,
+        'grant_type': 'authorization_code'
+    }
+    with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
+        if r.status_code == requests.codes.OK:
+            data = r.json()
+            if data['errcode'] == 0:
+                return JsonResponse(dict(code=200, data=data))
+            else:
+                return JsonResponse(dict(code=data['errcode'], data=data))

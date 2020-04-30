@@ -14,6 +14,7 @@ urlpatterns = [
     re_path(r'^wx/?$', user.wx),
     path('get_user/', user.get_user),
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
+    re_path(r'^mp_login/?$', user.mp_login),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),
