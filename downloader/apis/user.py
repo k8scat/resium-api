@@ -299,7 +299,10 @@ def mp_login(request):
     with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
         if r.status_code == requests.codes.OK:
             data = r.json()
+            logging.info(data)
             if data['errcode'] == 0:
                 return JsonResponse(dict(code=200, data=data))
             else:
                 return JsonResponse(dict(code=data['errcode'], data=data))
+        else:
+            return JsonResponse(dict(code=500, msg='微信接口请求失败'))
