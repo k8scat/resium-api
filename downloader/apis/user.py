@@ -289,15 +289,11 @@ def reset_has_check_in_today(request):
 @api_view(['POST'])
 def mp_login(request):
     code = request.data.get('code', None)
-    logging.info(code)
     encrypted_data = request.data.get('encrypted_data', None)
-    logging.info(encrypted_data)
     iv = request.data.get('iv', None)
-    logging.info(iv)
     signature = request.data.get('signature', None)
     logging.info(signature)
     raw_data = request.data.get('raw_data', None)
-    logging.info(raw_data)
     if not code or not encrypted_data or not iv or not raw_data or not signature:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -314,10 +310,10 @@ def mp_login(request):
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                 session_key = data['session_key']
+                logging.info(session_key)
 
                 # 校验数据的完整性
-                sign_str = parse.quote(raw_data + session_key)
-                logging.info(sign_str)
+                sign_str = raw_data + session_key
                 signature2 = sha1(sign_str.encode()).hexdigest()
                 logging.info(signature2)
                 if signature2 != signature:
