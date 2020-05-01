@@ -13,6 +13,7 @@ import re
 import string
 import uuid
 from hashlib import sha1
+from urllib import parse
 
 import requests
 from django.conf import settings
@@ -315,7 +316,7 @@ def mp_login(request):
                 session_key = data['session_key']
 
                 # 校验数据的完整性
-                sign_str = raw_data + session_key
+                sign_str = parse.quote(raw_data + session_key)
                 logging.info(sign_str)
                 signature2 = sha1(sign_str.encode()).hexdigest()
                 logging.info(signature2)
