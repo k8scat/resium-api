@@ -338,7 +338,7 @@ def mp_login(request):
                                                avatar_url=avatar_url, nickname=nickname,
                                                login_time=login_time)
                 token = generate_jwt(user.uid)
-                return JsonResponse(dict(code=200, token=token))
+                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',

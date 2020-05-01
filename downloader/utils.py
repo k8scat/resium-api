@@ -95,7 +95,8 @@ def ding(message, at_mobiles=None, is_at_all=False,
         }
     }
     dingtalk_api = f'https://oapi.dingtalk.com/robot/send?access_token={settings.DINGTALK_ACCESS_TOKEN}&timestamp={timestamp}&sign={sign}'
-    requests.post(dingtalk_api, data=json.dumps(data), headers=headers)
+    with requests.post(dingtalk_api, data=json.dumps(data), headers=headers) as r:
+        logging.info(f'ding {r.status_code} {r.text}')
 
 
 def get_aliyun_oss_bucket():

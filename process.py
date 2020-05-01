@@ -27,6 +27,7 @@ if __name__ == '__main__':
         uid = generate_uid()
         user.uid = uid
         user.save()
+        print(user.uid)
 
 
 
