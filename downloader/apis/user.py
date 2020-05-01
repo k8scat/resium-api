@@ -287,7 +287,7 @@ def reset_has_check_in_today(request):
 
 @api_view(['POST'])
 def mp_login(request):
-    code = request.GET.get('code', None)
+    code = request.data.get('code', None)
     encrypted_data = request.data.get('encrypted_data', None)
     iv = request.data.get('iv', None)
     signature = request.data.get('signature', None)
@@ -307,7 +307,6 @@ def mp_login(request):
         if r.status_code == requests.codes.OK:
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                mp_openid = data['openid']
                 session_key = data['session_key']
 
                 # 校验数据的完整性
@@ -348,7 +347,6 @@ def mp_login(request):
             ding(f'auth.code2Session接口调用失败',
                  error=r.text)
             return JsonResponse(dict(code=500, msg='登录失败'))
-
 
 
 @api_view(['POST'])
