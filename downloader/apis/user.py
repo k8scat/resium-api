@@ -12,6 +12,7 @@ import random
 import re
 import string
 import uuid
+from hashlib import sha1
 
 import requests
 from django.conf import settings
@@ -27,9 +28,9 @@ from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon, \
-    CheckInRecord
+    CheckInRecord, QrCode
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, send_email
+from downloader.utils import ding, send_email, WXBizDataCrypt, generate_uid, generate_jwt
 
 
 @auth
@@ -284,12 +285,18 @@ def reset_has_check_in_today(request):
     return HttpResponse('')
 
 
-@api_view()
+@api_view(['POST'])
 def mp_login(request):
     code = request.GET.get('code', None)
-    if not code:
+    encrypted_data = request.data.get('encrypted_data', None)
+    iv = request.data.get('iv', None)
+    signature = request.data.get('signature', None)
+    raw_data = request.data.get('raw_data', None)
+    if not code or not encrypted_data or not iv or not raw_data or not signature:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
+    # code存在表示session_key已经失效
+    # 向微信后端请求新的session_key以及openid
     params = {
         'appid': settings.WX_MP_APP_ID,
         'secret': settings.WX_MP_APP_SECRET,
@@ -299,10 +306,91 @@ def mp_login(request):
     with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
         if r.status_code == requests.codes.OK:
             data = r.json()
-            logging.info(data)
-            if data['errcode'] == 0:
-                return JsonResponse(dict(code=200, data=data))
+            if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
+                mp_openid = data['openid']
+                session_key = data['session_key']
+
+                # 校验数据的完整性
+                signature2 = sha1((raw_data + session_key).encode()).hexdigest()
+                logging.info(signature2)
+                if signature2 != signature:
+                    ding('[小程序登录] signature 校验失败')
+                    return JsonResponse(dict(code=400, msg='登录失败'))
+
+                pc = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
+                mp_user = pc.decrypt(encrypted_data, iv)
+                if mp_user is None:
+                    return JsonResponse(dict(code=400, msg='登录失败'))
+
+                mp_openid = mp_user['openId']
+                avatar_url = mp_user['avatarUrl']
+                nickname = mp_user['nickName']
+                login_time = datetime.datetime.now()
+                try:
+                    user = User.objects.get(mp_openid=mp_openid)
+                    user.avatar_url = avatar_url
+                    user.nickname = nickname
+                    user.login_time = login_time
+                    user.save()
+                except User.DoesNotExist:
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, mp_openid=mp_openid,
+                                               avatar_url=avatar_url, nickname=nickname,
+                                               login_time=login_time)
+                token = generate_jwt(user.uid)
+                return JsonResponse(dict(code=200, token=token))
+
             else:
-                return JsonResponse(dict(code=data['errcode'], data=data))
+                ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
+                     error=r.text)
+                return JsonResponse(dict(code=500, msg='登录失败'))
         else:
-            return JsonResponse(dict(code=500, msg='微信接口请求失败'))
+            ding(f'auth.code2Session接口调用失败',
+                 error=r.text)
+            return JsonResponse(dict(code=500, msg='登录失败'))
+
+
+
+@api_view(['POST'])
+def save_qr_code(request):
+    """
+    保存二维码唯一标志
+
+    :param request:
+    :return:
+    """
+
+    cid = request.data.get('cid', None)
+    if not cid:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    QrCode(cid=cid).save()
+    return JsonResponse(dict(code=200, msg='ok'))
+
+
+@api_view(['POST'])
+def scan_login(request):
+    """
+    小程序扫码登录
+
+    :param request:
+    :return:
+    """
+
+    encrypted_data = request.data.get('encrypted_data', None)
+    iv = request.data.get('iv', None)
+    cid = request.data.get('cid', None)
+    nickname = request.data.get('nickname', None)
+    pass
+
+
+@api_view()
+def bind_mp(request):
+    """
+    已用账号扫码绑定小程序
+
+    :param request:
+    :return:
+    """
+
+    pass

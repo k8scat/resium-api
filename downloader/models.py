@@ -10,7 +10,7 @@ class Base(models.Model):
 
 
 class User(Base):
-    uid = models.CharField(max_length=100, verbose_name='用户的唯一标识')
+    uid = models.CharField(max_length=100, unique=True, verbose_name='用户的唯一标识')
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     avatar_url = models.CharField(max_length=240, verbose_name='头像地址')
     point = models.IntegerField(default=0, verbose_name='下载积分')
@@ -19,13 +19,14 @@ class User(Base):
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
     qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
-    wx_openid = models.CharField(max_length=100, default=None, null=True)
+    wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
     github_id = models.IntegerField(default=None, null=True)
     gitee_id = models.IntegerField(default=None, null=True)
     baidu_openid = models.CharField(max_length=100, default=None, null=True)
     dingtalk_openid = models.CharField(max_length=100, default=None, null=True)
     coding_user_id = models.IntegerField(default=None, null=True)
     is_admin = models.BooleanField(default=False, verbose_name='是否是管理员账号')
+    mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
 
     # 废弃的字段
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
@@ -237,3 +238,11 @@ class DocConvertRecord(Base):
 
     class Meta:
         db_table = 'doc_convert_record'
+
+
+class QrCode(Base):
+    cid = models.CharField(max_length=100, unique=True, verbose_name='二维码唯一标志')
+    has_scanned = models.BooleanField(default=False, verbose_name='判断是否使用小程序扫码')
+
+    class Meta:
+        db_table = 'qr_code'

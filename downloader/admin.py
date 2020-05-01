@@ -99,6 +99,12 @@ class TaobaoWenkuAccountAdmin(admin.ModelAdmin):
     list_per_page = 50
 
 
+@admin.register(DocConvertRecord)
+class DocConvertRecordAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'download_url', 'point')
+    list_per_page = 50
+
+
 admin.site.site_header = '源自下载后台'
 admin.site.site_title = '源自下载后台'
 admin.site.site_url = settings.RESIUM_UI

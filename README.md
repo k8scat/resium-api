@@ -6,6 +6,18 @@
 
 OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
+## 扫码登录流程
+
+前端生成一张二维码，就是一个url 含有唯一标志
+
+请求后端接口保存二维码的唯一标志、过期时间以及状态
+
+前端带上唯一标志轮询后端接口，判断该二维码的状态是否改变
+
+如果改变，则表示已登录
+
+用户使用小程序进行扫码，带上用户信息、二维码唯一标志、
+
 ## Todo
 
 * [x] 用户是否正在下载状态: 数据库 -> redis
@@ -129,6 +141,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 合作
     http://dl.ipaycenter.cn/Index.gspx
 * [ ] 积分使用记录表
+* [ ] uid 改成6位数字
    
 ## 支付宝
 

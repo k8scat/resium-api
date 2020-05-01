@@ -321,4 +321,8 @@ CODING_CLIENT_ID = '18f2ccbef6126bd5723adfab7c2ea1b5'
 CODING_CLIENT_SECRET = 'b648811b65c885b6066f3cf683a9b40a4e06fe44'
 CODING_TEAM = 'resium'
 
+# OAuth重定向时的cookie键
 JWT_COOKIE_KEY = 'token'
+
+# 二维码有效期为5分钟
+QR_CODE_EXPIRE = 300

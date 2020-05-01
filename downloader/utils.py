@@ -24,6 +24,7 @@ from urllib import parse
 import alipay
 import jwt
 import requests
+from Crypto.Cipher import AES
 from django.conf import settings
 
 import os
@@ -42,7 +43,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon, User
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
@@ -815,10 +816,6 @@ def get_long_url(url):
             return None
 
 
-def generate_uid():
-    return f"{str(uuid.uuid1()).replace('-', '')}.{str(time.time())}"
-
-
 def generate_jwt(sub):
     # 设置token过期时间
     exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -869,3 +866,46 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
         ding('[CSDN] 自动切换账号成功')
     else:
         ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号')
+
+
+class WXBizDataCrypt:
+    def __init__(self, app_id, session_key):
+        self.app_id = app_id
+        self.session_key = session_key
+
+    def decrypt(self, encrypted_data, iv):
+        # base64 decode
+        session_key = base64.b64decode(self.session_key)
+        encrypted_data = base64.b64decode(encrypted_data)
+        iv = base64.b64decode(iv)
+
+        cipher = AES.new(session_key, AES.MODE_CBC, iv)
+
+        decrypted = json.loads(self._unpad(cipher.decrypt(encrypted_data)))
+
+        try:
+            app_id = decrypted['watermark']['appid']
+            if app_id != self.app_id:
+                ding(f'[小程序登录] wrong appid: {app_id}')
+                return None
+
+            return decrypted
+        except KeyError:
+            ding('[小程序登录] decrypt KeyError')
+            return None
+
+    def _unpad(self, s):
+        return s[:-ord(s[len(s)-1:])]
+
+
+def generate_uid(num=6):
+    # 使用数字UID
+    repetition_count = 0  # 计算重复次数
+    uid = ''.join(random.sample(string.digits, num))
+    while True:
+        if User.objects.filter(uid=uid).count():
+            repetition_count += 1
+            uid = ''.join(random.sample(string.digits, num))
+        else:
+            ding(f'UID生成重复次数: {repetition_count}')
+            return uid

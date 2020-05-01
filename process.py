@@ -23,7 +23,10 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
+    for user in User.objects.all():
+        uid = generate_uid()
+        user.uid = uid
+        user.save()
 
 
 
