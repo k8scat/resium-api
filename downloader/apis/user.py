@@ -301,7 +301,7 @@ def mp_login(request):
     iv = request.data.get('iv', None)
     signature = request.data.get('signature', None)
     raw_data = request.data.get('raw_data', None)
-    if not code or not need_update_session_key or not encrypted_data or not iv or not raw_data or not signature:
+    if not code or need_update_session_key is None or not encrypted_data or not iv or not raw_data or not signature:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     user = None
@@ -355,6 +355,7 @@ def mp_login(request):
     if mp_openid_from_sign != mp_openid_from_session:
         logging.info(f'mp_openid_from_session: {mp_openid_from_session}, mp_openid_from_sign: {mp_openid_from_sign}')
         ding('[小程序登录] 数据校验成功，但两次openid不同')
+
     avatar_url = mp_user['avatarUrl']
     nickname = mp_user['nickName']
     login_time = datetime.datetime.now()
