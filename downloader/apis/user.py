@@ -296,19 +296,11 @@ def mp_login(request):
     """
 
     code = request.data.get('code', None)
-    need_update_session_key = request.data.get('need_update_session_key', None)
-    encrypted_data = request.data.get('encrypted_data', None)
-    iv = request.data.get('iv', None)
-    signature = request.data.get('signature', None)
-    raw_data = request.data.get('raw_data', None)
-    if not code or need_update_session_key is None or not encrypted_data or not iv or not raw_data or not signature:
+    avatar_url = request.data.get('avatar_url', None)
+    nickname = request.data.get('nickname', None)
+    if not code or not avatar_url or not nickname:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    user = None
-    need_update_user = False  # 是否需要更新用户信息
-
-    # code存在表示session_key已经失效
-    # 向微信后端请求新的session_key以及openid
     params = {
         'appid': settings.WX_MP_APP_ID,
         'secret': settings.WX_MP_APP_SECRET,
@@ -319,19 +311,22 @@ def mp_login(request):
         if r.status_code == requests.codes.OK:
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                mp_openid_from_session = data['openid']
-                session_key = data['session_key']
+                mp_openid = data['openid']
+                login_time = datetime.datetime.now()
                 try:
-                    user = User.objects.get(mp_openid=mp_openid_from_session)
-                    need_update_user = True
-                    # 由小程序端checkSession判断是否需要使用新的session_key
-                    if not need_update_session_key:
-                        if user.mp_session_key:
-                            session_key = user.mp_session_key
-                        else:
-                            need_update_session_key = True
+                    user = User.objects.get(mp_openid=mp_openid)
+                    user.login_time = login_time
+                    user.avatar_url = avatar_url
+                    user.nickname = nickname
+                    user.save()
                 except User.DoesNotExist:
-                    pass
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, mp_openid=mp_openid,
+                                               avatar_url=avatar_url, nickname=nickname,
+                                               login_time=login_time)
+
+                token = generate_jwt(user.uid, expire_seconds=0)
+                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
@@ -341,48 +336,6 @@ def mp_login(request):
             ding(f'auth.code2Session接口调用失败',
                  error=r.text)
             return JsonResponse(dict(code=500, msg='登录失败'))
-
-    # 校验数据的完整性
-    sign_str = raw_data + session_key
-    signature2 = sha1(sign_str.encode()).hexdigest()
-    if signature2 != signature:
-        ding('[小程序登录] signature 校验失败')
-        return JsonResponse(dict(code=400, msg='登录失败'))
-
-    pc = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
-    mp_user = pc.decrypt(encrypted_data, iv)
-    if mp_user is None:
-        return JsonResponse(dict(code=400, msg='登录失败'))
-
-    mp_openid_from_sign = mp_user['openId']
-    if mp_openid_from_sign != mp_openid_from_session:
-        logging.info(f'mp_openid_from_session: {mp_openid_from_session}, mp_openid_from_sign: {mp_openid_from_sign}')
-        ding('[小程序登录] 数据校验成功，但两次openid不同')
-
-    avatar_url = mp_user['avatarUrl']
-    nickname = mp_user['nickName']
-    login_time = datetime.datetime.now()
-
-    if not user:
-        try:
-            user = User.objects.get(mp_openid=mp_openid_from_sign)
-            need_update_user = True
-        except User.DoesNotExist:
-            uid = generate_uid()
-            user = User.objects.create(uid=uid, mp_openid=mp_openid_from_sign,
-                                       avatar_url=avatar_url, nickname=nickname,
-                                       login_time=login_time, mp_session_key=session_key)
-
-    if need_update_user:
-        user.avatar_url = avatar_url
-        user.nickname = nickname
-        user.login_time = login_time
-        if need_update_session_key:
-            user.mp_session_key = session_key
-        user.save()
-
-    token = generate_jwt(user.uid, expire_seconds=0)
-    return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
 
 @api_view(['POST'])

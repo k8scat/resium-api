@@ -27,7 +27,6 @@ class User(Base):
     coding_user_id = models.IntegerField(default=None, null=True)
     is_admin = models.BooleanField(default=False, verbose_name='是否是管理员账号')
     mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
-    mp_session_key = models.CharField(max_length=100, default=None, null=True, verbose_name='会话密钥')
 
     # 废弃的字段
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
