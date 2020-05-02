@@ -325,7 +325,7 @@ def mp_login(request):
                     user = User.objects.get(mp_openid=mp_openid_from_session)
                     need_update_user = True
                     # 由小程序端checkSession判断是否需要使用新的session_key
-                    if not need_update_session_key:
+                    if not need_update_session_key and user.mp_session_key:
                         session_key = user.mp_session_key
                 except User.DoesNotExist:
                     pass
