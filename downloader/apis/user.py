@@ -378,7 +378,7 @@ def scan_code(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
-        qr_code = QrCode.objects.get(cid=cid, has_scanned=False,
+        qr_code = QrCode.objects.get(cid=cid, code_type=code_type, has_scanned=False,
                                      create_time__lt=datetime.datetime.now() + datetime.timedelta(
                                          seconds=settings.QR_CODE_EXPIRE))
         qr_code.has_scanned = True
@@ -430,7 +430,7 @@ def check_scan(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
-        qr_code = QrCode.objects.get(cid=cid)
+        qr_code = QrCode.objects.get(cid=cid, code_type=code_type)
         if not qr_code.has_scanned:
             return JsonResponse(dict(code=4000, msg='等待扫码'))
 
