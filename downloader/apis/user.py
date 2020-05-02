@@ -248,7 +248,7 @@ def wx(request):
                             old_user = User.objects.get(code=code)
                             new_user.point += old_user.point
                             new_user.used_point += old_user.used_point
-                            new_user.can_download = old_user.can_download
+                            new_user.can_download = old_user.can_download or new_user.can_download
                             new_user.save()
                             Order.objects.filter(user=old_user).update(user=new_user)
                             DownloadRecord.objects.filter(user=old_user).update(user=new_user)
