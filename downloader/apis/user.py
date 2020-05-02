@@ -296,7 +296,7 @@ def mp_login(request):
     """
 
     code = request.data.get('code', None)
-    need_update_session_key = request.data.get('need_update_sesssion_key', None)
+    need_update_session_key = request.data.get('need_update_session_key', None)
     encrypted_data = request.data.get('encrypted_data', None)
     iv = request.data.get('iv', None)
     signature = request.data.get('signature', None)
