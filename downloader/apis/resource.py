@@ -1336,13 +1336,15 @@ def oss_download(request):
         cache.delete(user.uid)
         return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
 
-    key = request.GET.get('key', None)
-    if not key:
+    resource_id = request.GET.get('id', None)
+    if resource_id and resource_id.isnumeric():
+        resource_id = int(resource_id)
+    else:
         cache.delete(user.uid)
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     try:
-        oss_resource = Resource.objects.get(key=key)
+        oss_resource = Resource.objects.get(id=resource_id)
         if not aliyun_oss_check_file(oss_resource.key):
             logging.error(f'OSS资源不存在，请及时检查资源 {oss_resource.key}')
             ding(f'OSS资源不存在，请及时检查资源 {oss_resource.key}',
