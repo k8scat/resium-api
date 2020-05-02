@@ -357,7 +357,7 @@ def save_qr_code(request):
 
 
 @auth
-@api_view(['POST'])
+@api_view()
 def scan_code(request):
     """
     小程序扫码登录
@@ -384,7 +384,7 @@ def scan_code(request):
         qr_code.has_scanned = True
 
         if code_type == 'bind':
-            uid_ = request.data.get('uid', None)  # 网站用户
+            uid_ = request.GET.get('uid', None)  # 网站用户
             if not uid_:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
