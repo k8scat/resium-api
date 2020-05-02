@@ -300,7 +300,6 @@ def mp_login(request):
     encrypted_data = request.data.get('encrypted_data', None)
     iv = request.data.get('iv', None)
     signature = request.data.get('signature', None)
-    logging.info(signature)
     raw_data = request.data.get('raw_data', None)
     if not encrypted_data or not iv or not raw_data or not signature:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -372,14 +371,13 @@ def mp_login(request):
                                        avatar_url=avatar_url, nickname=nickname,
                                        login_time=login_time, mp_session_key=session_key)
 
-    else:
-        if need_update_user:
-            user.avatar_url = avatar_url
-            user.nickname = nickname
-            user.login_time = login_time
-            if is_new_session_key:
-                user.mp_session_key = session_key
-            user.save()
+    if need_update_user:
+        user.avatar_url = avatar_url
+        user.nickname = nickname
+        user.login_time = login_time
+        if is_new_session_key:
+            user.mp_session_key = session_key
+        user.save()
 
     token = generate_jwt(user.uid, expire_seconds=0)
     return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
