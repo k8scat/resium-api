@@ -17,7 +17,7 @@ from rest_framework.decorators import api_view
 from downloader.decorators import auth
 from downloader.models import CsdnAccount, Article, User
 from downloader.serializers import ArticleSerializers
-from downloader.utils import ding
+from downloader.utils import ding, get_random_ua
 
 
 @auth
@@ -47,7 +47,7 @@ def parse_csdn_article(request):
         csdn_account = CsdnAccount.objects.get(is_enabled=True)
         headers = {
             'cookie': csdn_account.cookies,
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36'
+            'user-agent': get_random_ua()
         }
         with requests.get(article_url, headers=headers) as r:
             if r.status_code == requests.codes.OK:

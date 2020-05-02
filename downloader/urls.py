@@ -16,8 +16,8 @@ urlpatterns = [
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
     re_path(r'^mp_login/?$', user.mp_login),
     path('save_qr_code/', user.save_qr_code),
-    path('scan_login/', user.scan_login),
-    path('bind_mp/', user.bind_mp),
+    path('scan_code/', user.scan_code),
+    path('check_scan/', user.check_scan),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),

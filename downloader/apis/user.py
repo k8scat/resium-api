@@ -355,8 +355,9 @@ def save_qr_code(request):
     return JsonResponse(dict(code=200, msg='ok'))
 
 
+@auth
 @api_view(['POST'])
-def scan_login(request):
+def scan_code(request):
     """
     小程序扫码登录
 
@@ -364,16 +365,66 @@ def scan_login(request):
     :return:
     """
 
-    pass
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    t = request.data.get('t', None)  # 扫码类型，分类登录和绑定已有账号
+    cid = request.data.get('cid', None)
+    if not t or not cid:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    try:
+        qr_code = QrCode.objects.get(cid=cid, has_scanned=False,
+                                     create_time__lt=datetime.datetime.now() + datetime.timedelta(
+                                         seconds=settings.QR_CODE_EXPIRE))
+        qr_code.has_scanned = True
+        qr_code.save()
+
+        if t == 'bind':
+            uid_ = request.data.get('uid', None)  # 网站用户
+            if not uid_:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+
+            try:
+                user_ = User.objects.get(uid=uid_)
+                user_.mp_openid = user.mp_openid
+                user_.save()
+                return JsonResponse(dict(code=200, msg='绑定成功'))
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+
+        elif t == 'login':
+            return JsonResponse(dict(code=200, msg='确认登录'))
+
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    except QrCode.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='二维码已失效'))
 
 
-@api_view(['POST'])
-def bind_mp(request):
-    """
-    已用账号扫码绑定小程序
+@api_view()
+def check_scan(request):
+    t = request.GET.get('t', None)  # 扫码类型，分类登录和绑定已有账号
+    cid = request.GET.get('cid', None)
+    if not t or not cid:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    :param request:
-    :return:
-    """
+    try:
+        qr_code = QrCode.objects.get(cid=cid)
+        if not qr_code.has_scanned:
+            return JsonResponse(dict(code=4000, msg='等待扫码'))
 
-    pass
+        if t == 'bind':
+            return JsonResponse(dict(code=200, msg='绑定成功'))
+        elif t == 'login':
+            return JsonResponse(dict(code=200, token=qr_code.token))
+        else:
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    except QrCode.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
