@@ -356,7 +356,7 @@ def mp_login(request):
         return JsonResponse(dict(code=400, msg='登录失败'))
 
     mp_openid = mp_user['openId']
-    if mp_openid != openid:
+    if openid and mp_openid != openid:
         ding('[小程序登录] 数据校验成功，但openid不同')
     avatar_url = mp_user['avatarUrl']
     nickname = mp_user['nickName']
