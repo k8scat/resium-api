@@ -307,6 +307,7 @@ def mp_login(request):
 
     user = None
     need_update_user = False  # 是否需要更新用户信息
+    is_new_session_key = False
     if not openid and code:
         # code存在表示session_key已经失效
         # 向微信后端请求新的session_key以及openid
@@ -321,7 +322,7 @@ def mp_login(request):
                 data = r.json()
                 if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                     session_key = data['session_key']
-                    logging.info(session_key)
+                    is_new_session_key = True
                 else:
                     ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
                          error=r.text)
@@ -369,13 +370,15 @@ def mp_login(request):
             uid = generate_uid()
             user = User.objects.create(uid=uid, mp_openid=mp_openid,
                                        avatar_url=avatar_url, nickname=nickname,
-                                       login_time=login_time)
+                                       login_time=login_time, mp_session_key=session_key)
 
     else:
         if need_update_user:
             user.avatar_url = avatar_url
             user.nickname = nickname
             user.login_time = login_time
+            if is_new_session_key:
+                user.mp_session_key = session_key
             user.save()
 
     token = generate_jwt(user.uid, expire_seconds=0)
