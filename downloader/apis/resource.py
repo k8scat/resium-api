@@ -1205,6 +1205,9 @@ def download(request):
     """
 
     uid = request.session.get('uid')
+    if cache.get(uid) and not settings.DEBUG:
+        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
+
     try:
         user = User.objects.get(uid=uid)
         if not user.is_admin and not user.can_download:
@@ -1217,8 +1220,7 @@ def download(request):
     resource_url = request.data.get('url', None)
     # 下载返回类型（不包括直接在OSS找到的资源），file或者url，默认file
     t = request.data.get('t', 'file')
-    if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
+
     if not resource_url:
         return JsonResponse(dict(code=400, msg='资源地址不能为空'))
 
