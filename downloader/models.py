@@ -243,6 +243,7 @@ class DocConvertRecord(Base):
 class QrCode(Base):
     cid = models.CharField(max_length=100, unique=True, verbose_name='二维码唯一标志')
     has_scanned = models.BooleanField(default=False, verbose_name='判断是否使用小程序扫码')
+    code_type = models.CharField(max_length=20, verbose_name='二维码类型，bing或者login')
     uid = models.CharField(max_length=50, default=None, null=True, verbose_name='扫码登录时保存的uid')
 
     class Meta:
