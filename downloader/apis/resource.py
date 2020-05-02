@@ -143,7 +143,7 @@ class CsdnResource(BaseResource):
             point = settings.CSDN_POINT
             # 可用积分不足
             if self.user.point < point:
-                return 400, '积分不足，请进行捐赠'
+                return 400, '积分不足，请前往网站捐赠支持'
 
             # 判断账号当天下载数
             if self.account.today_download_count >= 20:
@@ -374,7 +374,7 @@ class WenkuResource(BaseResource):
             return 400, '该资源不支持下载'
 
         if self.user.point < point:
-            return 400, '积分不足，请进行捐赠'
+            return 400, '积分不足，请前往网站捐赠支持'
 
         # 更新用户积分
         self.user.point -= point
@@ -593,7 +593,7 @@ class DocerResource(BaseResource):
 
         point = settings.DOCER_POINT
         if self.user.point < point:
-            return 400, '积分不足，请进行捐赠'
+            return 400, '积分不足，请前往网站捐赠支持'
 
         try:
             self.account = DocerAccount.objects.get(is_enabled=True)
@@ -738,7 +738,7 @@ class ZhiwangResource(BaseResource):
 
         point = settings.ZHIWANG_POINT
         if self.user.point < point:
-            return 400, '积分不足，请进行捐赠'
+            return 400, '积分不足，请前往网站捐赠支持'
 
         # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
         vpn_url = re.sub(r'http(s)?://kns(8)?\.cnki\.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn', self.url)
@@ -993,7 +993,7 @@ def upload(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
+        return JsonResponse(dict(code=401, msg='未登录'))
 
     file = request.FILES.get('file', None)
     if not file:
@@ -1205,14 +1205,6 @@ def download(request):
     """
 
     uid = request.session.get('uid')
-    resource_url = request.data.get('url', None)
-    # 下载返回类型（不包括直接在OSS找到的资源），file或者url，默认file
-    t = request.data.get('t', 'file')
-    if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
-    if not resource_url:
-        return JsonResponse(dict(code=400, msg='资源地址不能为空'))
-
     try:
         user = User.objects.get(uid=uid)
         if not user.is_admin and not user.can_download:
@@ -1220,7 +1212,15 @@ def download(request):
 
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
+        return JsonResponse(dict(code=401, msg='未登录'))
+
+    resource_url = request.data.get('url', None)
+    # 下载返回类型（不包括直接在OSS找到的资源），file或者url，默认file
+    t = request.data.get('t', 'file')
+    if cache.get(uid) and not settings.DEBUG:
+        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
+    if not resource_url:
+        return JsonResponse(dict(code=400, msg='资源地址不能为空'))
 
     if not re.match(settings.PATTERN_ZHIWANG, resource_url):
         # 去除资源地址参数
@@ -1246,12 +1246,13 @@ def download(request):
 
             if user.point < point:
                 cache.delete(user.uid)
-                return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+                return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
 
         # 新增下载记录
         DownloadRecord(user=user,
                        resource=oss_resource,
                        used_point=point).save()
+
         # 更新用户积分
         user.point -= point
         user.used_point += point
@@ -1264,7 +1265,8 @@ def download(request):
         oss_resource.download_count += 1
         oss_resource.save()
 
-        return JsonResponse(dict(code=200, url=url))
+        free_download_code = generate_free_download_code(user)
+        return JsonResponse(dict(code=200, free_download_code=free_download_code))
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1307,7 +1309,8 @@ def download(request):
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
-        return JsonResponse(dict(code=status, download_url=result))
+        free_download_code = generate_free_download_code(user)
+        return JsonResponse(dict(code=status, free_download_code=free_download_code))
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -1329,12 +1332,12 @@ def oss_download(request):
 
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
+        return JsonResponse(dict(code=401, msg='未登录'))
 
     point = settings.OSS_RESOURCE_POINT
     if user.point < point:
         cache.delete(user.uid)
-        return JsonResponse(dict(code=400, msg='积分不足，请进行捐赠'))
+        return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
 
     resource_id = request.GET.get('id', None)
     if resource_id and resource_id.isnumeric():
@@ -1362,10 +1365,17 @@ def oss_download(request):
                                   resource=oss_resource,
                                   used_point=settings.OSS_RESOURCE_POINT)
 
-    # 更新用户积分
-    user.point -= point
-    user.used_point += point
-    user.save()
+    code = request.GET.get('code', None)
+    if code:
+        try:
+            free_download_code = FreeDownloadCode.objects.get(user=user, code=code, is_used=False)
+            free_download_code.is_used = True
+            free_download_code.save()
+        except FreeDownloadCode.DoesNotExist:
+            # 更新用户积分
+            user.point -= point
+            user.used_point += point
+            user.save()
 
     url = aliyun_oss_sign_url(oss_resource.key)
     oss_resource.download_count += 1
@@ -1397,7 +1407,7 @@ def parse_resource(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=403, msg='未认证'))
+        return JsonResponse(dict(code=403, msg='未登录'))
 
     # CSDN资源
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1468,9 +1478,9 @@ def doc_convert(request):
         user = User.objects.get(uid=uid)
         point = settings.DOC_CONVERT_POINT
         if user.point < point:
-            return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
+            return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
+        return JsonResponse(dict(code=401, msg='未登录'))
 
     if file.size > 100 * 1000 * 1000:
         return JsonResponse(dict(code=400, msg='上传资源大小不能超过100MB'))

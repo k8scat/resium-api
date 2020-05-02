@@ -43,7 +43,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon, User
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon, User, FreeDownloadCode
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
@@ -919,3 +919,17 @@ def generate_uid(num=6):
         else:
             ding(f'UID生成重复次数: {repetition_count}')
             return uid
+
+
+def generate_free_download_code(user, num=6):
+    # 使用数字UID
+    repetition_count = 0  # 计算重复次数
+    code = ''.join(random.sample(string.digits, num))
+    while True:
+        if FreeDownloadCode.objects.filter(user=user, code=code, is_used=False).count():
+            repetition_count += 1
+            code = ''.join(random.sample(string.digits, num))
+        else:
+            FreeDownloadCode(user=user, code=code).save()
+            ding(f'FreeDownloadCode生成重复次数: {repetition_count}')
+            return code

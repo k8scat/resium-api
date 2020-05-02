@@ -248,3 +248,12 @@ class QrCode(Base):
 
     class Meta:
         db_table = 'qr_code'
+
+
+class FreeDownloadCode(Base):
+    code = models.CharField(max_length=20)
+    is_used = models.BooleanField(default=False)
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+
+    class Meta:
+        db_table = 'free_download_code'

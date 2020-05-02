@@ -10,10 +10,7 @@ import hashlib
 import logging
 import random
 import re
-import string
 import uuid
-from hashlib import sha1
-from urllib import parse
 
 import requests
 from django.conf import settings
@@ -200,7 +197,7 @@ def wx(request):
                     content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^[a-z0-9]+\.\d+\.\d+$', msg_content):  # 绑定公众号
+            elif re.match(r'^\d{6}$', msg_content):  # 绑定公众号
                 try:
                     user = User.objects.get(uid=msg_content)
                     if user.wx_openid:
@@ -220,7 +217,7 @@ def wx(request):
                         content = '今日已签到'
                     else:
                         # 随机获取积分
-                        points = [1, 2]
+                        points = [1, 2, 3]
                         point = random.choice(points)
                         # 保存签到记录
                         CheckInRecord(user=user, point=point).save()
@@ -228,7 +225,7 @@ def wx(request):
                         user.point += point
                         user.has_check_in_today = True
                         user.save()
-                        today = datetime.datetime.now().day
+                        today = timezone.now().day
                         today_check_in_count = CheckInRecord.objects.filter(create_time__day=today).count()
                         today_check_in_point = CheckInRecord.objects.filter(create_time__day=today).aggregate(nums=Sum('point'))
                         ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
@@ -238,10 +235,10 @@ def wx(request):
                     content = '请先绑定账号'
                 reply = TextReply(content=content, message=msg)
 
-            elif re.match(r'^[a-z0-9]+\.\d+\.\d+ [a-z0-9]+$', msg_content):  # 账号迁移
+            elif re.match(r'^\d{6} *[a-z0-9]+$', msg_content):  # 账号迁移
                 uid = msg_content.split(' ')[0]
-                if re.match(r'.+\..+\..+', uid):
-                    code = msg_content.split(' ')[1]
+                if re.match(r'^\d{6}$', uid):
+                    code = msg_content.split(' ')[-1]
                     try:
                         new_user = User.objects.get(uid=uid)
                         try:
@@ -452,4 +449,5 @@ def check_scan(request):
 
     except QrCode.DoesNotExist:
         return JsonResponse(dict(code=400, msg='错误的请求'))
+
 
