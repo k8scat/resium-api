@@ -381,7 +381,6 @@ def scan_code(request):
                                      create_time__lt=datetime.datetime.now() + datetime.timedelta(
                                          seconds=settings.QR_CODE_EXPIRE))
         qr_code.has_scanned = True
-        qr_code.save()
 
         if t == 'bind':
             uid_ = request.data.get('uid', None)  # 网站用户
@@ -392,11 +391,15 @@ def scan_code(request):
                 user_ = User.objects.get(uid=uid_)
                 user_.mp_openid = user.mp_openid
                 user_.save()
+                user.delete()
+                qr_code.save()
                 return JsonResponse(dict(code=200, msg='绑定成功'))
             except User.DoesNotExist:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
         elif t == 'login':
+            qr_code.uid = user.uid
+            qr_code.save()
             return JsonResponse(dict(code=200, msg='确认登录'))
 
         else:
@@ -421,7 +424,16 @@ def check_scan(request):
         if t == 'bind':
             return JsonResponse(dict(code=200, msg='绑定成功'))
         elif t == 'login':
-            return JsonResponse(dict(code=200, token=qr_code.token))
+            if not qr_code.uid:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+
+            try:
+                user = User.objects.get(uid=qr_code.uid)
+                token = generate_jwt(user.uid)
+                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+            except User.DoesNotExist:
+                return JsonResponse(dict(code=400, msg='错误的请求'))
+
         else:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
