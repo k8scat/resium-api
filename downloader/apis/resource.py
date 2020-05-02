@@ -572,7 +572,7 @@ class DocerResource(BaseResource):
                         driver.close()
 
                 self.resource = {
-                    'title': soup.find('h1', class_='preview__title').string,
+                    'title': soup.find('div', class_='preview-info_title').string,
                     'tags': tags,
                     'file_type': soup.select('span.m-crumbs-path a')[0].text,
                     'desc': '',  # soup.find('meta', attrs={'name': 'Description'})['content']
