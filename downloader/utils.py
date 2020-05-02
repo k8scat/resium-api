@@ -817,13 +817,22 @@ def get_long_url(url):
             return None
 
 
-def generate_jwt(sub):
-    # 设置token过期时间
-    exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+def generate_jwt(sub, expire_seconds=3600):
+    """
+    生成token
+
+    :param sub:
+    :param expire_seconds: 默认1天过期
+    :return:
+    """
+
     payload = {
-        'exp': exp,
         'sub': sub
     }
+    if expire_seconds > 0:
+        exp = datetime.datetime.utcnow() + datetime.timedelta(seconds=expire_seconds)
+        payload.setdefault('exp', exp)
+
     return jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
 
 

@@ -288,69 +288,99 @@ def reset_has_check_in_today(request):
 
 @api_view(['POST'])
 def mp_login(request):
+    """
+    code 和 session_key 必须存在一个
+
+    :param request:
+    :return:
+    """
+
     code = request.data.get('code', None)
+    openid = request.data.get('openid', None)
     encrypted_data = request.data.get('encrypted_data', None)
     iv = request.data.get('iv', None)
     signature = request.data.get('signature', None)
     logging.info(signature)
     raw_data = request.data.get('raw_data', None)
-    if not code or not encrypted_data or not iv or not raw_data or not signature:
+    if not encrypted_data or not iv or not raw_data or not signature:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    # code存在表示session_key已经失效
-    # 向微信后端请求新的session_key以及openid
-    params = {
-        'appid': settings.WX_MP_APP_ID,
-        'secret': settings.WX_MP_APP_SECRET,
-        'js_code': code,
-        'grant_type': 'authorization_code'
-    }
-    with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
-        if r.status_code == requests.codes.OK:
-            data = r.json()
-            if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                session_key = data['session_key']
-                logging.info(session_key)
-
-                # 校验数据的完整性
-                sign_str = raw_data + session_key
-                signature2 = sha1(sign_str.encode()).hexdigest()
-                logging.info(signature2)
-                if signature2 != signature:
-                    ding('[小程序登录] signature 校验失败')
-                    return JsonResponse(dict(code=400, msg='登录失败'))
-
-                pc = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
-                mp_user = pc.decrypt(encrypted_data, iv)
-                if mp_user is None:
-                    return JsonResponse(dict(code=400, msg='登录失败'))
-
-                mp_openid = mp_user['openId']
-                avatar_url = mp_user['avatarUrl']
-                nickname = mp_user['nickName']
-                login_time = datetime.datetime.now()
-                try:
-                    user = User.objects.get(mp_openid=mp_openid)
-                    user.avatar_url = avatar_url
-                    user.nickname = nickname
-                    user.login_time = login_time
-                    user.save()
-                except User.DoesNotExist:
-                    uid = generate_uid()
-                    user = User.objects.create(uid=uid, mp_openid=mp_openid,
-                                               avatar_url=avatar_url, nickname=nickname,
-                                               login_time=login_time)
-                token = generate_jwt(user.uid)
-                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
-
+    user = None
+    need_update_user = False  # 是否需要更新用户信息
+    if not openid and code:
+        # code存在表示session_key已经失效
+        # 向微信后端请求新的session_key以及openid
+        params = {
+            'appid': settings.WX_MP_APP_ID,
+            'secret': settings.WX_MP_APP_SECRET,
+            'js_code': code,
+            'grant_type': 'authorization_code'
+        }
+        with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
+            if r.status_code == requests.codes.OK:
+                data = r.json()
+                if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
+                    session_key = data['session_key']
+                    logging.info(session_key)
+                else:
+                    ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
+                         error=r.text)
+                    return JsonResponse(dict(code=500, msg='登录失败'))
             else:
-                ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
+                ding(f'auth.code2Session接口调用失败',
                      error=r.text)
                 return JsonResponse(dict(code=500, msg='登录失败'))
-        else:
-            ding(f'auth.code2Session接口调用失败',
-                 error=r.text)
-            return JsonResponse(dict(code=500, msg='登录失败'))
+    elif openid and not code:
+        try:
+            user = User.objects.get(mp_openid=openid)
+            session_key = user.mp_session_key
+            need_update_user = True
+        except User.DoesNotExist:
+            ding('[小程序登录] 登录存在openid，但user不存在')
+            return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    else:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    # 校验数据的完整性
+    sign_str = raw_data + session_key
+    signature2 = sha1(sign_str.encode()).hexdigest()
+    if signature2 != signature:
+        ding('[小程序登录] signature 校验失败')
+        return JsonResponse(dict(code=400, msg='登录失败'))
+
+    pc = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
+    mp_user = pc.decrypt(encrypted_data, iv)
+    if mp_user is None:
+        return JsonResponse(dict(code=400, msg='登录失败'))
+
+    mp_openid = mp_user['openId']
+    if mp_openid != openid:
+        ding('[小程序登录] 数据校验失败，但openid不同')
+    avatar_url = mp_user['avatarUrl']
+    nickname = mp_user['nickName']
+    login_time = datetime.datetime.now()
+
+    if not user:
+        try:
+            user = User.objects.get(mp_openid=mp_openid)
+            need_update_user = True
+        except User.DoesNotExist:
+            uid = generate_uid()
+            user = User.objects.create(uid=uid, mp_openid=mp_openid,
+                                       avatar_url=avatar_url, nickname=nickname,
+                                       login_time=login_time)
+
+    else:
+        if need_update_user:
+            user.avatar_url = avatar_url
+            user.nickname = nickname
+            user.login_time = login_time
+            user.save()
+
+    token = generate_jwt(user.uid, expire_seconds=0)
+    return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data),
+                        session_key=session_key)
 
 
 @api_view(['POST'])
