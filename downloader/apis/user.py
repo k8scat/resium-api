@@ -357,7 +357,7 @@ def mp_login(request):
 
     mp_openid = mp_user['openId']
     if mp_openid != openid:
-        ding('[小程序登录] 数据校验失败，但openid不同')
+        ding('[小程序登录] 数据校验成功，但openid不同')
     avatar_url = mp_user['avatarUrl']
     nickname = mp_user['nickName']
     login_time = datetime.datetime.now()
@@ -382,8 +382,7 @@ def mp_login(request):
             user.save()
 
     token = generate_jwt(user.uid, expire_seconds=0)
-    return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data),
-                        session_key=session_key)
+    return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
 
 @api_view(['POST'])
