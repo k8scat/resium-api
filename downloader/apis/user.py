@@ -431,7 +431,7 @@ def check_scan(request):
             try:
                 user = User.objects.get(uid=qr_code.uid)
                 token = generate_jwt(user.uid)
-                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data, msg='登录成功'))
             except User.DoesNotExist:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
