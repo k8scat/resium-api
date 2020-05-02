@@ -371,8 +371,8 @@ def scan_code(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    t = request.data.get('t', None)  # 扫码类型，分类登录和绑定已有账号
-    cid = request.data.get('cid', None)
+    t = request.GET.get('t', None)  # 扫码类型，分类登录和绑定已有账号
+    cid = request.GET.get('cid', None)
     if not t or not cid:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
