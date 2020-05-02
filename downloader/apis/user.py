@@ -391,7 +391,19 @@ def scan_code(request):
             try:
                 user_ = User.objects.get(uid=uid_)
                 user_.mp_openid = user.mp_openid
+                user_.point += user.point
+                user_.used_point += user.used_point
+                user_.can_download = user_.can_download or user.can_download
                 user_.save()
+                Order.objects.filter(user=user).update(user=user_)
+                DownloadRecord.objects.filter(user=user).update(user=user_)
+                Resource.objects.filter(user=user).update(user=user_)
+                ResourceComment.objects.filter(user=user).update(user=user_)
+                DwzRecord.objects.filter(user=user).update(user=user_)
+                Article.objects.filter(user=user).update(user=user_)
+                Coupon.objects.filter(user=user).update(user=user_)
+                CheckInRecord.objects.filter(user=user).update(user=user_)
+
                 user.delete()
                 qr_code.save()
                 return JsonResponse(dict(code=200, msg='绑定成功'))
