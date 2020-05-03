@@ -26,7 +26,7 @@ from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon, \
-    CheckInRecord, QrCode
+    CheckInRecord, QrCode, DocConvertRecord, FreeDownloadCode
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email, WXBizDataCrypt, generate_uid, generate_jwt
 
@@ -386,7 +386,11 @@ def scan_code(request):
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
             try:
+                # 合并用户信息，保留网站用户，删除小程序用户
                 user_ = User.objects.get(uid=uid_)
+                if user_.mp_openid:
+                    return JsonResponse(dict(code=400, msg='该账号已绑定小程序'))
+
                 user_.mp_openid = user.mp_openid
                 user_.point += user.point
                 user_.used_point += user.used_point
@@ -400,6 +404,8 @@ def scan_code(request):
                 Article.objects.filter(user=user).update(user=user_)
                 Coupon.objects.filter(user=user).update(user=user_)
                 CheckInRecord.objects.filter(user=user).update(user=user_)
+                DocConvertRecord.objects.filter(user=user).update(user=user_)
+                FreeDownloadCode.objects.filter(user=user).update(user=user_)
 
                 user.delete()
                 qr_code.save()
