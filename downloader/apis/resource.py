@@ -1267,8 +1267,7 @@ def download(request):
         oss_resource.download_count += 1
         oss_resource.save()
 
-        free_download_code = generate_free_download_code(user)
-        return JsonResponse(dict(code=200, free_download_code=free_download_code))
+        return JsonResponse(dict(code=200, url=url))
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1305,14 +1304,14 @@ def download(request):
         response['Content-Disposition'] = 'attachment;filename="' + parse.quote(result['filename'],
                                                                                 safe=string.printable) + '"'
         return response
+
     elif t == 'url':
         status, result = resource.get_url()
         if status != 200:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
-        free_download_code = generate_free_download_code(user)
-        return JsonResponse(dict(code=status, free_download_code=free_download_code))
+        return JsonResponse(dict(code=status, url=result))
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))

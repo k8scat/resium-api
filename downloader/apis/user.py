@@ -380,40 +380,7 @@ def scan_code(request):
                                          seconds=settings.QR_CODE_EXPIRE))
         qr_code.has_scanned = True
 
-        if code_type == 'bind':
-            uid_ = request.GET.get('uid', None)  # 网站用户
-            if not uid_:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
-
-            try:
-                # 合并用户信息，保留网站用户，删除小程序用户
-                user_ = User.objects.get(uid=uid_)
-                if user_.mp_openid:
-                    return JsonResponse(dict(code=400, msg='该账号已绑定小程序'))
-
-                user_.mp_openid = user.mp_openid
-                user_.point += user.point
-                user_.used_point += user.used_point
-                user_.can_download = user_.can_download or user.can_download
-                user_.save()
-                Order.objects.filter(user=user).update(user=user_)
-                DownloadRecord.objects.filter(user=user).update(user=user_)
-                Resource.objects.filter(user=user).update(user=user_)
-                ResourceComment.objects.filter(user=user).update(user=user_)
-                DwzRecord.objects.filter(user=user).update(user=user_)
-                Article.objects.filter(user=user).update(user=user_)
-                Coupon.objects.filter(user=user).update(user=user_)
-                CheckInRecord.objects.filter(user=user).update(user=user_)
-                DocConvertRecord.objects.filter(user=user).update(user=user_)
-                FreeDownloadCode.objects.filter(user=user).update(user=user_)
-
-                user.delete()
-                qr_code.save()
-                return JsonResponse(dict(code=200, msg='绑定成功'))
-            except User.DoesNotExist:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
-
-        elif code_type == 'login':
+        if code_type == 'login':
             qr_code.uid = user.uid
             qr_code.save()
             return JsonResponse(dict(code=200, msg='确认登录'))
@@ -437,9 +404,7 @@ def check_scan(request):
         if not qr_code.has_scanned:
             return JsonResponse(dict(code=4000, msg='等待扫码'))
 
-        if code_type == 'bind':
-            return JsonResponse(dict(code=200, msg='绑定成功'))
-        elif code_type == 'login':
+        if code_type == 'login':
             if not qr_code.uid:
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
