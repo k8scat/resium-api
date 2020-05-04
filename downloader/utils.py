@@ -917,19 +917,9 @@ def generate_uid(num=6):
             repetition_count += 1
             uid = ''.join(random.sample(string.digits, num))
         else:
-            ding(f'UID生成重复次数: {repetition_count}')
+            if repetition_count > 0:
+                ding(f'UID生成重复次数: {repetition_count}',
+                     uid=uid)
             return uid
 
 
-def generate_free_download_code(user, num=6):
-    # 使用数字UID
-    repetition_count = 0  # 计算重复次数
-    code = ''.join(random.sample(string.digits, num))
-    while True:
-        if FreeDownloadCode.objects.filter(user=user, code=code, is_used=False).count():
-            repetition_count += 1
-            code = ''.join(random.sample(string.digits, num))
-        else:
-            FreeDownloadCode(user=user, code=code).save()
-            ding(f'FreeDownloadCode生成重复次数: {repetition_count}')
-            return code
