@@ -26,9 +26,9 @@ from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon, \
-    CheckInRecord, QrCode, DocConvertRecord, FreeDownloadCode
+    CheckInRecord, QrCode
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, send_email, WXBizDataCrypt, generate_uid, generate_jwt
+from downloader.utils import ding, send_email, generate_uid, generate_jwt
 
 
 @auth

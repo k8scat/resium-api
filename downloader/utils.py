@@ -43,7 +43,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon, User, FreeDownloadCode
+from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, Coupon, User
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
