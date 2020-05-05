@@ -34,7 +34,7 @@ def set_user_can_download(request):
         return JsonResponse(dict(code=404, msg='用户不存在'))
 
 
-@api_view()
+@api_view(['POST'])
 def get_user(request):
     token = request.data.get('token', None)
     uid = request.data.get('uid', None)
