@@ -817,7 +817,7 @@ def get_long_url(url):
             return None
 
 
-def generate_jwt(sub, expire_seconds=3600):
+def generate_jwt(sub, expire_seconds=3600*24):
     """
     生成token
 
