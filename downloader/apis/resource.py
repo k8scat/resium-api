@@ -1213,7 +1213,8 @@ def download(request):
         if not user.is_admin and not user.can_download:
             return JsonResponse(dict(code=400, msg='错误的请求'))
 
-        cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
+        if not user.is_admin:
+            cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未登录'))
 
