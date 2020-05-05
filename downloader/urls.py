@@ -62,6 +62,7 @@ urlpatterns = [
     re_path(r'^get_article/?$', article.get_article),
 
     path('bot/set_user_can_download/', bot.set_user_can_download),
+    path('bot/get_user/', bot.get_user),
 
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),

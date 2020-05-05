@@ -3,7 +3,7 @@
 download/*
 !download/.gitkeep
 __pycache__
-ENV
+.venv
 upload/*
 !upload/.gitkeep
 *.png

@@ -1225,6 +1225,10 @@ def download(request):
     if not resource_url:
         return JsonResponse(dict(code=400, msg='资源地址不能为空'))
 
+    ding('正在下载',
+         resource_url=resource_url,
+         uid=uid)
+
     if not re.match(settings.PATTERN_ZHIWANG, resource_url):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
