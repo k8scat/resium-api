@@ -1371,18 +1371,6 @@ def oss_download(request):
                                   resource=oss_resource,
                                   used_point=settings.OSS_RESOURCE_POINT)
 
-    code = request.GET.get('code', None)
-    if code:
-        try:
-            free_download_code = FreeDownloadCode.objects.get(user=user, code=code, is_used=False)
-            free_download_code.is_used = True
-            free_download_code.save()
-        except FreeDownloadCode.DoesNotExist:
-            # 更新用户积分
-            user.point -= point
-            user.used_point += point
-            user.save()
-
     url = aliyun_oss_sign_url(oss_resource.key)
     oss_resource.download_count += 1
     oss_resource.save()
