@@ -436,7 +436,7 @@ def set_password(request):
 
     password = request.data.get('password', '')
     if not re.match(r'[a-zA-Z0-9]{6,24}', password):
-        return JsonResponse(dict(code=400, msg='密码必须是6到24位字母和数字'))
+        return JsonResponse(dict(code=400, msg='密码必须是6到24位字母或数字'))
 
     user.password = make_password(password)
     user.save()
