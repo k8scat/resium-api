@@ -293,11 +293,8 @@ def mp_login(request):
     """
 
     code = request.data.get('code', None)
-    logging.info(code)
     avatar_url = request.data.get('avatar_url', None)
-    logging.info(avatar_url)
     nickname = request.data.get('nickname', None)
-    logging.info(nickname)
     if not code or not avatar_url or not nickname:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
