@@ -295,8 +295,10 @@ def mp_login(request):
     code = request.data.get('code', None)
     avatar_url = request.data.get('avatar_url', None)
     nickname = request.data.get('nickname', None)
-    if not code or not avatar_url or not nickname:
+    if not code:
         return JsonResponse(dict(code=400, msg='错误的请求'))
+    if not avatar_url or not nickname:
+        return JsonResponse(dict(code=400, msg='未设置微信昵称或头像'))
 
     params = {
         'appid': settings.WX_MP_APP_ID,
