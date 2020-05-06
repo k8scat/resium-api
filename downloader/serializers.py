@@ -21,7 +21,7 @@ class ResourceSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = Resource
-        fields = '__all__'
+        fields = ['id', 'create_time', 'desc', 'nickname', 'size', 'tags', 'title']
 
 
 class DownloadRecordSerializers(serializers.ModelSerializer):
