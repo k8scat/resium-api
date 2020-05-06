@@ -59,7 +59,6 @@ def recover_csdn_account(request):
     try:
         account = CsdnAccount.objects.get(email=email)
         account.need_sms_validate = False
-        account.is_enabled = True
         account.save()
 
         return JsonResponse(dict(code=200, msg='成功恢复下载'))

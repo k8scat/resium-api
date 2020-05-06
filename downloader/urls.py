@@ -18,6 +18,8 @@ urlpatterns = [
     path('save_qr_code/', user.save_qr_code),
     path('scan_code/', user.scan_code),
     re_path(r'^check_scan/?$', user.check_scan),
+    path('set_password/', user.set_password),
+    path('login/', user.login),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),

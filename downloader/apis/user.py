@@ -14,6 +14,7 @@ import uuid
 
 import requests
 from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
@@ -424,3 +425,38 @@ def check_scan(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
 
+@auth
+@api_view(['POST'])
+def set_password(request):
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    password = request.data.get('password', '')
+    if not re.match(r'[a-zA-Z0-9]{6,24}', password):
+        return JsonResponse(dict(code=400, msg='密码必须是6到24位字母和数字'))
+
+    user.password = make_password(password)
+    user.save()
+    return JsonResponse(dict(code=200, msg='密码设置成功'))
+
+
+@api_view(['POST'])
+def login(request):
+    uid = request.data.get('uid', None)
+    password = request.data.get('password', None)
+    if not uid or not password:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    try:
+        user = User.objects.get(uid=uid)
+        if check_password(password, user.password):
+            token = generate_jwt(uid)
+            return JsonResponse(dict(code=200, token=token))
+        else:
+            return JsonResponse(dict(code=400, msg='ID或密码不正确'))
+
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='ID不存在'))
