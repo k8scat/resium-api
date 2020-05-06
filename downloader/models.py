@@ -11,6 +11,7 @@ class Base(models.Model):
 
 class User(Base):
     uid = models.CharField(max_length=100, unique=True, verbose_name='用户的唯一标识')
+    password = models.CharField(max_length=100, default=None, null=True, verbose_name='H5登录密码')
     nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
     avatar_url = models.CharField(max_length=240, verbose_name='头像地址')
     point = models.IntegerField(default=0, verbose_name='下载积分')

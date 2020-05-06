@@ -63,6 +63,7 @@ urlpatterns = [
 
     path('bot/set_user_can_download/', bot.set_user_can_download),
     path('bot/get_user/', bot.get_user),
+    path('bot/recover_csdn_account/', bot.recover_csdn_account),
 
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),

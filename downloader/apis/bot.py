@@ -10,7 +10,7 @@ import json
 from django.conf import settings
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
-from downloader.models import User
+from downloader.models import User, CsdnAccount
 from downloader.serializers import UserSerializers
 
 
@@ -47,3 +47,21 @@ def get_user(request):
         return JsonResponse(dict(code=200, user=UserSerializers(user).data))
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='用户不存在'))
+
+
+@api_view(['POST'])
+def recover_csdn_account(request):
+    token = request.data.get('token', None)
+    email = request.data.get('email', None)
+    if token != settings.BOT_TOKEN or not email:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    try:
+        account = CsdnAccount.objects.get(email=email)
+        account.need_sms_validate = False
+        account.is_enabled = True
+        account.save()
+
+        return JsonResponse(dict(code=200, msg='成功恢复下载'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=404, msg='账号不存在'))
