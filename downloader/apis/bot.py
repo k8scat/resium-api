@@ -56,23 +56,6 @@ def get_user(request):
 
 
 @api_view(['POST'])
-def recover_csdn_account(request):
-    token = request.data.get('token', None)
-    email = request.data.get('email', None)
-    if token != settings.BOT_TOKEN or not email:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    try:
-        account = CsdnAccount.objects.get(email=email)
-        account.need_sms_validate = False
-        account.save()
-
-        return JsonResponse(dict(code=200, msg='成功恢复下载'))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='账号不存在'))
-
-
-@api_view(['POST'])
 def set_csdn_sms_validate_code(request):
     """
     保存CSDN下载短信验证码到数据库
