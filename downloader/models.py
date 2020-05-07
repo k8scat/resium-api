@@ -121,6 +121,9 @@ class CsdnAccount(Base):
     today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
     need_sms_validate = models.BooleanField(default=False, verbose_name='是否需要短信验证')
+    sms_code = models.CharField(max_length=10, default=None, null=True, verbose_name='短信验证码')
+    driver_cookies = models.TextField(null=True, default=None, verbose_name='给driver使用的cookies')
+    is_upload_account = models.BooleanField(default=False, verbose_name='上传账号')
 
     class Meta:
         db_table = 'csdn_account'

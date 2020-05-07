@@ -684,7 +684,7 @@ def get_random_ua():
 def upload_csdn_resource(resource):
     logging.info(f'开始上传资源到CSDN: {resource.url}')
     headers = {
-        'cookie': CsdnAccount.objects.get(email='18770934387@163.com').cookies,
+        'cookie': CsdnAccount.objects.get(is_upload_account=True).cookies,
         'user-agent': get_random_ua(),
         'referer': 'https://download.csdn.net/upload',
         'origin': 'https://download.csdn.net',
@@ -863,7 +863,8 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
 
     valid_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
                                                      today_download_count__lt=20,
-                                                     need_sms_validate=False).all()
+                                                     need_sms_validate=False,
+                                                     is_upload_account=False).all()
     if len(valid_csdn_accounts) > 0:
         # 随机开启一个可用账号
         new_csdn_account = random.choice(valid_csdn_accounts)
