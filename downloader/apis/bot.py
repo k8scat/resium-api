@@ -152,6 +152,8 @@ def start_csdn_sms_validate(request):
                 else:
                     if count >= 200:
                         return JsonResponse(dict(code=400, msg='验证码等待超时'))
+                    ding('等待验证码...',
+                         used_account=account.email)
                     sleep(3)
 
             # 验证码输入框
