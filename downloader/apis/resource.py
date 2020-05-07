@@ -158,7 +158,7 @@ class CsdnResource(BaseResource):
             ding('[CSDN] 没有可用账号',
                  uid=self.user.uid,
                  resource_url=self.url)
-            return 500, '下载失败'
+            return 500, '下载失败，请联系管理员'
 
         if self.resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
