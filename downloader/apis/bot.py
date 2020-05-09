@@ -178,9 +178,9 @@ def get_csdn_accounts(request):
     accounts = CsdnAccount.objects.all()
     msg = ''
     for index, account in enumerate(accounts):
-        msg += '邮箱: ' + account.email + ' ' + \
-              '是否启用: ' + ('是' if account.is_enabled else '否') + ' ' + \
-              '是否需要短信验证: ' + ('是' if account.need_sms_validate else '否') + ' ' + \
+        msg += '邮箱: ' + account.email + ' \n' + \
+              '是否启用: ' + ('是' if account.is_enabled else '否') + ' \n' + \
+              '是否需要短信验证: ' + ('是' if account.need_sms_validate else '否') + ' \n' + \
               '今日下载数: ' + str(account.today_download_count)
         if index < len(accounts)-1:
             msg += '\n\n'
