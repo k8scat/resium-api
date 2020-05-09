@@ -1094,7 +1094,7 @@ def get_resource(request):
             # todo: 可以尝试通过django-rest-framework实现，而不是手动去获取预览图的数据
             resource_.setdefault('preview_images', preview_images)
             resource_.setdefault('point', settings.OSS_RESOURCE_POINT + resource.download_count - 1)
-            return JsonResponse(dict(code=200, resource=resource))
+            return JsonResponse(dict(code=200, resource=resource_))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=404, msg='资源不存在'))
     else:
