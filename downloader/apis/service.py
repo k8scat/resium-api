@@ -34,7 +34,6 @@ def list_points(request):
         'csdn': settings.CSDN_POINT,
         'zhiwang': settings.ZHIWANG_POINT,
         'docer': settings.DOCER_POINT,
-        'oss_resource': settings.OSS_RESOURCE_POINT,
         'article': settings.ARTICLE_POINT,
         'qiantu': settings.QIANTU_POINT,
         'doc_convert': settings.DOC_CONVERT_POINT

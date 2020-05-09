@@ -1090,9 +1090,10 @@ def get_resource(request):
                         'alt': preview_image.alt
                     } for preview_image in DocerPreviewImage.objects.filter(resource_url=resource.url).all()
                 ]
-            resource = ResourceSerializers(resource).data
+            resource_ = ResourceSerializers(resource).data
             # todo: 可以尝试通过django-rest-framework实现，而不是手动去获取预览图的数据
-            resource.setdefault('preview_images', preview_images)
+            resource_.setdefault('preview_images', preview_images)
+            resource_.setdefault('point', settings.OSS_RESOURCE_POINT + resource.download_count - 1)
             return JsonResponse(dict(code=200, resource=resource))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=404, msg='资源不存在'))
