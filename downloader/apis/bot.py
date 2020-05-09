@@ -161,3 +161,28 @@ def start_csdn_sms_validate(request):
 
     except CsdnAccount.DoesNotExist:
         return JsonResponse(dict(code=400, msg='该账号不需要验证'))
+
+
+@api_view(['POST'])
+def get_csdn_accounts(request):
+    """
+    获取csdn账号信息
+
+    :param request:
+    :return:
+    """
+
+    token = request.data.get('token', None)
+    if token != settings.BOT_TOKEN:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+    accounts = CsdnAccount.objects.all()
+    msg = ''
+    for index, account in enumerate(accounts):
+        msg += '邮箱: ' + account.email + ' ' + \
+              '是否启用: ' + ('是' if account.is_enabled else '否') + ' ' + \
+              '是否需要短信验证: ' + ('是' if account.need_sms_validate else '否') + ' ' + \
+              '今日下载数: ' + str(account.today_download_count)
+        if index < len(accounts)-1:
+            msg += '\n\n'
+
+    return JsonResponse(dict(code=200, msg=msg))

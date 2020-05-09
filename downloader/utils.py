@@ -879,7 +879,8 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
     else:
         csdn_account.need_sms_validate = need_sms_validate
         csdn_account.save()
-        ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号')
+        ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号',
+             used_account=csdn_account.email)
 
 
 class WXBizDataCrypt:

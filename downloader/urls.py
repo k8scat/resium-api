@@ -67,6 +67,7 @@ urlpatterns = [
     path('bot/get_user/', bot.get_user),
     path('bot/set_csdn_sms_validate_code/', bot.set_csdn_sms_validate_code),
     path('bot/start_csdn_sms_validate/', bot.start_csdn_sms_validate),
+    path('bot/get_csdn_accounts/', bot.get_csdn_accounts),
 
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),
