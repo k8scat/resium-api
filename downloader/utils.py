@@ -493,8 +493,8 @@ def save_resource(resource_url, filename, filepath,
              resource_url=resource_url,
              used_account=account)
 
-        t = Thread(target=upload_csdn_resource, args=(resource,))
-        t.start()
+        # t = Thread(target=upload_csdn_resource, args=(resource,))
+        # t.start()
 
         return aliyun_oss_sign_url(key)
 
@@ -682,67 +682,68 @@ def get_random_ua():
 
 
 def upload_csdn_resource(resource):
-    logging.info(f'开始上传资源到CSDN: {resource.url}')
-    headers = {
-        'cookie': CsdnAccount.objects.get(is_upload_account=True).cookies,
-        'user-agent': get_random_ua(),
-        'referer': 'https://download.csdn.net/upload',
-        'origin': 'https://download.csdn.net',
-    }
-    # 将资源与其他文件进行压缩，获得到不同的MD5
-    filepath = zip_file(resource.local_path)
-    file_md5 = get_file_md5(open(filepath, 'rb'))
-    title = resource.title + f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
-    tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
-    if len(tags) > 5:
-        tags = ','.join(tags[:5])
-    elif len(tags) == 1 and tags[0] == '':
-        # 存在没有tag的情况
-        # ''.split(',') => ['']
-        tags = '好资源'
-    else:
-        tags = ','.join(tags)
+    if not re.match(settings.PATTERN_CSDN, resource.url):
+        logging.info(f'开始上传资源到CSDN: {resource.url}')
+        headers = {
+            'cookie': CsdnAccount.objects.get(is_upload_account=True).cookies,
+            'user-agent': get_random_ua(),
+            'referer': 'https://download.csdn.net/upload',
+            'origin': 'https://download.csdn.net',
+        }
+        # 将资源与其他文件进行压缩，获得到不同的MD5
+        filepath = zip_file(resource.local_path)
+        file_md5 = get_file_md5(open(filepath, 'rb'))
+        title = resource.title + f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
+        tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
+        if len(tags) > 5:
+            tags = ','.join(tags[:5])
+        elif len(tags) == 1 and tags[0] == '':
+            # 存在没有tag的情况
+            # ''.split(',') => ['']
+            tags = '好资源'
+        else:
+            tags = ','.join(tags)
 
-    if len(resource.desc) < 50:
-        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
-    elif re.match(settings.PATTERN_DOCER, resource.url):
-        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
-    else:
-        desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
+        if len(resource.desc) < 50:
+            desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
+        elif re.match(settings.PATTERN_DOCER, resource.url):
+            desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
+        else:
+            desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 ' + resource.desc
 
-    payload = {
-        'fileMd5': file_md5,
-        'sourceid': '',
-        'file_title': title,
-        'file_type': 4,
-        'file_primary': 15,  # 课程资源
-        'file_category': 15012,  # 专业指导
-        'resource_score': 5,
-        'file_tag': tags,
-        'file_desc': desc,
-        'cb_agree': True
-    }
-    # logging.info(payload)
-    files = [
-        ('user_file', open(filepath, 'rb'))
-    ]
-    with requests.post('https://download.csdn.net/upload', headers=headers, data=payload, files=files) as r:
-        if r.status_code == requests.codes.OK:
-            try:
-                resp = r.json()
-            except JSONDecodeError:
-                ding('资源上传到CSDN失败',
-                     error=r.text,
-                     logger=logging.error)
+        payload = {
+            'fileMd5': file_md5,
+            'sourceid': '',
+            'file_title': title,
+            'file_type': 4,
+            'file_primary': 15,  # 课程资源
+            'file_category': 15012,  # 专业指导
+            'resource_score': 5,
+            'file_tag': tags,
+            'file_desc': desc,
+            'cb_agree': True
+        }
+        # logging.info(payload)
+        files = [
+            ('user_file', open(filepath, 'rb'))
+        ]
+        with requests.post('https://download.csdn.net/upload', headers=headers, data=payload, files=files) as r:
+            if r.status_code == requests.codes.OK:
+                try:
+                    resp = r.json()
+                except JSONDecodeError:
+                    ding('资源上传到CSDN失败',
+                         error=r.text,
+                         logger=logging.error)
 
-            if resp['code'] == 200:
-                # 上传成功
-                ding('资源上传到CSDN成功')
-            else:
-                # 上传失败
-                ding('资源上传到CSDN失败',
-                     error=resp,
-                     logger=logging.error)
+                if resp['code'] == 200:
+                    # 上传成功
+                    ding('资源上传到CSDN成功')
+                else:
+                    # 上传失败
+                    ding('资源上传到CSDN失败',
+                         error=resp,
+                         logger=logging.error)
 
 
 def zip_file(filepath):

@@ -12,7 +12,7 @@ import os
 
 from selenium import webdriver
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
 django.setup()
 from downloader.models import BaiduAccount
 

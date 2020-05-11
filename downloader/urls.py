@@ -20,6 +20,7 @@ urlpatterns = [
     re_path(r'^check_scan/?$', user.check_scan),
     path('set_password/', user.set_password),
     path('login/', user.login),
+    re_path(r'^check_in/?$', user.check_in),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),

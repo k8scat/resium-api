@@ -23,11 +23,8 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    for user in User.objects.all():
-        uid = generate_uid()
-        user.uid = uid
-        user.save()
-        print(user.uid)
+    print(timezone.now())
+    print(timezone.localtime(timezone.now()).day)
 
 
 

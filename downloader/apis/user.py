@@ -211,31 +211,6 @@ def wx(request):
                     content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
-            elif msg_content == '签到':  # 签到
-                try:
-                    user = User.objects.get(wx_openid=msg.source)
-                    if user.has_check_in_today:
-                        content = '今日已签到'
-                    else:
-                        # 随机获取积分
-                        points = [1, 2, 3]
-                        point = random.choice(points)
-                        # 保存签到记录
-                        CheckInRecord(user=user, point=point).save()
-                        # 更新用户积分
-                        user.point += point
-                        user.has_check_in_today = True
-                        user.save()
-                        today = timezone.now().day
-                        today_check_in_count = CheckInRecord.objects.filter(create_time__day=today).count()
-                        today_check_in_point = CheckInRecord.objects.filter(create_time__day=today).aggregate(nums=Sum('point'))
-                        ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
-                             uid=user.uid)
-                        content = f'签到成功，获得{point}积分'
-                except User.DoesNotExist:
-                    content = '请先绑定账号'
-                reply = TextReply(content=content, message=msg)
-
             elif re.match(r'^\d{6} *[a-z0-9]+$', msg_content):  # 账号迁移
                 uid = msg_content.split(' ')[0]
                 if re.match(r'^\d{6}$', uid):
@@ -460,3 +435,35 @@ def login(request):
 
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='ID不存在'))
+
+
+@auth
+@api_view()
+def check_in(request):
+    uid = request.session.get('uid', None)
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    if not user.wx_openid:
+        return JsonResponse(dict(code=400, msg='请先关注源自开发者微信公众号'))
+
+    if user.has_check_in_today:
+        return JsonResponse(dict(code=400, msg='请先关注源自开发者微信公众号'))
+
+    # 随机获取积分
+    points = [1, 2]
+    point = random.choice(points)
+    # 保存签到记录
+    CheckInRecord(user=user, point=point).save()
+    # 更新用户积分
+    user.point += point
+    user.has_check_in_today = True
+    user.save()
+    today = timezone.localtime(timezone.now()).day
+    today_check_in_count = CheckInRecord.objects.filter(create_time__day=today).count()
+    today_check_in_point = CheckInRecord.objects.filter(create_time__day=today).aggregate(nums=Sum('point'))['nums']
+    ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
+         uid=user.uid)
+    return JsonResponse(dict(code=200, msg=f'签到成功，获得{point}积分'))
