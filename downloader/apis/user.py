@@ -450,10 +450,10 @@ def check_in(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     if not user.wx_openid:
-        return JsonResponse(dict(code=400, msg='请先关注源自开发者微信公众号'))
+        return JsonResponse(dict(code=400, msg='请先在微信公众号中绑定账号'))
 
     if user.has_check_in_today:
-        return JsonResponse(dict(code=400, msg='请先关注源自开发者微信公众号'))
+        return JsonResponse(dict(code=400, msg='今日已签到'))
 
     # 随机获取积分
     points = [1, 2]
