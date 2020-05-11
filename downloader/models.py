@@ -23,9 +23,6 @@ class User(Base):
     wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
     github_id = models.IntegerField(default=None, null=True)
     gitee_id = models.IntegerField(default=None, null=True)
-    baidu_openid = models.CharField(max_length=100, default=None, null=True)
-    dingtalk_openid = models.CharField(max_length=100, default=None, null=True)
-    coding_user_id = models.IntegerField(default=None, null=True)
     is_admin = models.BooleanField(default=False, verbose_name='是否是管理员账号')
     mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
 
@@ -253,3 +250,12 @@ class QrCode(Base):
     class Meta:
         db_table = 'qr_code'
 
+
+class PointUsageRecord(Base):
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    pid = models.CharField(max_length=100, unique=True, verbose_name='积分使用记录唯一标识')
+    point = models.IntegerField()
+    comment = models.CharField(max_length=100, verbose_name='积分使用备注')
+
+    class Meta:
+        db_table = 'point_usage_record'
