@@ -199,16 +199,19 @@ def wx(request):
                 reply = TextReply(content=content, message=msg)
 
             elif re.match(r'^\d{6}$', msg_content):  # 绑定公众号
-                try:
-                    user = User.objects.get(uid=msg_content)
-                    if user.wx_openid:
-                        content = f'该账号已被微信绑定'
-                    else:
-                        user.wx_openid = msg.source
-                        user.save()
-                        content = '账号绑定成功'
-                except User.DoesNotExist:
-                    content = '账号不存在'
+                if User.objects.filter(wx_openid=msg.source).count():
+                    content = '微信已绑定其他账号'
+                else:
+                    try:
+                        user = User.objects.get(uid=msg_content)
+                        if user.wx_openid:
+                            content = f'该账号已被微信绑定'
+                        else:
+                            user.wx_openid = msg.source
+                            user.save()
+                            content = '账号绑定成功'
+                    except User.DoesNotExist:
+                        content = '账号不存在'
                 reply = TextReply(content=content, message=msg)
 
             elif re.match(r'^\d{6} *[a-z0-9]+$', msg_content):  # 账号迁移
