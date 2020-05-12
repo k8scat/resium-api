@@ -202,7 +202,10 @@ def wx(request):
                 try:
                     user = User.objects.get(uid=msg_content)
                     if user.wx_openid:
-                        content = f'该账号已被微信绑定'
+                        if user.wx_openid == msg.source:
+                            content = '已绑定成功，无需重复绑定'
+                        else:
+                            content = f'该账号已被其他微信绑定'
                     else:
                         user.wx_openid = msg.source
                         user.save()
