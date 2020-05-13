@@ -118,7 +118,7 @@ class CsdnResource(BaseResource):
                         'title': soup.find('span', class_='resource_title').string,
                         'desc': soup.select('div.resource_description p')[0].text,
                         'tags': [tag.text for tag in soup.select('label.resource_tags a')],
-                        'file_type': soup.select('dl.resource_box_dl dt img')[0]['src'].split('/')[-1].split('.')[0],
+                        'file_type': soup.select('strong.info_box span')[3].contents[1].text,
                         'point': point,
                         'size': size
                     }
