@@ -200,7 +200,7 @@ def aliyun_oss_sign_url(key, expire=3600):
     参考: https://help.aliyun.com/document_detail/32033.html?spm=a2c4g.11186623.6.881.603f16950kd10U
 
     :param key:
-    :param expire: 默认10*60, 即10分钟后过期
+    :param expire: 默认60*60, 即1小时后过期
     :return:
     """
 

@@ -530,6 +530,8 @@ def set_email(request):
                 user = User.objects.get(uid=uid)
                 user.email = email
                 user.save()
+                cache.delete(code)
+                cache.delete(email)
                 msg = '邮箱设置成功！'
 
             except User.DoesNotExist:
