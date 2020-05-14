@@ -432,7 +432,7 @@ def login(request):
         user = User.objects.get(uid=uid)
         if check_password(password, user.password):
             token = generate_jwt(uid)
-            return JsonResponse(dict(code=200, token=token))
+            return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
         else:
             return JsonResponse(dict(code=400, msg='ID或密码不正确'))
 
