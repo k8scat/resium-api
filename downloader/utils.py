@@ -18,7 +18,6 @@ import time
 import uuid
 import zipfile
 from json import JSONDecodeError
-from threading import Thread
 from urllib import parse
 
 import alipay

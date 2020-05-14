@@ -278,7 +278,7 @@ LOGGING = {
 BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
 
 PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/(download|detail)/).+$'
-PATTERN_WENKU = r'^(http(s)?://wenku\.baidu\.com/view/).+$'
+PATTERN_WENKU = r'^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
 PATTERN_ZHIWANG = r'^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$'
 PATTERN_QIANTU = r'^(http(s)?://www\.58pic\.com/newpic/)\d+(\.html)$'
