@@ -482,6 +482,12 @@ def check_in(request):
 @auth
 @api_view(['POST'])
 def request_set_email(request):
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
     email = request.data.get('email', '')
     if not re.match(r'.+@.+\..+', email):
         return JsonResponse(dict(code=400, msg='邮箱格式有误'))
@@ -502,8 +508,11 @@ def request_set_email(request):
                   fail_silently=False)
         return JsonResponse(dict(code=200, msg='设置成功，请前往邮箱进行确认！'))
     except Exception as e:
-        logging.error(e)
-        return JsonResponse(dict(code=500, msg='设置失败，请尝试重新设置'))
+        ding('设置邮箱邮件发送失败',
+             error=e,
+             uid=user.uid,
+             logger=logging.error)
+        return JsonResponse(dict(code=500, msg='邮件发送失败'))
 
 
 @api_view()

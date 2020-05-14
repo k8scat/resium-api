@@ -7,6 +7,9 @@
 """
 from time import sleep
 
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
 from downloader.utils import *
 from downloader.models import *
 import json
@@ -67,6 +70,26 @@ class BaseResource:
                 os.mkdir(self.save_dir)
                 break
 
+    def send_email(self, url):
+        subject = '[源自下载] 资源下载成功'
+        html_message = render_to_string('downloader/download_url.html', {'url': url})
+        plain_message = strip_tags(html_message)
+        try:
+            send_mail(subject=subject,
+                      message=plain_message,
+                      from_email=settings.DEFAULT_FROM_EMAIL,
+                      recipient_list=[self.user.email],
+                      html_message=html_message,
+                      fail_silently=False)
+            return 200, '下载成功，请前往邮箱查收！'
+        except Exception as e:
+            ding('资源下载地址邮件发送失败',
+                 error=e,
+                 uid=self.user.uid,
+                 used_account=self.account.email,
+                 logger=logging.error)
+            return 500, '邮件发送失败'
+
     def parse(self):
         pass
 
@@ -82,10 +105,11 @@ class BaseResource:
 
         pass
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         """
         返回下载链接
 
+        :param use_email: 是否使用邮件
         :return:
         """
 
@@ -256,7 +280,7 @@ class CsdnResource(BaseResource):
         t.start()
         return 200, dict(filepath=self.filepath, filename=self.filename)
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         status, result = self.__download()
         if status != 200:
             return status, result
@@ -265,6 +289,10 @@ class CsdnResource(BaseResource):
         download_url = save_resource(resource_url=self.url, filename=self.filename,
                                      filepath=self.filepath, resource_info=self.resource,
                                      user=self.user, account=self.account.email)
+
+        if use_email:
+            return self.send_email(download_url)
+
         if download_url:
             return 200, download_url
         else:
@@ -504,7 +532,7 @@ class WenkuResource(BaseResource):
         t.start()
         return 200, dict(filepath=self.filepath, filename=self.filename)
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         status, result = self.__download()
         if status != 200:
             return status, result
@@ -514,6 +542,9 @@ class WenkuResource(BaseResource):
                                      user=self.user,
                                      account=self.account.email if isinstance(self.account,
                                                                               BaiduAccount) else self.account.account)
+        if use_email:
+            return self.send_email(download_url)
+
         if download_url:
             return 200, download_url
         else:
@@ -670,7 +701,7 @@ class DocerResource(BaseResource):
         t.start()
         return 200, dict(filepath=self.filepath, filename=self.filename)
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         status, result = self.__download()
         if status != 200:
             return status, result
@@ -678,6 +709,9 @@ class DocerResource(BaseResource):
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
                                      filename=self.filename, filepath=self.filepath,
                                      user=self.user, account=self.account.email)
+        if use_email:
+            return self.send_email(download_url)
+
         if download_url:
             return 200, download_url
         else:
@@ -864,7 +898,7 @@ class ZhiwangResource(BaseResource):
         t.start()
         return 200, dict(filepath=self.filepath, filename=self.filename)
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         status, result = self.__download()
         if status != 200:
             return status, result
@@ -872,6 +906,9 @@ class ZhiwangResource(BaseResource):
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
                                      filepath=self.filepath, filename=self.filename,
                                      user=self.user)
+        if use_email:
+            return self.send_email(download_url)
+
         if download_url:
             return 200, download_url
         else:
@@ -972,7 +1009,7 @@ class QiantuResource(BaseResource):
         t.start()
         return 200, dict(filepath=self.filepath, filename=self.filename)
 
-    def get_url(self):
+    def get_url(self, use_email=False):
         status, result = self.__download()
         if status != 200:
             return status, result
@@ -980,6 +1017,9 @@ class QiantuResource(BaseResource):
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
                                      filename=self.filename, filepath=self.filepath,
                                      user=self.user, account=self.account.email)
+        if use_email:
+            return self.send_email(download_url)
+
         if download_url:
             return 200, download_url
         else:
@@ -1220,8 +1260,10 @@ def download(request):
         return JsonResponse(dict(code=401, msg='未登录'))
 
     resource_url = request.data.get('url', None)
-    # 下载返回类型（不包括直接在OSS找到的资源），file或者url，默认file
+    # 下载返回类型（不包括直接在OSS找到的资源），file/url/email，默认file
     t = request.data.get('t', 'file')
+    if t == 'email' and not user.email:
+        return JsonResponse(dict(code=400, msg='账号未设置邮箱'))
 
     if not resource_url:
         return JsonResponse(dict(code=400, msg='资源地址不能为空'))
@@ -1273,6 +1315,25 @@ def download(request):
         oss_resource.download_count += 1
         oss_resource.save()
 
+        if t == 'email':
+            subject = '[源自下载] 资源下载成功'
+            html_message = render_to_string('downloader/download_url.html', {'url': url})
+            plain_message = strip_tags(html_message)
+            try:
+                send_mail(subject=subject,
+                          message=plain_message,
+                          from_email=settings.DEFAULT_FROM_EMAIL,
+                          recipient_list=[user.email],
+                          html_message=html_message,
+                          fail_silently=False)
+                return JsonResponse(dict(code=200, msg='下载成功，请前往邮箱查收！'))
+            except Exception as e:
+                ding('资源下载地址邮件发送失败',
+                     error=e,
+                     uid=user.uid,
+                     logger=logging.error)
+                return JsonResponse(dict(code=500, msg='邮件发送失败'))
+
         return JsonResponse(dict(code=200, url=url))
 
     # CSDN资源下载
@@ -1319,6 +1380,14 @@ def download(request):
 
         return JsonResponse(dict(code=status, url=result))
 
+    elif t == 'email':
+        status, result = resource.get_url(use_email=True)
+        if status != 200:  # 下载失败
+            cache.delete(user.uid)
+            return JsonResponse(dict(code=status, msg=result))
+
+        return JsonResponse(dict(code=status, msg=result))
+
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -1340,6 +1409,10 @@ def oss_download(request):
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未登录'))
+
+    t = request.GET.get('t', 'url')
+    if t == 'email' and not user.email:
+        return JsonResponse(dict(code=400, msg='账号未设置邮箱'))
 
     point = settings.OSS_RESOURCE_POINT
     if user.point < point:
@@ -1375,7 +1448,27 @@ def oss_download(request):
     url = aliyun_oss_sign_url(oss_resource.key)
     oss_resource.download_count += 1
     oss_resource.save()
-    return JsonResponse(dict(code=200, url=url))
+
+    if t == 'url':
+        return JsonResponse(dict(code=200, url=url))
+    elif t == 'email':
+        subject = '[源自下载] 资源下载成功'
+        html_message = render_to_string('downloader/download_url.html', {'url': url})
+        plain_message = strip_tags(html_message)
+        try:
+            send_mail(subject=subject,
+                      message=plain_message,
+                      from_email=settings.DEFAULT_FROM_EMAIL,
+                      recipient_list=[user.email],
+                      html_message=html_message,
+                      fail_silently=False)
+            return JsonResponse(dict(code=200, msg='下载成功，请前往邮箱查收！'))
+        except Exception as e:
+            ding('资源下载地址邮件发送失败',
+                 error=e,
+                 uid=user.uid,
+                 logger=logging.error)
+            return JsonResponse(dict(code=500, msg='邮件发送失败'))
 
 
 @auth
