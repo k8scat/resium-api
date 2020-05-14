@@ -21,6 +21,8 @@ urlpatterns = [
     path('set_password/', user.set_password),
     path('login/', user.login),
     re_path(r'^check_in/?$', user.check_in),
+    re_path(r'^set_email/?$', user.set_email),
+    path('request_set_email/', user.request_set_email),
 
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),

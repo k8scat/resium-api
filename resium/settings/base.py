@@ -221,6 +221,8 @@ NCU_VPN_PASSWORD = 'holdon7868'
 
 # 资源下载间隔
 DOWNLOAD_INTERVAL = 60
+# 邮箱绑定链接的有效时间
+SET_EMAIL_URL_EXPIRES = 600
 
 # https://note.qidong.name/2018/11/django-logging/
 LOGGING = {

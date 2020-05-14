@@ -10,14 +10,20 @@ import hashlib
 import logging
 import random
 import re
+import string
 import uuid
+from urllib.parse import quote
 
 import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.html import strip_tags
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -470,3 +476,52 @@ def check_in(request):
     ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
          uid=user.uid)
     return JsonResponse(dict(code=200, msg=f'签到成功，获得{point}积分'))
+
+
+@auth
+@api_view(['POST'])
+def request_set_email(request):
+    email = request.data.get('email', '')
+    if not re.match(r'.+@.+\..+', email):
+        return JsonResponse(dict(code=400, msg='邮箱格式有误'))
+    code = ''.join(random.sample(string.digits + string.ascii_letters, 32))
+    cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
+    uid = request.session.get('uid')
+    cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
+    url = quote(settings.RESIUM_API + '/set_email/?code=' + code, encoding='utf-8')
+    subject = '[源自下载] 设置邮箱'
+    html_message = render_to_string('downloader/set_email.html', {'url': url})
+    plain_message = strip_tags(html_message)
+    try:
+        send_mail(subject=subject,
+                  message=plain_message,
+                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  recipient_list=[email],
+                  html_message=html_message,
+                  fail_silently=False)
+        return JsonResponse(dict(code=200, msg='设置成功，请前往邮箱进行确认！'))
+    except Exception as e:
+        logging.error(e)
+        return JsonResponse(dict(code=500, msg='设置失败，请尝试重新设置'))
+
+
+@api_view()
+def set_email(request):
+    code = request.GET.get('code', '')
+    if not re.match(r'[0-9a-zA-Z]{32}', code):
+        return JsonResponse(dict(code=400, msg='验证码错误'))
+
+    email = cache.get(code)
+    if not email:
+        return JsonResponse(dict(code=400, msg='验证码已失效'))
+
+    uid = cache.get(email)
+    if not uid:
+        return JsonResponse(dict(code=400, msg='验证码已失效'))
+
+    try:
+        user = User.objects.get(uid=uid)
+        user.email = email
+        user.save()
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
