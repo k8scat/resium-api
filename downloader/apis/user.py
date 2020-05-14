@@ -21,6 +21,7 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -509,19 +510,20 @@ def request_set_email(request):
 def set_email(request):
     code = request.GET.get('code', '')
     if not re.match(r'[0-9a-zA-Z]{32}', code):
-        return JsonResponse(dict(code=400, msg='验证码错误'))
+        msg = '验证码错误'
+    else:
+        email = cache.get(code)
+        uid = cache.get(email)
+        if not email or not uid:
+            msg = '验证码已失效'
+        else:
+            try:
+                user = User.objects.get(uid=uid)
+                user.email = email
+                user.save()
+                msg = '邮箱设置成功！'
 
-    email = cache.get(code)
-    if not email:
-        return JsonResponse(dict(code=400, msg='验证码已失效'))
+            except User.DoesNotExist:
+                msg = '错误的请求'
 
-    uid = cache.get(email)
-    if not uid:
-        return JsonResponse(dict(code=400, msg='验证码已失效'))
-
-    try:
-        user = User.objects.get(uid=uid)
-        user.email = email
-        user.save()
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+    return render(request, 'downloader/msg.html', {'msg': msg})
