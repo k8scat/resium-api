@@ -7,7 +7,6 @@
 """
 import datetime
 import hashlib
-import json
 import logging
 import random
 import re
@@ -279,18 +278,14 @@ def mp_pay(request):
 @api_view(['POST'])
 def mp_login(request):
     """
-    code
-
     :param request:
     :return:
     """
 
     code = request.data.get('code', None)
-    iv = request.data.get('iv', None)
-    raw_data = request.data.get('raw_data', None)
-    signature = request.data.get('signature', None)
-    encrypted_data = request.data.get('encrypted_data', None)
-    if not code:
+    avatar_url = request.data.get('avatar_url', None)
+    nickname = request.data.get('nickname', None)
+    if not code or not avatar_url or not nickname:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     params = {
@@ -303,29 +298,19 @@ def mp_login(request):
         if r.status_code == requests.codes.OK:
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                ding(r.text)
                 wx_unionid = data['unionid']
                 login_time = datetime.datetime.now()
                 try:
                     user = User.objects.get(wx_unionid=wx_unionid)
                     user.login_time = login_time
+                    user.avatar_url = avatar_url
+                    user.nickname = nickname
                     user.save()
                 except User.DoesNotExist:
-                    session_key = data['session_key']
-                    signature2 = hashlib.sha1((raw_data + session_key).encode()).hexdigest()
-                    if signature == signature2:
-                        wx_decrypt = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
-                        decrypted_data = wx_decrypt.decrypt(encrypted_data, iv)
-                        uid = generate_uid()
-                        user = User.objects.create(uid=uid, wx_unionid=decrypted_data['ofQTJ0hMbope2cAKqBbE0sGMQmAo'],
-                                                   avatar_url=decrypted_data['avatarUrl'],
-                                                   nickname=decrypted_data['nickName'],
-                                                   login_time=login_time)
-                        user.save()
-                        return JsonResponse(dict(code=500, msg='登录失败'))
-                    else:
-                        ding('signature校验失败')
-                        return JsonResponse(dict(code=500, msg='登录失败'))
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, wx_unionid=wx_unionid,
+                                               avatar_url=avatar_url, nickname=nickname,
+                                               login_time=login_time)
 
                 token = generate_jwt(user.uid, expire_seconds=0)
                 return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
