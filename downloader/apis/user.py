@@ -313,20 +313,19 @@ def mp_login(request):
                 except User.DoesNotExist:
                     session_key = data['session_key']
                     signature2 = hashlib.sha1((raw_data + session_key).encode()).hexdigest()
-                    ding(signature2)
                     if signature == signature2:
                         wx_decrypt = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
                         decrypted_data = wx_decrypt.decrypt(encrypted_data, iv)
-                        ding(json.dumps(decrypted_data))
+                        uid = generate_uid()
+                        user = User.objects.create(uid=uid, wx_unionid=decrypted_data['ofQTJ0hMbope2cAKqBbE0sGMQmAo'],
+                                                   avatar_url=decrypted_data['avatarUrl'],
+                                                   nickname=decrypted_data['nickName'],
+                                                   login_time=login_time)
+                        user.save()
                         return JsonResponse(dict(code=500, msg='登录失败'))
                     else:
                         ding('signature校验失败')
                         return JsonResponse(dict(code=500, msg='登录失败'))
-
-                    # uid = generate_uid()
-                    # user = User.objects.create(uid=uid, wx_unionid=wx_unionid,
-                    #                            avatar_url=avatar_url, nickname=nickname,
-                    #                            login_time=login_time)
 
                 token = generate_jwt(user.uid, expire_seconds=0)
                 return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
