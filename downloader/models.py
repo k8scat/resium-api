@@ -81,31 +81,14 @@ class DownloadRecord(Base):
         db_table = 'download_record'
 
 
-class Coupon(Base):
-    """
-    优惠券
-    """
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    total_amount = models.FloatField(verbose_name='总金额')
-    point = models.IntegerField(verbose_name='下载积分')
-    is_used = models.BooleanField(default=False, verbose_name='是否使用')
-    code = models.CharField(max_length=50, verbose_name='优惠券唯一编码')
-    comment = models.CharField(max_length=100, null=True, verbose_name='备注')
-
-    class Meta:
-        db_table = 'coupon'
-
-
 class Order(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject = models.CharField(max_length=50, verbose_name='订单名称')
     out_trade_no = models.CharField(max_length=50, unique=True, verbose_name='订单号')
     total_amount = models.FloatField(verbose_name='总金额')
     has_paid = models.BooleanField(default=False, verbose_name='是否支付')
-    pay_url = models.TextField(verbose_name='支付地址')
+    pay_url = models.TextField(default=None, null=True, verbose_name='支付地址，小程序微信支付时不存在')
     point = models.IntegerField(verbose_name='下载积分')
-    coupon = models.OneToOneField(Coupon, on_delete=models.DO_NOTHING, null=True, verbose_name='使用的优惠券')
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
 
     class Meta:

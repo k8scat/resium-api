@@ -5,6 +5,7 @@
 @date: 2020/2/25
 
 """
+import json
 import logging
 import uuid
 
@@ -13,11 +14,9 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view
 from wechatpy import WeChatPay
-from wechatpy.pay import BaseWeChatPayAPI
-from wechatpy.pay.api import WeChatOrder
 
 from downloader.decorators import auth
-from downloader.models import Order, User, Coupon, Service
+from downloader.models import Order, User
 from downloader.serializers import OrderSerializers
 from downloader.utils import get_alipay, ding
 
@@ -93,9 +92,11 @@ def list_orders(request):
     return JsonResponse(dict(code=200, orders=OrderSerializers(orders, many=True).data))
 
 
-@api_view()
+@api_view(['POST'])
 def mp_pay_notify(request):
-    pass
+    data = request.POST.dict()
+    logging.info(data)
+    return HttpResponse('')
 
 
 @auth
@@ -107,6 +108,7 @@ def mp_pay(request):
     point = request.data.get('point', None)
     if not code or not total_amount or not point or not subject:
         return JsonResponse(dict(code=400, msg='错误的请求'))
+    total_amount = total_amount * 100
 
     params = {
         'appid': settings.WX_MP_APP_ID,
@@ -119,11 +121,11 @@ def mp_pay(request):
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                 wx_unionid = data['unionid']
-                logging.info(data)
                 try:
                     user = User.objects.get(wx_unionid=wx_unionid)
                     # 生成唯一订单号
                     out_trade_no = str(uuid.uuid1()).replace('-', '')
+
                     we_chat_pay = WeChatPay(
                         appid=settings.WX_MP_APP_ID,
                         mch_key=settings.WX_PAY_MCH_KEY,
@@ -140,20 +142,34 @@ def mp_pay(request):
                         out_trade_no=out_trade_no,
                         user_id=data['openid']
                     )
-                    logging.info(create_order_res)
+                    if create_order_res.get('return_code', None) == 'SUCCESS' and \
+                            create_order_res.get('result_code', None) == 'SUCCESS':
+                        # 创建内部系统的订单
+                        Order(user=user, subject=subject,
+                              out_trade_no=out_trade_no, total_amount=total_amount,
+                              point=point).save()
+                        res_data = {
+                            'nonce_str': create_order_res.get('nonce_str'),
+                            'sign': create_order_res.get('sign'),
+                            'prepay_id': create_order_res.get('prepay_id')
+                        }
+                        return JsonResponse(dict(code=200, data=res_data))
+                    else:
+                        ding('[微信支付] 创建订单失败',
+                             error=json.dumps(create_order_res))
                     return JsonResponse(dict(code=400, msg='错误的请求'))
 
                 except User.DoesNotExist:
                     return JsonResponse(dict(code=400, msg='错误的请求'))
 
             else:
-                ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
+                ding('[微信支付] auth.code2Session接口请求成功，但返回结果错误',
                      error=r.text)
-                return JsonResponse(dict(code=500, msg='登录失败'))
+                return JsonResponse(dict(code=500, msg='登录状态错误'))
         else:
-            ding(f'auth.code2Session接口调用失败',
+            ding(f'[微信支付] auth.code2Session接口调用失败',
                  error=r.text)
-            return JsonResponse(dict(code=500, msg='登录失败'))
+            return JsonResponse(dict(code=500, msg='登录状态错误'))
 
 
 @auth

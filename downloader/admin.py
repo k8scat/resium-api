@@ -38,14 +38,6 @@ class ResourceAdmin(admin.ModelAdmin):
     search_fields = ['title', 'key', 'url']
 
 
-@admin.register(Coupon)
-class CouponAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'is_used', 'total_amount', 'point', 'create_time')
-    list_per_page = 50
-    search_fields = ['title']
-    list_filter = ('is_used',)
-
-
 @admin.register(CsdnAccount)
 class CsdnAccountAdmin(admin.ModelAdmin):
     list_display = ('id', 'is_enabled', 'email', 'used_count', 'update_time')

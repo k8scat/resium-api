@@ -46,12 +46,6 @@ class ServiceSerializers(serializers.ModelSerializer):
         fields = ['id', 'total_amount', 'point']
 
 
-class CouponSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = Coupon
-        fields = '__all__'
-
-
 class ResourceCommentSerializers(serializers.ModelSerializer):
     avatar_url = serializers.CharField(source='user.avatar_url')
     nickname = serializers.CharField(source='user.nickname')

@@ -6,7 +6,7 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import user, service, order, resource, advert, coupon, account, download_record, article, bot, \
+from downloader.apis import user, service, order, resource, advert, account, download_record, article, bot, \
     oauth, open
 
 
@@ -33,8 +33,6 @@ urlpatterns = [
     re_path(r'^delete_order/?$', order.delete_order),
     path('mp_pay/', order.mp_pay),
     path('mp_pay_notify/', order.mp_pay_notify),
-
-    path('list_coupons/', coupon.list_coupons),
 
     re_path(r'^check_baidu_cookies/?$', account.check_baidu_cookies),
     re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
