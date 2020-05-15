@@ -270,21 +270,23 @@ def reset_has_check_in_today(request):
 
 
 @api_view(['POST'])
+def mp_pay(request):
+    token = request.data.get('openid')
+    openid = request.data.get('openid', None)
+
+
+@api_view(['POST'])
 def mp_login(request):
     """
-    code 和 session_key 必须存在一个
+    code
 
     :param request:
     :return:
     """
 
     code = request.data.get('code', None)
-    avatar_url = request.data.get('avatar_url', None)
-    nickname = request.data.get('nickname', None)
     if not code:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-    if not avatar_url or not nickname:
-        return JsonResponse(dict(code=400, msg='未设置微信昵称或头像'))
 
     params = {
         'appid': settings.WX_MP_APP_ID,
@@ -296,22 +298,24 @@ def mp_login(request):
         if r.status_code == requests.codes.OK:
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                mp_openid = data['openid']
-                login_time = datetime.datetime.now()
-                try:
-                    user = User.objects.get(mp_openid=mp_openid)
-                    user.login_time = login_time
-                    user.avatar_url = avatar_url
-                    user.nickname = nickname
-                    user.save()
-                except User.DoesNotExist:
-                    uid = generate_uid()
-                    user = User.objects.create(uid=uid, mp_openid=mp_openid,
-                                               avatar_url=avatar_url, nickname=nickname,
-                                               login_time=login_time)
-
-                token = generate_jwt(user.uid, expire_seconds=0)
-                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+                ding(r.text)
+                return JsonResponse(dict(code=500, msg='登录失败'))
+                # mp_openid = data['openid']
+                # login_time = datetime.datetime.now()
+                # try:
+                #     user = User.objects.get(mp_openid=mp_openid)
+                #     user.login_time = login_time
+                #     user.avatar_url = avatar_url
+                #     user.nickname = nickname
+                #     user.save()
+                # except User.DoesNotExist:
+                #     uid = generate_uid()
+                #     user = User.objects.create(uid=uid, mp_openid=mp_openid,
+                #                                avatar_url=avatar_url, nickname=nickname,
+                #                                login_time=login_time)
+                #
+                # token = generate_jwt(user.uid, expire_seconds=0)
+                # return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',

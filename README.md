@@ -144,8 +144,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] uid 改成6位数字
    
 ## 支付宝
-
-
  
 ## CoolQ
 
@@ -196,3 +194,7 @@ https://wenku.baidu.com/portal/browse/help#help/24
 ## 百度文库解析
 
 * [Python在线百度文库爬虫(免下载券)](https://www.jianshu.com/p/c8e10ec26342)
+
+## Django template 复用
+
+https://www.cnblogs.com/zealousness/p/8757144.html
