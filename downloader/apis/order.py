@@ -119,6 +119,7 @@ def mp_pay(request):
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                 wx_unionid = data['unionid']
+                logging.info(data)
                 try:
                     user = User.objects.get(wx_unionid=wx_unionid)
                     # 生成唯一订单号
@@ -136,7 +137,8 @@ def mp_pay(request):
                         body=subject,
                         total_fee=total_amount,
                         notify_url=settings.RESIUM_API + '/mp_pay_notify/',
-                        out_trade_no=out_trade_no
+                        out_trade_no=out_trade_no,
+                        user_id=data['openid']
                     )
                     logging.info(create_order_res)
                     return JsonResponse(dict(code=400, msg='错误的请求'))
