@@ -8,9 +8,13 @@
 import logging
 import uuid
 
+import requests
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view
+from wechatpy import WeChatPay
+from wechatpy.pay import BaseWeChatPayAPI
+from wechatpy.pay.api import WeChatOrder
 
 from downloader.decorators import auth
 from downloader.models import Order, User, Coupon, Service
@@ -89,6 +93,60 @@ def list_orders(request):
     return JsonResponse(dict(code=200, orders=OrderSerializers(orders, many=True).data))
 
 
+@api_view(['POST'])
+def mp_pay(request):
+    code = request.data.get('code', None)
+    subject = request.data.get('subject', None)
+    total_amount = request.data.get('total_amount', None)
+    point = request.data.get('point', None)
+    if not code or not total_amount or not point or not subject:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
+    params = {
+        'appid': settings.WX_MP_APP_ID,
+        'secret': settings.WX_MP_APP_SECRET,
+        'js_code': code,
+        'grant_type': 'authorization_code'
+    }
+    with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
+        if r.status_code == requests.codes.OK:
+            data = r.json()
+            if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
+                wx_unionid = data['unionid']
+                try:
+                    user = User.objects.get(wx_unionid=wx_unionid)
+                    # 生成唯一订单号
+                    out_trade_no = str(uuid.uuid1()).replace('-', '')
+                    we_chat_pay = WeChatPay(
+                        appid=settings.WX_MP_APP_ID,
+                        mch_key=settings.WX_PAY_MCH_KEY,
+                        mch_cert=settings.WX_PAY_MCH_CERT,
+                        sub_appid=settings.WX_PAY_SUB_APP_ID,
+                        api_key=settings.WX_PAY_API_KEY,
+                        mch_id=settings.WX_PAY_MCH_ID
+                    )
+                    create_order_res = we_chat_pay.order.create(
+                        trade_type='JSAPI',
+                        body=subject,
+                        total_fee=total_amount,
+                        notify_url='',
+                        out_trade_no=out_trade_no
+                    )
+                    logging.info(create_order_res)
+
+                except User.DoesNotExist:
+                    return JsonResponse(dict(code=400, msg='错误的请求'))
+
+            else:
+                ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
+                     error=r.text)
+                return JsonResponse(dict(code=500, msg='登录失败'))
+        else:
+            ding(f'auth.code2Session接口调用失败',
+                 error=r.text)
+            return JsonResponse(dict(code=500, msg='登录失败'))
+
+
 @auth
 @api_view(['POST'])
 def create_order(request):
@@ -106,23 +164,9 @@ def create_order(request):
     subject = request.data.get('subject', None)
     total_amount = request.data.get('total_amount', None)
     point = request.data.get('point', None)
-    code = request.data.get('code', None)
 
     if not total_amount or not point or not subject:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-
-    coupon = None
-    if code:
-        try:
-            coupon = Coupon.objects.get(code=code, total_amount=total_amount, point=point, is_used=False)
-            coupon.is_used = True
-            coupon.save()
-        except Coupon.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='优惠券不存在'))
-    else:
-        # 判断对应的服务是否存在
-        if Service.objects.filter(total_amount=total_amount, point=point).count() == 0:
-            return JsonResponse(dict(code=404, msg='服务不存在'))
 
     ali_pay = get_alipay()
     # 生成唯一订单号
@@ -142,7 +186,7 @@ def create_order(request):
     try:
         order = Order.objects.create(user=user, subject=subject,
                                      out_trade_no=out_trade_no, total_amount=total_amount,
-                                     pay_url=pay_url, point=point, coupon=coupon)
+                                     pay_url=pay_url, point=point)
         return JsonResponse(dict(code=200, order=OrderSerializers(order).data))
     except Exception as e:
         logging.info(e)

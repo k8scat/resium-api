@@ -270,12 +270,6 @@ def reset_has_check_in_today(request):
 
 
 @api_view(['POST'])
-def mp_pay(request):
-    token = request.data.get('openid')
-    openid = request.data.get('openid', None)
-
-
-@api_view(['POST'])
 def mp_login(request):
     """
     :param request:
