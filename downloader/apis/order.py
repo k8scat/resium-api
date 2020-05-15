@@ -108,7 +108,8 @@ def mp_pay(request):
     point = request.data.get('point', None)
     if not code or not total_amount or not point or not subject:
         return JsonResponse(dict(code=400, msg='错误的请求'))
-    total_amount = total_amount * 100
+    total_amount = int(total_amount * 100)
+    logging.info(total_amount)
 
     params = {
         'appid': settings.WX_MP_APP_ID,
