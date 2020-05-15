@@ -7,6 +7,7 @@
 """
 import datetime
 import hashlib
+import json
 import logging
 import random
 import re
@@ -36,7 +37,7 @@ from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, Coupon, \
     CheckInRecord, QrCode
 from downloader.serializers import UserSerializers
-from downloader.utils import ding, send_email, generate_uid, generate_jwt
+from downloader.utils import ding, send_email, generate_uid, generate_jwt, WXBizDataCrypt
 
 
 @auth
@@ -285,6 +286,10 @@ def mp_login(request):
     """
 
     code = request.data.get('code', None)
+    iv = request.data.get('iv', None)
+    raw_data = request.data.get('raw_data', None)
+    signature = request.data.get('signature', None)
+    encrypted_data = request.data.get('encrypted_data', None)
     if not code:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -299,23 +304,32 @@ def mp_login(request):
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                 ding(r.text)
-                return JsonResponse(dict(code=500, msg='登录失败'))
-                # mp_openid = data['openid']
-                # login_time = datetime.datetime.now()
-                # try:
-                #     user = User.objects.get(mp_openid=mp_openid)
-                #     user.login_time = login_time
-                #     user.avatar_url = avatar_url
-                #     user.nickname = nickname
-                #     user.save()
-                # except User.DoesNotExist:
-                #     uid = generate_uid()
-                #     user = User.objects.create(uid=uid, mp_openid=mp_openid,
-                #                                avatar_url=avatar_url, nickname=nickname,
-                #                                login_time=login_time)
-                #
-                # token = generate_jwt(user.uid, expire_seconds=0)
-                # return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+                wx_unionid = data['unionid']
+                login_time = datetime.datetime.now()
+                try:
+                    user = User.objects.get(wx_unionid=wx_unionid)
+                    user.login_time = login_time
+                    user.save()
+                except User.DoesNotExist:
+                    session_key = data['session_key']
+                    signature2 = hashlib.sha1((raw_data + session_key).encode()).hexdigest()
+                    ding(signature2)
+                    if signature == signature2:
+                        wx_decrypt = WXBizDataCrypt(settings.WX_MP_APP_ID, session_key)
+                        decrypted_data = wx_decrypt.decrypt(encrypted_data, iv)
+                        ding(json.dumps(decrypted_data))
+                        return JsonResponse(dict(code=500, msg='登录失败'))
+                    else:
+                        ding('signature校验失败')
+                        return JsonResponse(dict(code=500, msg='登录失败'))
+
+                    # uid = generate_uid()
+                    # user = User.objects.create(uid=uid, wx_unionid=wx_unionid,
+                    #                            avatar_url=avatar_url, nickname=nickname,
+                    #                            login_time=login_time)
+
+                token = generate_jwt(user.uid, expire_seconds=0)
+                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
