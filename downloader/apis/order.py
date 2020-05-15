@@ -93,6 +93,12 @@ def list_orders(request):
     return JsonResponse(dict(code=200, orders=OrderSerializers(orders, many=True).data))
 
 
+@api_view()
+def mp_pay_notify(request):
+    pass
+
+
+@auth
 @api_view(['POST'])
 def mp_pay(request):
     code = request.data.get('code', None)
@@ -129,10 +135,11 @@ def mp_pay(request):
                         trade_type='JSAPI',
                         body=subject,
                         total_fee=total_amount,
-                        notify_url='',
+                        notify_url=settings.RESIUM_API + '/mp_pay_notify/',
                         out_trade_no=out_trade_no
                     )
                     logging.info(create_order_res)
+                    return JsonResponse(dict(code=400, msg='错误的请求'))
 
                 except User.DoesNotExist:
                     return JsonResponse(dict(code=400, msg='错误的请求'))

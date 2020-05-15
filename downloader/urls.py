@@ -32,6 +32,7 @@ urlpatterns = [
     path('alipay_notify/', order.alipay_notify),
     re_path(r'^delete_order/?$', order.delete_order),
     path('mp_pay/', order.mp_pay),
+    path('mp_pay_notify/', order.mp_pay_notify),
 
     path('list_coupons/', coupon.list_coupons),
 
