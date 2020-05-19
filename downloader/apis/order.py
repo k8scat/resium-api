@@ -152,11 +152,13 @@ def mp_pay(request):
                               point=point).save()
                         # 再次签名
                         prepay_id = create_order_res.get('prepay_id')
+                        nonce_str = create_order_res.get('nonce_str')
                         sign = we_chat_pay.jsapi.get_jsapi_signature(
-                            prepay_id=prepay_id
+                            prepay_id=prepay_id,
+                            nonce_str=nonce_str
                         )
                         res_data = {
-                            'nonce_str': create_order_res.get('nonce_str'),
+                            'nonce_str': nonce_str,
                             'sign': sign,
                             'prepay_id': prepay_id
                         }
