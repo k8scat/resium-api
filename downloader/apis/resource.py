@@ -137,14 +137,13 @@ class CsdnResource(BaseResource):
                         point = settings.CSDN_POINT
                     else:
                         point = None
-                    size = soup.select('strong.info_box span:nth-of-type(3) em')[0].text
                     self.resource = {
                         'title': soup.find('span', class_='resource_title').string,
                         'desc': soup.select('div.resource_description p')[0].text,
                         'tags': [tag.text for tag in soup.select('label.resource_tags a')],
-                        'file_type': soup.select('strong.info_box span')[3].contents[1].text,
+                        'file_type': soup.select('strong.info_box span')[3].text,
                         'point': point,
-                        'size': size
+                        'size': soup.select('strong.info_box span')[2].text
                     }
                     return 200, self.resource
                 except Exception as e:
