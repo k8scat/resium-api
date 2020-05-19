@@ -14,6 +14,7 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view
 from wechatpy import WeChatPay
+from wechatpy.pay import calculate_signature
 
 from downloader.decorators import auth
 from downloader.models import Order, User
@@ -149,12 +150,18 @@ def mp_pay(request):
                         Order(user=user, subject=subject,
                               out_trade_no=out_trade_no, total_amount=total_amount,
                               point=point).save()
+                        # 再次签名
+                        prepay_id = create_order_res.get('prepay_id')
+                        pay_sign = we_chat_pay.jsapi.get_jsapi_signature(
+                            prepay_id=prepay_id
+                        )
                         res_data = {
                             'nonce_str': create_order_res.get('nonce_str'),
-                            'sign': create_order_res.get('sign'),
-                            'prepay_id': create_order_res.get('prepay_id')
+                            'pay_sign': pay_sign,
+                            'prepay_id': prepay_id
                         }
-                        return JsonResponse(dict(code=200, data=res_data))
+                        logging.info(create_order_res)
+                        return JsonResponse(dict(code=200))
                     else:
                         ding('[微信支付] 创建订单失败',
                              error=json.dumps(create_order_res))
