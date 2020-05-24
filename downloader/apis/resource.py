@@ -1071,11 +1071,6 @@ class PudnResource(BaseResource):
         if self.user.point < point:
             return 400, '积分不足，请前往网站捐赠支持'
 
-        # 更新用户积分
-        self.user.point -= point
-        self.user.used_point += point
-        self.user.save()
-
         driver = get_driver(self.unique_folder)
         try:
             driver.get('http://www.pudn.com/User/login.html')
@@ -1103,31 +1098,54 @@ class PudnResource(BaseResource):
                 )
             )
             login_button.click()
-
-            driver.get(self.url)
-            resource_id = self.url.split('id/')[1].split('.')[0]
-            driver.get(f'http://www.pudn.com/Download/dl/id/{resource_id}')
-            download_button = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//a[1]")
+            try:
+                logout = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@id='navbar']/ul[@class='navbar-user navbar-right']/li[6]/a")
+                    )
                 )
-            )
-            download_button.click()
+                if logout.text == '退出':
+                    # 更新用户积分
+                    self.user.point -= point
+                    self.user.used_point += point
+                    self.user.save()
 
-            status, result = check_download(self.save_dir)
-            if status == 200:
-                self.filename = result['filename']
-                self.filepath = result['filepath']
-                return 200, '下载成功'
-            else:
-                return status, result
+                    driver.get(self.url)
+                    resource_id = self.url.split('id/')[1].split('.')[0]
+                    driver.get(f'http://www.pudn.com/Download/dl/id/{resource_id}')
+                    download_button = WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//a[1]")
+                        )
+                    )
+                    download_button.click()
+
+                    status, result = check_download(self.save_dir)
+                    if status == 200:
+                        self.filename = result['filename']
+                        self.filepath = result['filepath']
+                        return 200, '下载成功'
+                    else:
+                        return status, result
+                else:
+                    ding('[PUDN] 登录失败，退出按钮文字判断出错',
+                         uid=self.user.uid,
+                         used_account=self.account.email,
+                         resource_url=self.url)
+                    return 500, '下载失败'
+            except TimeoutException as e:
+                ding('[PUDN] 登录失败，退出按钮获取失败',
+                     error=e,
+                     uid=self.user.uid,
+                     used_account=self.account.email,
+                     resource_url=self.url)
+                return 500, '下载失败'
 
         except Exception as e:
-            ding('[百度文库] 下载失败',
+            ding('[PUDN] 下载失败',
                  error=e,
                  uid=self.user.uid,
-                 used_account=self.account.email if isinstance(self.account,
-                                                               BaiduAccount) else self.account.account,
+                 used_account=self.account.email,
                  resource_url=self.url)
             return 500, '下载失败'
         finally:
