@@ -199,13 +199,14 @@ WX_MP_APP_SECRET = 'df73fe7da71ca2be9ce382334dc9bfb3'
 WENKU_VIP_FREE_DOC_POINT = 1
 WENKU_SHARE_DOC_POINT = 1
 WENKU_SPECIAL_DOC_POINT = 20
-CSDN_POINT = 5
+CSDN_POINT = 10
 DOCER_POINT = 1
 OSS_RESOURCE_POINT = 5
 ZHIWANG_POINT = 10
 ARTICLE_POINT = 1
 QIANTU_POINT = 1
 DOC_CONVERT_POINT = 1
+PUDN_POINT = 10
 
 # http://www.fateadm.com/user_home.php
 # hsowan.me@gmail.com
@@ -283,6 +284,7 @@ PATTERN_WENKU = r'^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
 PATTERN_ZHIWANG = r'^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$'
 PATTERN_QIANTU = r'^(http(s)?://www\.58pic\.com/newpic/)\d+(\.html)$'
+PATTERN_PUDN = r'^http(s)?://www\.pudn\.com/Download/item/id/\d+\.html$'
 
 COOLQ_API = 'http://49.235.161.70:5700'
 COOLQ_AUTH_HEADERS = {

@@ -110,6 +110,16 @@ class CsdnAccount(Base):
         db_table = 'csdn_account'
 
 
+class PudnAccount(Base):
+    email = models.EmailField(verbose_name='登录邮箱')
+    password = models.EmailField(verbose_name='登录密码')
+    buy_time = models.DateTimeField(verbose_name='账号购买时间')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
+
+    class Meta:
+        db_table = 'pudn_account'
+
+
 class BaiduAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)

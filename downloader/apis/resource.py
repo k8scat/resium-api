@@ -1025,6 +1025,144 @@ class QiantuResource(BaseResource):
             return 500, '下载出了点小问题，请尝试重新下载'
 
 
+class PudnResource(BaseResource):
+    def __init__(self, url, user):
+        super().__init__(url, user)
+
+    def parse(self):
+        with requests.get(self.url) as r:
+            if r.status_code == requests.codes.OK:
+                try:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    title = soup.select('div.item-name')[0].string
+                    desc = soup.select('div.item-intro')[0].contents
+                    desc = desc[0].strip()[5:] + '\n' + desc[2].strip()
+                    size = soup.select('div.item-info')[0].contents[11][1:]
+                    tags = [tag.string for tag in soup.select('div.item-keyword a')]
+                    self.resource = {
+                        'title': title,
+                        'size': size,
+                        'tags': tags,
+                        'desc': desc,
+                        'point': settings.PUDN_POINT
+                    }
+                    return 200, self.resource
+                except Exception as e:
+                    ding('资源获取失败',
+                         error=e,
+                         logger=logging.error,
+                         uid=self.user.uid,
+                         resource_url=self.url)
+                    return 500, "资源获取失败"
+
+    def __download(self):
+        self._before_download()
+
+        status, result = self.parse()
+        if status != 200:
+            return status, result
+
+        try:
+            self.account = PudnAccount.objects.get(is_enabled=True)
+        except PudnAccount.DoesNotExist:
+            return 500, "[PUDN] 没有可用账号"
+
+        point = settings.DOCER_POINT
+        if self.user.point < point:
+            return 400, '积分不足，请前往网站捐赠支持'
+
+        # 更新用户积分
+        self.user.point -= point
+        self.user.used_point += point
+        self.user.save()
+
+        driver = get_driver(self.unique_folder)
+        try:
+            driver.get('http://www.pudn.com/User/login.html')
+            email_input = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][1]/input")
+                )
+            )
+            email_input.send_keys(self.account.email)
+            password_input = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][2]/input")
+                )
+            )
+            password_input.send_keys(self.account.password)
+            code_input = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][3]/input")
+                )
+            )
+            code_input.send_keys('abcd')
+            login_button = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//form[@id='login-form']/button")
+                )
+            )
+            login_button.click()
+
+            driver.get(self.url)
+            resource_id = self.url.split('id/')[1].split('.')[0]
+            driver.get(f'http://www.pudn.com/Download/dl/id/{resource_id}')
+            download_button = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//a[1]")
+                )
+            )
+            download_button.click()
+
+            status, result = check_download(self.save_dir)
+            if status == 200:
+                self.filename = result['filename']
+                self.filepath = result['filepath']
+                return 200, '下载成功'
+            else:
+                return status, result
+
+        except Exception as e:
+            ding('[百度文库] 下载失败',
+                 error=e,
+                 uid=self.user.uid,
+                 used_account=self.account.email if isinstance(self.account,
+                                                               BaiduAccount) else self.account.account,
+                 resource_url=self.url)
+            return 500, '下载失败'
+        finally:
+            driver.close()
+
+    def get_filepath(self):
+        status, result = self.__download()
+        if status != 200:
+            return status, result
+
+        # 保存资源
+        t = Thread(target=save_resource,
+                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   kwargs={'account': self.account.email})
+        t.start()
+        return 200, dict(filepath=self.filepath, filename=self.filename)
+
+    def get_url(self, use_email=False):
+        status, result = self.__download()
+        if status != 200:
+            return status, result
+
+        download_url = save_resource(resource_url=self.url, resource_info=self.resource,
+                                     filepath=self.filepath, filename=self.filename,
+                                     user=self.user,
+                                     account=self.account.email)
+        if use_email:
+            return self.send_email(download_url)
+
+        if download_url:
+            return 200, download_url
+        else:
+            return 500, '下载出了点小问题，请尝试重新下载'
+
+
 @auth
 @api_view(['POST'])
 def upload(request):
@@ -1289,7 +1427,8 @@ def download(request):
                                                                                       settings.WENKU_VIP_FREE_DOC_POINT]) or \
                     (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                     (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
-                    (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT):
+                    (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT) or \
+                    (re.match(settings.PATTERN_PUDN, resource_url) and point != settings.PUDN_POINT):
                 cache.delete(user.uid)
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -1355,6 +1494,9 @@ def download(request):
     # https://kns.cnki.net/KCMS/detail/ 官网
     elif re.match(settings.PATTERN_ZHIWANG, resource_url):
         resource = ZhiwangResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_PUDN, resource_url):
+        resource = PudnResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -1486,6 +1628,8 @@ def parse_resource(request):
     if not resource_url:
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
+    logging.info(resource_url)
+
     if not re.match(settings.PATTERN_ZHIWANG, resource_url):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
@@ -1516,6 +1660,9 @@ def parse_resource(request):
 
     elif re.match(settings.PATTERN_QIANTU, resource_url):
         resource = QiantuResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_PUDN, resource_url):
+        resource = PudnResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=400, msg='资源地址有误'))

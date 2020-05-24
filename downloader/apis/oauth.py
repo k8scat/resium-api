@@ -28,14 +28,7 @@ def dev(request):
     if settings.DEBUG:
         response = redirect(settings.RESIUM_UI)
 
-        # 设置token过期时间
-        exp = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-        payload = {
-            'exp': exp,
-            'sub': settings.DEV_UID  # 这里设置的本地数据库用户的uid
-        }
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS512').decode()
-
+        token = generate_jwt('666666')
         # 设置cookie
         response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
