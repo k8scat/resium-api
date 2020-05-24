@@ -1036,7 +1036,18 @@ class PudnResource(BaseResource):
                     soup = BeautifulSoup(r.text, 'lxml')
                     title = soup.select('div.item-name')[0].string
                     desc = soup.select('div.item-intro')[0].contents
-                    desc = desc[0].strip()[5:] + '\n' + desc[2].strip()
+                    logging.info(desc)
+                    desc_len = len(desc)
+                    if desc_len == 1:
+                        desc = desc[0].strip()[5:]
+                    elif desc_len == 3:
+                        desc = desc[0].strip()[5:] + '\n' + desc[2].strip()
+                    else:
+                        ding('[PUDN] 资源描述获取失败，长度有误',
+                             logger=logging.error,
+                             uid=self.user.uid,
+                             resource_url=self.url)
+                        return 500, "资源获取失败"
                     size = soup.select('div.item-info')[0].contents[11][1:]
                     tags = [tag.string for tag in soup.select('div.item-keyword a')]
                     self.resource = {
