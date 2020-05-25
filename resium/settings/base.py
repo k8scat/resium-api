@@ -207,6 +207,7 @@ ARTICLE_POINT = 1
 QIANTU_POINT = 1
 DOC_CONVERT_POINT = 1
 PUDN_POINT = 10
+ITEYE_POINT = CSDN_POINT
 
 # http://www.fateadm.com/user_home.php
 # hsowan.me@gmail.com
@@ -279,12 +280,13 @@ LOGGING = {
 # 机器人和后端通信的唯一凭证，直接放在post的data中，key是token
 BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
 
-PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/(download|detail)/).+$'
+PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/(download|detail)/).+/\d+$'
 PATTERN_WENKU = r'^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
 PATTERN_ZHIWANG = r'^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$'
 PATTERN_QIANTU = r'^(http(s)?://www\.58pic\.com/newpic/)\d+(\.html)$'
 PATTERN_PUDN = r'^http(s)?://www\.pudn\.com/Download/item/id/\d+\.html$'
+PATTERN_ITEYE = r'^http(s)?://www\.iteye\.com/resource/.+-\d+$'
 
 COOLQ_API = 'http://49.235.161.70:5700'
 COOLQ_AUTH_HEADERS = {

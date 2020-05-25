@@ -1457,7 +1457,8 @@ def download(request):
                     (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                     (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
                     (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT) or \
-                    (re.match(settings.PATTERN_PUDN, resource_url) and point != settings.PUDN_POINT):
+                    (re.match(settings.PATTERN_PUDN, resource_url) and point != settings.PUDN_POINT) or \
+                    (re.match(settings.PATTERN_ITEYE, resource_url) and point != settings.ITEYE_POINT):
                 cache.delete(user.uid)
                 return JsonResponse(dict(code=400, msg='错误的请求'))
 
@@ -1505,6 +1506,10 @@ def download(request):
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
+        resource = CsdnResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_ITEYE, resource_url):
+        resource_url = 'https://download.csdn.net/download/' + resource_url.split('resource/')[1].replace('-', '/')
         resource = CsdnResource(resource_url, user)
 
     # 百度文库文档下载
@@ -1671,6 +1676,10 @@ def parse_resource(request):
 
     # CSDN资源
     if re.match(settings.PATTERN_CSDN, resource_url):
+        resource = CsdnResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_ITEYE, resource_url):
+        resource_url = 'https://download.csdn.net/download/' + resource_url.split('resource/')[1].replace('-', '/')
         resource = CsdnResource(resource_url, user)
 
     # 百度文库文档
