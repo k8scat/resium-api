@@ -155,7 +155,7 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'upload')
 
 JWT_SECRET = 'yJzb21lIjoicGF5bG9hZCJ'
 
-ALIPAY_APP_ID = '2021001106627048'
+ALIPAY_APP_ID = '2021001164668010'
 ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(BASE_DIR, 'alipay_app_private_key.pem')
 ALIPAY_PUBLIC_KEY_FILE = os.path.join(BASE_DIR, 'alipay_public_key.pem')
 ALIPAY_WEB_BASE_URL = 'https://openapi.alipay.com/gateway.do?'
