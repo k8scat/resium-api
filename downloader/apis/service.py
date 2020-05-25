@@ -37,6 +37,7 @@ def list_points(request):
         'article': settings.ARTICLE_POINT,
         'qiantu': settings.QIANTU_POINT,
         'doc_convert': settings.DOC_CONVERT_POINT,
-        'pudn': settings.PUDN_POINT
+        'pudn': settings.PUDN_POINT,
+        'iteye': settings.ITEYE_POINT
     }
     return JsonResponse(dict(code=200, points=points))
