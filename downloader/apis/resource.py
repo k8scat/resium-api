@@ -415,33 +415,33 @@ class WenkuResource(BaseResource):
                 driver.get('http://doc110.com/#/login/')
                 account_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, "(//input[@type='text'])[2]")
+                        (By.XPATH, "//div[@class='el-form-item login-item'][1]//input[@class='el-input__inner']")
                     )
                 )
                 account_input.send_keys(self.account.account)
                 password_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, "(//input[@type='password'])[2]")
+                        (By.XPATH, "//div[@class='el-form-item login-item'][2]//input[@class='el-input__inner']")
                     )
                 )
                 password_input.send_keys(self.account.password)
                 login_button = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, "(//a[contains(text(),'立即登陆')])[2]")
+                        (By.XPATH, "//button[@class='el-button submit_btn el-button--primary']")
                     )
                 )
                 login_button.click()
 
                 url_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='is-accept']/input[@class='input']")
+                        (By.XPATH, "//div[@class='is-accept']/input")
                     )
                 )
                 url_input.send_keys(self.url)
 
                 download_button = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='is-accept']/a[@class='btn-lg'][1]")
+                        (By.XPATH, "//div[@class='is-accept']/a[1]")
                     )
                 )
                 download_button.click()
