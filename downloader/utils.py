@@ -392,7 +392,7 @@ def check_download(folder):
         if len(files) == 0:
             if no_file_countdown >= 0:
                 no_file_countdown -= 1
-                time.sleep(0.1)
+                time.sleep(1)
                 continue
             else:
                 return 500, '检查下载文件不存在'

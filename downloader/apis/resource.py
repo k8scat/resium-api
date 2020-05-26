@@ -432,6 +432,13 @@ class WenkuResource(BaseResource):
                 )
                 login_button.click()
 
+                close_dialog_button = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//button[@class='el-message-box__headerbtn']/i")
+                    )
+                )
+                close_dialog_button.click()
+
                 url_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//div[@class='is-accept']/input")
