@@ -239,7 +239,6 @@ def wx(request):
                             ResourceComment.objects.filter(user=old_user).update(user=new_user)
                             DwzRecord.objects.filter(user=old_user).update(user=new_user)
                             Article.objects.filter(user=old_user).update(user=new_user)
-                            Coupon.objects.filter(user=old_user).update(user=new_user)
                             CheckInRecord.objects.filter(user=old_user).update(user=new_user)
 
                             old_user.delete()
@@ -292,17 +291,17 @@ def mp_login(request):
         if r.status_code == requests.codes.OK:
             data = r.json()
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                wx_unionid = data['unionid']
+                mp_openid = data['openid']
                 login_time = datetime.datetime.now()
                 try:
-                    user = User.objects.get(wx_unionid=wx_unionid)
+                    user = User.objects.get(mp_openid=mp_openid)
                     user.login_time = login_time
                     user.avatar_url = avatar_url
                     user.nickname = nickname
                     user.save()
                 except User.DoesNotExist:
                     uid = generate_uid()
-                    user = User.objects.create(uid=uid, wx_unionid=wx_unionid,
+                    user = User.objects.create(uid=uid, mp_openid=mp_openid,
                                                avatar_url=avatar_url, nickname=nickname,
                                                login_time=login_time)
 
