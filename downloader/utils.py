@@ -460,12 +460,6 @@ def save_resource(resource_url, filename, filepath,
 
     with open(filepath, 'rb') as f:
         file_md5 = get_file_md5(f)
-    # 判断资源记录是否已存在，如果已存在则返回OSS下载链接
-    try:
-        existed_resource = Resource.objects.get(Q(url=resource_url) | Q(file_md5=file_md5))
-        return aliyun_oss_sign_url(existed_resource.key)
-    except Resource.DoesNotExist:
-        pass
 
     # 存储在oss中的key
     key = str(uuid.uuid1()) + '-' + filename
@@ -492,6 +486,7 @@ def save_resource(resource_url, filename, filepath,
              resource_url=resource_url,
              used_account=account)
 
+        # 上传资源到CSDN
         # t = Thread(target=upload_csdn_resource, args=(resource,))
         # t.start()
 

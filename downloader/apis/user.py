@@ -185,7 +185,11 @@ def wx(request):
         elif isinstance(msg, TextMessage):
             msg_content = msg.content.strip()
 
-            if re.match(r'^.+@.+\..+', msg_content):  # 发送迁移码
+            if msg_content == '签到':
+                content = '请打开小程序进行签到'
+                reply = TextReply(content=content, message=msg)
+
+            elif re.match(r'^.+@.+\..+', msg_content):  # 发送迁移码
                 try:
                     email = msg_content
                     user = User.objects.get(email=email)
