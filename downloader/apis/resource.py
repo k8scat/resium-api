@@ -1809,7 +1809,7 @@ def doc_convert(request):
             user.save()
             ding(f'[文档转换] 转换成功，{download_url}',
                  uid=user.uid)
-            return JsonResponse(dict(code=200, url=get_short_url(download_url)))
+            return JsonResponse(dict(code=200, url=download_url))
         except TimeoutException:
             DocConvertRecord(user=user).save()
             ding(f'[文档转换] 转换失败，{command}，{filepath}')

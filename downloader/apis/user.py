@@ -436,6 +436,9 @@ def login(request):
 
     try:
         user = User.objects.get(uid=uid)
+        if not user.password:
+            return JsonResponse(dict(code=400, msg='该账号未设置密码'))
+
         if check_password(password, user.password):
             token = generate_jwt(uid)
             return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
