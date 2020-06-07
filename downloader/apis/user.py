@@ -477,10 +477,11 @@ def check_in(request):
         msg = f'签到成功，恭喜获得{point}积分！'
 
     today = timezone.localtime(timezone.now()).day
-    logging.info(timezone.localtime(timezone.now()))
-    logging.info(timezone.localtime(timezone.now()).day)
-    today_check_in_count = CheckInRecord.objects.filter(create_time__day=today).count()
-    today_check_in_point = CheckInRecord.objects.filter(create_time__day=today).aggregate(nums=Sum('point'))['nums']
+    month = timezone.localtime(timezone.now()).month
+    year = timezone.localtime(timezone.now()).year
+    records = CheckInRecord.objects.filter(create_time__day=today, create_time__month=month, create_time__year=year)
+    today_check_in_count = records.count()
+    today_check_in_point = records.aggregate(nums=Sum('point'))['nums']
 
     user.has_check_in_today = True
     user.save()

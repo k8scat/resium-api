@@ -23,9 +23,7 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    print(timezone.now())
-    print(timezone.localtime(timezone.now()).day)
-
+    pass
 
 
 
