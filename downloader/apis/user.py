@@ -476,15 +476,14 @@ def check_in(request):
         user.point += point
         msg = f'签到成功，恭喜获得{point}积分！'
 
-    today = timezone.localtime(timezone.now()).day
-    month = timezone.localtime(timezone.now()).month
-    year = timezone.localtime(timezone.now()).year
-    records = CheckInRecord.objects.filter(create_time__day=today, create_time__month=month, create_time__year=year)
+    user.has_check_in_today = True
+    user.save()
+
+    now = timezone.now()
+    records = CheckInRecord.objects.filter(create_time__day=now.day, create_time__month=now.month, create_time__year=now.year)
     today_check_in_count = records.count()
     today_check_in_point = records.aggregate(nums=Sum('point'))['nums']
 
-    user.has_check_in_today = True
-    user.save()
     ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
          uid=user.uid)
     return JsonResponse(dict(code=200, msg=msg))
