@@ -267,7 +267,7 @@ def wx(request):
 def reset_has_check_in_today(request):
     token = request.data.get('token', None)
     if token == settings.ADMIN_TOKEN:
-        User.objects.filter(wx_openid__isnull=False, has_check_in_today=True).update(has_check_in_today=False)
+        User.objects.filter(has_check_in_today=True).update(has_check_in_today=False)
 
     return HttpResponse('')
 
