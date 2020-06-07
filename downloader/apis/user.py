@@ -25,6 +25,7 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
+from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -488,6 +489,13 @@ def check_in(request):
 @auth
 @api_view(['POST'])
 def request_set_email(request):
+    """
+    请求设置邮箱，会向邮箱发送确认链接
+
+    :param request:
+    :return:
+    """
+
     uid = request.session.get('uid')
     try:
         user = User.objects.get(uid=uid)
@@ -497,7 +505,11 @@ def request_set_email(request):
     email = request.data.get('email', '')
     if not re.match(r'.+@.+\..+', email):
         return JsonResponse(dict(code=400, msg='邮箱格式有误'))
-    code = ''.join(random.sample(string.digits + string.ascii_letters, 32))
+
+    if user.email == email:
+        return JsonResponse(dict(code=400, msg='新邮箱不能和当前邮箱相同'))
+
+    code = str(uuid.uuid1()).replace('-', '')
     cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
     uid = request.session.get('uid')
     cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
@@ -523,6 +535,13 @@ def request_set_email(request):
 
 @api_view()
 def set_email(request):
+    """
+    用户通过 发送至邮箱的确认链接 确认设置邮箱
+
+    :param request:
+    :return:
+    """
+
     code = request.GET.get('code', '')
     if not re.match(r'[0-9a-zA-Z]{32}', code):
         msg = '验证码错误'
