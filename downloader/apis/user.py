@@ -549,7 +549,7 @@ def set_email(request):
         email = cache.get(code)
         uid = cache.get(email)
         if not email or not uid:
-            msg = '验证码已失效'
+            msg = '链接已失效'
         else:
             try:
                 user = User.objects.get(uid=uid)
