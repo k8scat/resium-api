@@ -470,21 +470,17 @@ def check_in(request):
     if point == 0:
         msg = '很可惜与积分擦肩而过，请明天再接再厉！'
     else:
-        # 保存签到记录
-        CheckInRecord(user=user, point=point).save()
         # 更新用户积分
         user.point += point
         msg = f'签到成功，恭喜获得{point}积分！'
 
+    # 保存签到记录
+    CheckInRecord(user=user, point=point).save()
     user.has_check_in_today = True
     user.save()
 
-    now = timezone.now()
-    records = CheckInRecord.objects.filter(create_time__day=now.day, create_time__month=now.month, create_time__year=now.year)
-    today_check_in_count = records.count()
-    today_check_in_point = records.aggregate(nums=Sum('point'))['nums']
-
-    ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人，总共免费获取{today_check_in_point}积分',
+    today_check_in_count = User.objects.filter(has_check_in_today=True).count()
+    ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人',
          uid=user.uid)
     return JsonResponse(dict(code=200, msg=msg))
 

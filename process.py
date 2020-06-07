@@ -23,8 +23,12 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    print(timezone.now())
-    print(timezone.now().day)
+    now = timezone.now()
+    records = CheckInRecord.objects.filter(create_time__day=now.day,
+                                           create_time__month=now.month,
+                                           create_time__year=now.year)
+    for record in records:
+        print(record.create_time)
 
 
 
