@@ -1317,8 +1317,7 @@ def get_resource(request):
 @api_view()
 def list_comments(request):
     resource_id = request.GET.get('id', None)
-    if resource_id and resource_id.isnumeric():
-        resource_id = int(resource_id)
+    if resource_id:
         try:
             comments = ResourceComment.objects.filter(resource_id=resource_id).all()
             return JsonResponse(dict(code=200, comments=ResourceCommentSerializers(comments, many=True).data))
@@ -1420,7 +1419,7 @@ def download(request):
 
     uid = request.session.get('uid')
     if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载'), status=403)
+        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载！'))
 
     try:
         user = User.objects.get(uid=uid)
@@ -1583,7 +1582,7 @@ def oss_download(request):
 
     uid = request.session.get('uid')
     if cache.get(uid):
-        return JsonResponse(dict(code=403, msg='下载请求过快'), status=403)
+        return JsonResponse(dict(code=403, msg='下载请求过快，请稍后再尝试下载！'))
 
     try:
         user = User.objects.get(uid=uid)
