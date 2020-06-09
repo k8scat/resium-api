@@ -186,7 +186,11 @@ def wx(request):
         elif isinstance(msg, TextMessage):
             msg_content = msg.content.strip()
 
-            if msg_content == '签到':
+            if re.match(r'.*绑定.*', msg_content):
+                content = '请发送账号ID进行绑定'
+                reply = TextReply(content=content, message=msg)
+
+            elif msg_content == '签到':
                 content = '请打开小程序进行签到'
                 reply = TextReply(content=content, message=msg)
 
