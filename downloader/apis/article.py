@@ -28,7 +28,7 @@ def parse_csdn_article(request):
         user = User.objects.get(uid=uid)
         point = settings.ARTICLE_POINT
         if user.point < point:
-            return JsonResponse(dict(code=400, msg='积分不足，请前往捐赠'))
+            return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
         if not user.can_download:
             return JsonResponse(dict(code=400, msg='错误的请求'))
     except User.DoesNotExist:

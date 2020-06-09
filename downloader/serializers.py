@@ -18,10 +18,11 @@ class UserSerializers(serializers.ModelSerializer):
 
 class ResourceSerializers(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname')
+    avatar_url = serializers.CharField(source='user.avatar_url')
 
     class Meta:
         model = Resource
-        fields = ['id', 'create_time', 'desc', 'nickname', 'size', 'tags', 'title', 'filename']
+        fields = ['id', 'create_time', 'desc', 'nickname', 'size', 'tags', 'title', 'filename', 'avatar_url']
 
 
 class DownloadRecordSerializers(serializers.ModelSerializer):

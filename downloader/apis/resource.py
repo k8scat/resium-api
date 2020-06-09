@@ -166,7 +166,7 @@ class CsdnResource(BaseResource):
             point = settings.CSDN_POINT
             # 可用积分不足
             if self.user.point < point:
-                return 400, '积分不足，请前往网站捐赠支持'
+                return 5000, '积分不足，请进行捐赠支持。'
 
             # 判断账号当天下载数
             if self.account.today_download_count >= 20:
@@ -401,7 +401,7 @@ class WenkuResource(BaseResource):
             return 400, '该资源不支持下载'
 
         if self.user.point < point:
-            return 400, '积分不足，请前往网站捐赠支持'
+            return 5000, '积分不足，请进行捐赠支持。'
 
         # 更新用户积分
         self.user.point -= point
@@ -630,7 +630,7 @@ class DocerResource(BaseResource):
 
         point = settings.DOCER_POINT
         if self.user.point < point:
-            return 400, '积分不足，请前往网站捐赠支持'
+            return 5000, '积分不足，请进行捐赠支持。'
 
         try:
             self.account = DocerAccount.objects.get(is_enabled=True)
@@ -778,7 +778,7 @@ class ZhiwangResource(BaseResource):
 
         point = settings.ZHIWANG_POINT
         if self.user.point < point:
-            return 400, '积分不足，请前往网站捐赠支持'
+            return 5000, '积分不足，请进行捐赠支持。'
 
         # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
         vpn_url = re.sub(r'http(s)?://kns(8)?\.cnki\.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn', self.url)
@@ -1087,7 +1087,7 @@ class PudnResource(BaseResource):
 
         point = settings.DOCER_POINT
         if self.user.point < point:
-            return 400, '积分不足，请前往网站捐赠支持'
+            return 5000, '积分不足，请进行捐赠支持。'
 
         driver = get_driver(self.unique_folder)
         try:
@@ -1471,7 +1471,7 @@ def download(request):
 
             if user.point < point:
                 cache.delete(user.uid)
-                return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
+                return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
 
         # 新增下载记录
         DownloadRecord(user=user,
@@ -1599,7 +1599,7 @@ def oss_download(request):
     point = settings.OSS_RESOURCE_POINT
     if user.point < point:
         cache.delete(user.uid)
-        return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
+        return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
 
     resource_id = request.GET.get('id', None)
     if resource_id and resource_id.isnumeric():
@@ -1757,7 +1757,7 @@ def doc_convert(request):
         user = User.objects.get(uid=uid)
         point = settings.DOC_CONVERT_POINT
         if user.point < point:
-            return JsonResponse(dict(code=400, msg='积分不足，请前往网站捐赠支持'))
+            return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未登录'))
 
