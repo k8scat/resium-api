@@ -371,7 +371,7 @@ def scan_code(request):
         if code_type == 'login':
             qr_code.uid = user.uid
             qr_code.save()
-            return JsonResponse(dict(code=200, msg='确认登录'))
+            return JsonResponse(dict(code=200, msg='登录成功'))
 
         else:
             return JsonResponse(dict(code=400, msg='错误的请求'))
@@ -460,7 +460,7 @@ def check_in(request):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     if not user.wx_openid:
-        return JsonResponse(dict(code=400, msg='请先在微信公众号中绑定账号'))
+        return JsonResponse(dict(code=400, msg='请先在源自开发者微信公众号中绑定账号'))
 
     if user.has_check_in_today:
         return JsonResponse(dict(code=400, msg='今日已签到'))
@@ -469,7 +469,7 @@ def check_in(request):
     points = [0, 1, 2]
     point = random.choice(points)
     if point == 0:
-        msg = '很可惜与积分擦肩而过，请明天再接再厉！'
+        msg = '很可惜与积分擦肩而过！'
     else:
         # 更新用户积分
         user.point += point

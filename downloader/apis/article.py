@@ -35,7 +35,7 @@ def parse_csdn_article(request):
         return JsonResponse(dict(code=401, msg='未认证'))
 
     article_url = request.data.get('url', None)
-    if not article_url or not re.match(r'http(s)?://blog\.csdn\.net/.+/article/details/.+$', article_url):
+    if not article_url or not re.match(r'^http(s)?://blog\.csdn\.net/.+/article/details/.+$', article_url):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
     article_url = article_url.split('?')[0]
