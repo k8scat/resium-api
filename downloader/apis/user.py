@@ -191,7 +191,7 @@ def wx(request):
                 reply = TextReply(content=content, message=msg)
 
             elif msg_content == '签到':
-                content = '请打开小程序进行签到'
+                content = '请前往源自下载小程序进行签到'
                 reply = TextReply(content=content, message=msg)
 
             elif re.match(r'^.+@.+\..+', msg_content):  # 发送迁移码
