@@ -1328,21 +1328,22 @@ def list_comments(request):
 
 
 @auth
-@ratelimit(key='ip', rate='1/5m', block=True)
 @api_view(['POST'])
 def create_comment(request):
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=400, msg='错误的请求'))
+
     content = request.data.get('content', None)
     resource_id = request.data.get('id', None)
-    user_id = request.data.get('user_id', None)
-    if content and resource_id and user_id and resource_id.isnumeric() and user_id.isnumeric():
-        resource_id = int(resource_id)
-        user_id = int(user_id)
+    if content and resource_id:
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
-            user = User.objects.get(id=user_id)
             ResourceComment(user=user, resource=resource, content=content).save()
             return JsonResponse(dict(code=200, msg='评论成功'))
-        except (User.DoesNotExist, Resource.DoesNotExist):
+        except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='错误的请求'))
     else:
         return JsonResponse(dict(code=400, msg='错误的请求'))
