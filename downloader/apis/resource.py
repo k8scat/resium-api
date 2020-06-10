@@ -1341,8 +1341,8 @@ def create_comment(request):
     if content and resource_id:
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
-            ResourceComment(user=user, resource=resource, content=content).save()
-            return JsonResponse(dict(code=200, msg='评论成功'))
+            resource_comment = ResourceComment.objects.create.create(user=user, resource=resource, content=content)
+            return JsonResponse(dict(code=200, msg='评论成功', comment=ResourceCommentSerializers(resource_comment).data))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=400, msg='错误的请求'))
     else:
