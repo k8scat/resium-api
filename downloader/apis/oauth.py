@@ -116,36 +116,38 @@ def github(request):
             'code': code
         }
         with requests.post('https://github.com/login/oauth/access_token', data) as get_access_token_resp:
-            if get_access_token_resp.status_code == requests.codes.OK:
-                # content: access_token=e72e16c7e42f292c6912e7710c838347ae178b4a&token_type=bearer
-                access_token = get_access_token_resp.text.split('&')[0].split('=')[1]
-                headers = {
-                    'Authorization': f'token {access_token}'
-                }
+            if get_access_token_resp.status_code != requests.codes.OK:
+                return response
 
-                with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
-                    if get_user_resp.status_code == requests.codes.OK:
-                        # Refer: https://developer.github.com/v3/users/#get-a-single-user
-                        github_user = get_user_resp.json()
-                        github_id = github_user['id']
-                        nickname = github_user['login']
-                        avatar_url = github_user['avatar_url']
-                        login_time = datetime.datetime.now()
-                        try:
-                            user = User.objects.get(github_id=github_id)
-                            user.nickname = nickname
-                            user.avatar_url = avatar_url
-                            user.login_time = login_time
-                            user.save()
-                        except User.DoesNotExist:
-                            uid = generate_uid()
-                            user = User.objects.create(uid=uid, github_id=github_id,
-                                                       nickname=nickname, avatar_url=avatar_url,
-                                                       login_time=login_time)
+            # content: access_token=e72e16c7e42f292c6912e7710c838347ae178b4a&token_type=bearer
+            access_token = get_access_token_resp.text.split('&')[0].split('=')[1]
+            headers = {
+                'Authorization': f'token {access_token}'
+            }
 
-                        if user:
-                            token = generate_jwt(user.uid)
-                            response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
+        with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
+            if get_user_resp.status_code == requests.codes.OK:
+                # Refer: https://developer.github.com/v3/users/#get-a-single-user
+                github_user = get_user_resp.json()
+                github_id = github_user['id']
+                nickname = github_user['login']
+                avatar_url = github_user['avatar_url']
+                login_time = datetime.datetime.now()
+                try:
+                    user = User.objects.get(github_id=github_id)
+                    user.nickname = nickname
+                    user.avatar_url = avatar_url
+                    user.login_time = login_time
+                    user.save()
+                except User.DoesNotExist:
+                    uid = generate_uid()
+                    user = User.objects.create(uid=uid, github_id=github_id,
+                                               nickname=nickname, avatar_url=avatar_url,
+                                               login_time=login_time)
+
+                if user:
+                    token = generate_jwt(user.uid)
+                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
 
     return response
 
