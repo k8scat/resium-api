@@ -125,7 +125,7 @@ def github(request):
                 'Authorization': f'token {access_token}'
             }
 
-        with requests.get('https://api.github.com/user', headers=headers) as get_user_resp:
+        with requests.get('https://api.github.com/user', headers=headers, timeout=60) as get_user_resp:
             if get_user_resp.status_code == requests.codes.OK:
                 # Refer: https://developer.github.com/v3/users/#get-a-single-user
                 github_user = get_user_resp.json()
