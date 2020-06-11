@@ -81,14 +81,14 @@ class BaseResource:
                       recipient_list=[self.user.email],
                       html_message=html_message,
                       fail_silently=False)
-            return 200, '下载成功，请前往邮箱查收！'
+            return requests.codes.ok, '下载成功，请前往邮箱查收！'
         except Exception as e:
             ding('资源下载地址邮件发送失败',
                  error=e,
                  uid=self.user.uid,
                  used_account=self.account.email,
                  logger=logging.error)
-            return 500, '邮件发送失败'
+            return requests.codes.server_error, '邮件发送失败'
 
     def parse(self):
         pass
@@ -145,20 +145,20 @@ class CsdnResource(BaseResource):
                         'point': point,
                         'size': soup.select('strong.info_box span')[2].text
                     }
-                    return 200, self.resource
+                    return requests.codes.ok, self.resource
                 except Exception as e:
                     ding('[CSDN] 资源信息解析失败',
                          error=e,
                          logger=logging.error,
                          uid=self.user.uid)
-                    return 500, '资源获取失败'
+                    return requests.codes.server_error, '资源获取失败'
             return
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         try:
@@ -176,18 +176,18 @@ class CsdnResource(BaseResource):
                      used_account=self.account.email)
                 # 自动切换CSDN
                 switch_csdn_account(self.account)
-                return 403, '下载出了点小问题，请尝试重新下载'
+                return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
         except CsdnAccount.DoesNotExist:
             ding('[CSDN] 没有可用账号',
                  uid=self.user.uid,
                  resource_url=self.url)
-            return 500, '下载失败，请联系管理员'
+            return requests.codes.server_error, '下载失败，请联系管理员'
 
         if self.resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
                  uid=self.user.uid,
                  resource_url=self.url)
-            return 400, '版权受限，无法下载'
+            return requests.codes.bad_request, '版权受限，无法下载'
 
         resource_id = self.url.split('/')[-1]
         headers = {
@@ -207,8 +207,8 @@ class CsdnResource(BaseResource):
                          uid=self.user.uid,
                          used_account=self.account.email,
                          logger=logging.error)
-                    return 500, '下载失败'
-                if resp['code'] == 200:
+                    return requests.codes.server_error, '下载失败'
+                if resp['code'] == requests.codes.ok:
                     # 更新账号今日下载数
                     self.account.today_download_count += 1
                     self.account.used_count += 1
@@ -228,7 +228,7 @@ class CsdnResource(BaseResource):
                                 for chunk in download_resp.iter_content(chunk_size=1024):
                                     if chunk:
                                         f.write(chunk)
-                            return 200, '下载成功'
+                            return requests.codes.ok, '下载成功'
 
                         ding('[CSDN] 下载失败',
                              error=download_resp.text,
@@ -236,10 +236,10 @@ class CsdnResource(BaseResource):
                              resource_url=self.url,
                              used_account=self.account.email,
                              logger=logging.error)
-                        return 500, '下载失败'
+                        return requests.codes.server_error, '下载失败'
                 else:
                     if resp.get('message', None) == '当前资源不开放下载功能':
-                        return 400, 'CSDN未开放该资源的下载功能'
+                        return requests.codes.bad_request, 'CSDN未开放该资源的下载功能'
                     elif resp.get('message', None) == '短信验证':
                         ding('[CSDN] 下载失败，需要短信验证',
                              error=resp,
@@ -249,7 +249,7 @@ class CsdnResource(BaseResource):
                              logger=logging.error)
                         # 自动切换CSDN
                         switch_csdn_account(self.account, need_sms_validate=True)
-                        return 500, '下载出了点小问题，请尝试重新下载'
+                        return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
                     ding('[CSDN] 下载失败',
                          error=resp,
@@ -257,7 +257,7 @@ class CsdnResource(BaseResource):
                          resource_url=self.url,
                          used_account=self.account.email,
                          logger=logging.error)
-                    return 500, '下载失败'
+                    return requests.codes.server_error, '下载失败'
             else:
                 ding('[CSDN] 下载失败',
                      error=r.text,
@@ -265,11 +265,11 @@ class CsdnResource(BaseResource):
                      resource_url=self.url,
                      used_account=self.account.email,
                      logger=logging.error)
-                return 500, '下载失败'
+                return requests.codes.server_error, '下载失败'
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 上传资源到OSS并保存记录到数据库
@@ -277,11 +277,11 @@ class CsdnResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account': self.account.email})
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 上传资源到OSS并保存记录到数据库
@@ -293,9 +293,9 @@ class CsdnResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 class WenkuResource(BaseResource):
@@ -334,7 +334,7 @@ class WenkuResource(BaseResource):
                                     point = settings.WENKU_SHARE_DOC_POINT
                                     wenku_type = '共享文档'
                             else:
-                                return 500, '资源获取失败'
+                                return requests.codes.server_error, '资源获取失败'
                     else:
                         point = None
 
@@ -379,26 +379,26 @@ class WenkuResource(BaseResource):
                         'point': point,
                         'wenku_type': wenku_type
                     }
-                    return 200, self.resource
+                    return requests.codes.ok, self.resource
                 except Exception as e:
                     ding(f'资源信息解析失败: {str(e)}',
                          resource_url=self.url,
                          uid=self.user.uid,
                          logger=logging.error)
-                    return 500, '资源获取失败'
+                    return requests.codes.server_error, '资源获取失败'
             else:
-                return 500, '资源获取失败'
+                return requests.codes.server_error, '资源获取失败'
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         point = self.resource['point']
         if point is None:
-            return 400, '该资源不支持下载'
+            return requests.codes.bad_request, '该资源不支持下载'
 
         if self.user.point < point:
             return 5000, '积分不足，请进行捐赠支持。'
@@ -459,7 +459,7 @@ class WenkuResource(BaseResource):
                     ding('没有可用的百度文库账号',
                          uid=self.user.uid,
                          resource_url=self.url)
-                    return 500, '下载失败'
+                    return requests.codes.server_error, '下载失败'
 
                 driver.get('https://www.baidu.com/')
                 # 添加cookies
@@ -506,13 +506,13 @@ class WenkuResource(BaseResource):
                              used_account=self.account.email,
                              resource_url=self.url,
                              logger=logging.error)
-                        return 500, '下载失败'
+                        return requests.codes.server_error, '下载失败'
 
             status, result = check_download(self.save_dir)
-            if status == 200:
+            if status == requests.codes.ok:
                 self.filename = result['filename']
                 self.filepath = result['filepath']
-                return 200, '下载成功'
+                return requests.codes.ok, '下载成功'
             else:
                 return status, result
         except Exception as e:
@@ -521,13 +521,13 @@ class WenkuResource(BaseResource):
                  uid=self.user.uid,
                  used_account=self.account.email if isinstance(self.account, BaiduAccount) else self.account.account,
                  resource_url=self.url)
-            return 500, '下载失败'
+            return requests.codes.server_error, '下载失败'
         finally:
             driver.close()
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 保存资源
@@ -536,11 +536,11 @@ class WenkuResource(BaseResource):
                    kwargs={'account': self.account.email if isinstance(self.account,
                                                                        BaiduAccount) else self.account.account})
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
@@ -552,9 +552,9 @@ class WenkuResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 class DocerResource(BaseResource):
@@ -617,15 +617,15 @@ class DocerResource(BaseResource):
                     'is_docer_vip_doc': r.text.count('类型：VIP模板') > 0,
                     'preview_images': preview_images
                 }
-                return 200, self.resource
+                return requests.codes.ok, self.resource
 
-            return 500, '资源获取失败'
+            return requests.codes.server_error, '资源获取失败'
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         point = settings.DOCER_POINT
@@ -639,7 +639,7 @@ class DocerResource(BaseResource):
                  uid=self.user.uid,
                  resource_url=self.url,
                  logger=logging.error)
-            return 500, '下载失败'
+            return requests.codes.server_error, '下载失败'
 
         # 下载资源
         resource_id = self.url.split('/')[-1]
@@ -672,7 +672,7 @@ class DocerResource(BaseResource):
                                     if chunk:
                                         f.write(chunk)
 
-                            return 200, '下载成功'
+                            return requests.codes.ok, '下载成功'
 
                         ding('[稻壳VIP模板] 下载失败',
                              error=download_resp.text,
@@ -680,24 +680,24 @@ class DocerResource(BaseResource):
                              used_account=self.account.email,
                              resource_url=self.url,
                              logger=logging.error)
-                        return 500, '下载失败'
+                        return requests.codes.server_error, '下载失败'
                 else:
                     ding('[稻壳VIP模板] 下载失败',
                          error=r.text,
                          uid=self.user.uid,
                          resource_url=self.url,
                          logger=logging.error)
-                    return 500, '下载失败'
+                    return requests.codes.server_error, '下载失败'
             except JSONDecodeError:
                 ding('[稻壳VIP模板] Cookies失效',
                      uid=self.user.uid,
                      resource_url=self.url,
                      logger=logging.error)
-                return 500, '下载失败'
+                return requests.codes.server_error, '下载失败'
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 保存资源
@@ -705,11 +705,11 @@ class DocerResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account': self.account.email})
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
@@ -719,9 +719,9 @@ class DocerResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 class ZhiwangResource(BaseResource):
@@ -758,22 +758,22 @@ class ZhiwangResource(BaseResource):
                         'pdf_download': has_pdf,  # 是否支持pdf下载
                         'point': settings.ZHIWANG_POINT
                     }
-                    return 200, self.resource
+                    return requests.codes.ok, self.resource
                 except Exception as e:
                     ding('资源获取失败',
                          error=e,
                          logger=logging.error,
                          uid=self.user.uid,
                          resource_url=self.url)
-                    return 500, '资源获取失败'
+                    return requests.codes.server_error, '资源获取失败'
             else:
-                return 500, '资源获取失败'
+                return requests.codes.server_error, '资源获取失败'
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         point = settings.ZHIWANG_POINT
@@ -814,7 +814,7 @@ class ZhiwangResource(BaseResource):
                     )
                 )
             except TimeoutException:
-                return 400, '该文献不支持下载PDF'
+                return requests.codes.bad_request, '该文献不支持下载PDF'
 
             self.user.point -= point
             self.user.used_point += point
@@ -871,14 +871,14 @@ class ZhiwangResource(BaseResource):
                     )
                     submit_code_button.click()
                 else:
-                    return 500, '下载失败'
+                    return requests.codes.server_error, '下载失败'
 
             finally:
                 status, result = check_download(self.save_dir)
-                if status == 200:
+                if status == requests.codes.ok:
                     self.filename = result['filename']
                     self.filepath = result['filepath']
-                    return 200, '下载成功'
+                    return requests.codes.ok, '下载成功'
                 else:
                     return status, result
 
@@ -888,25 +888,25 @@ class ZhiwangResource(BaseResource):
                  uid=self.user.uid,
                  resource_url=self.url,
                  logger=logging.error)
-            return 500, '下载失败'
+            return requests.codes.server_error, '下载失败'
 
         finally:
             driver.close()
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 保存资源
         t = Thread(target=save_resource,
                    args=(self.url, self.filename, self.filepath, self.resource, self.user))
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
@@ -916,9 +916,9 @@ class ZhiwangResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 class QiantuResource(BaseResource):
@@ -944,26 +944,26 @@ class QiantuResource(BaseResource):
                         'file_type': file_type,
                         'point': settings.QIANTU_POINT
                     }
-                    return 200, self.resource
+                    return requests.codes.ok, self.resource
                 except Exception as e:
                     ding('资源获取失败',
                          error=e,
                          logger=logging.error,
                          uid=self.user.uid,
                          resource_url=self.url)
-                    return 500, "资源获取失败"
+                    return requests.codes.server_error, "资源获取失败"
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         try:
             self.account = QiantuAccount.objects.get(is_enabled=True)
         except QiantuAccount.DoesNotExist:
-            return 500, "[千图网] 没有可用账号"
+            return requests.codes.server_error, "[千图网] 没有可用账号"
 
         headers = {
             'cookie': self.account.cookies,
@@ -985,7 +985,7 @@ class QiantuResource(BaseResource):
                                     if chunk:
                                         f.write(chunk)
 
-                            return 200, '下载成功'
+                            return requests.codes.ok, '下载成功'
 
                         ding('[千图网] 下载失败',
                              error=download_resp.text,
@@ -993,7 +993,7 @@ class QiantuResource(BaseResource):
                              used_account=self.account.email,
                              resource_url=self.url,
                              logger=logging.error)
-                        return 500, '下载失败'
+                        return requests.codes.server_error, '下载失败'
                 except Exception as e:
                     ding('[千图网] 下载失败',
                          error=e,
@@ -1001,11 +1001,11 @@ class QiantuResource(BaseResource):
                          resource_url=self.url,
                          logger=logging.error,
                          used_account=self.account.email)
-                    return 500, "下载失败"
+                    return requests.codes.server_error, "下载失败"
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 保存资源
@@ -1013,11 +1013,11 @@ class QiantuResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account': self.account.email})
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
@@ -1027,9 +1027,9 @@ class QiantuResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 class PudnResource(BaseResource):
@@ -1054,7 +1054,7 @@ class PudnResource(BaseResource):
                              logger=logging.error,
                              uid=self.user.uid,
                              resource_url=self.url)
-                        return 500, "资源获取失败"
+                        return requests.codes.server_error, "资源获取失败"
                     size = soup.select('div.item-info')[0].contents[11][1:]
                     tags = [tag.string for tag in soup.select('div.item-keyword a')]
                     self.resource = {
@@ -1064,26 +1064,26 @@ class PudnResource(BaseResource):
                         'desc': desc,
                         'point': settings.PUDN_POINT
                     }
-                    return 200, self.resource
+                    return requests.codes.ok, self.resource
                 except Exception as e:
                     ding('资源获取失败',
                          error=e,
                          logger=logging.error,
                          uid=self.user.uid,
                          resource_url=self.url)
-                    return 500, "资源获取失败"
+                    return requests.codes.server_error, "资源获取失败"
 
     def __download(self):
         self._before_download()
 
         status, result = self.parse()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         try:
             self.account = PudnAccount.objects.get(is_enabled=True)
         except PudnAccount.DoesNotExist:
-            return 500, "[PUDN] 没有可用账号"
+            return requests.codes.server_error, '[PUDN] 没有可用账号'
 
         point = settings.DOCER_POINT
         if self.user.point < point:
@@ -1139,10 +1139,10 @@ class PudnResource(BaseResource):
                     download_button.click()
 
                     status, result = check_download(self.save_dir)
-                    if status == 200:
+                    if status == requests.codes.ok:
                         self.filename = result['filename']
                         self.filepath = result['filepath']
-                        return 200, '下载成功'
+                        return requests.codes.ok, '下载成功'
                     else:
                         return status, result
                 else:
@@ -1150,14 +1150,14 @@ class PudnResource(BaseResource):
                          uid=self.user.uid,
                          used_account=self.account.email,
                          resource_url=self.url)
-                    return 500, '下载失败'
+                    return requests.codes.server_error, '下载失败'
             except TimeoutException as e:
                 ding('[PUDN] 登录失败，退出按钮获取失败',
                      error=e,
                      uid=self.user.uid,
                      used_account=self.account.email,
                      resource_url=self.url)
-                return 500, '下载失败'
+                return requests.codes.server_error, '下载失败'
 
         except Exception as e:
             ding('[PUDN] 下载失败',
@@ -1165,13 +1165,13 @@ class PudnResource(BaseResource):
                  uid=self.user.uid,
                  used_account=self.account.email,
                  resource_url=self.url)
-            return 500, '下载失败'
+            return requests.codes.server_error, '下载失败'
         finally:
             driver.close()
 
     def get_filepath(self):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         # 保存资源
@@ -1179,11 +1179,11 @@ class PudnResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account': self.account.email})
         t.start()
-        return 200, dict(filepath=self.filepath, filename=self.filename)
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
-        if status != 200:
+        if status != requests.codes.ok:
             return status, result
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
@@ -1194,9 +1194,9 @@ class PudnResource(BaseResource):
             return self.send_email(download_url)
 
         if download_url:
-            return 200, download_url
+            return requests.codes.ok, download_url
         else:
-            return 500, '下载出了点小问题，请尝试重新下载'
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
 @auth
@@ -1206,18 +1206,18 @@ def upload(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未登录'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     file = request.FILES.get('file', None)
     if not file:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     if file.size > (2 * 10) * 1024 * 1024:
-        return JsonResponse(dict(code=400, msg='上传资源大小不能超过20MiB'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='上传资源大小不能超过20MiB'))
 
     file_md5 = get_file_md5(file.open('rb'))
     if Resource.objects.filter(file_md5=file_md5).count():
-        return JsonResponse(dict(code=400, msg='资源已存在'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源已存在'))
 
     data = request.POST
     title = data.get('title', None)
@@ -1244,13 +1244,13 @@ def upload(request):
 
             ding(f'有新的资源上传 {key}',
                  uid=user.uid)
-            return JsonResponse(dict(code=200, msg='资源上传成功'))
+            return JsonResponse(dict(code=requests.codes.ok, msg='资源上传成功'))
         except Exception as e:
             logging.error(e)
             ding(f'资源上传失败: {str(e)}')
-            return JsonResponse(dict(code=500, msg='资源上传失败'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='资源上传失败'))
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @auth
@@ -1265,8 +1265,8 @@ def check_file(request):
 
     file_md5 = request.GET.get('hash', None)
     if Resource.objects.filter(file_md5=file_md5).count():
-        return JsonResponse(dict(code=400, msg='资源已存在'))
-    return JsonResponse(dict(code=200, msg='资源不存在'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源已存在'))
+    return JsonResponse(dict(code=requests.codes.ok, msg='资源不存在'))
 
 
 @auth
@@ -1283,9 +1283,9 @@ def list_uploaded_resources(request):
     try:
         user = User.objects.get(uid=uid)
         resources = Resource.objects.order_by('-create_time').filter(user=user).all()
-        return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
+        return JsonResponse(dict(code=requests.codes.ok, resources=ResourceSerializers(resources, many=True).data))
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @api_view()
@@ -1307,11 +1307,11 @@ def get_resource(request):
             # todo: 可以尝试通过django-rest-framework实现，而不是手动去获取预览图的数据
             resource_.setdefault('preview_images', preview_images)
             resource_.setdefault('point', settings.OSS_RESOURCE_POINT + resource.download_count - 1)
-            return JsonResponse(dict(code=200, resource=resource_))
+            return JsonResponse(dict(code=requests.codes.ok, resource=resource_))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=404, msg='资源不存在'))
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @api_view()
@@ -1320,11 +1320,11 @@ def list_comments(request):
     if resource_id:
         try:
             comments = ResourceComment.objects.filter(resource_id=resource_id).all()
-            return JsonResponse(dict(code=200, comments=ResourceCommentSerializers(comments, many=True).data))
+            return JsonResponse(dict(code=requests.codes.ok, comments=ResourceCommentSerializers(comments, many=True).data))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=404, msg='资源不存在'))
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @auth
@@ -1334,7 +1334,7 @@ def create_comment(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     content = request.data.get('content', None)
     resource_id = request.data.get('id', None)
@@ -1342,11 +1342,11 @@ def create_comment(request):
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
             resource_comment = ResourceComment.objects.create(user=user, resource=resource, content=content)
-            return JsonResponse(dict(code=200, msg='评论成功', comment=ResourceCommentSerializers(resource_comment).data))
+            return JsonResponse(dict(code=requests.codes.ok, msg='评论成功', comment=ResourceCommentSerializers(resource_comment).data))
         except Resource.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @api_view()
@@ -1362,7 +1362,7 @@ def list_resources(request):
         if page < 1:
             page = 1
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     count = request.GET.get('count', None)
     if count is None:
@@ -1370,7 +1370,7 @@ def list_resources(request):
     elif count and count.isnumeric():
         count = int(count)
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     key = request.GET.get('key', '')
 
@@ -1381,7 +1381,7 @@ def list_resources(request):
                                                                  Q(title__icontains=key) |
                                                                  Q(desc__icontains=key) |
                                                                  Q(tags__icontains=key)).all()[start:end]
-    return JsonResponse(dict(code=200, resources=ResourceSerializers(resources, many=True).data))
+    return JsonResponse(dict(code=requests.codes.ok, resources=ResourceSerializers(resources, many=True).data))
 
 
 @api_view()
@@ -1390,7 +1390,7 @@ def get_resource_count(request):
     获取资源的数量
     """
     key = request.GET.get('key', '')
-    return JsonResponse(dict(code=200, count=Resource.objects.filter(Q(is_audited=1),
+    return JsonResponse(dict(code=requests.codes.ok, count=Resource.objects.filter(Q(is_audited=1),
                                                                      Q(title__icontains=key) |
                                                                      Q(desc__icontains=key) |
                                                                      Q(tags__icontains=key)).count()))
@@ -1408,7 +1408,7 @@ def list_resource_tags(request):
             if t not in ret_tags and t != '':
                 ret_tags.append(t)
 
-    return JsonResponse(dict(code=200, tags=settings.TAG_SEP.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
+    return JsonResponse(dict(code=requests.codes.ok, tags=settings.TAG_SEP.join(random.sample(ret_tags, settings.SAMPLE_TAG_COUNT))))
 
 
 @auth
@@ -1420,26 +1420,26 @@ def download(request):
 
     uid = request.session.get('uid')
     if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=403, msg='下载频率过快，请稍后再尝试下载！'))
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='请求频率过快，请稍后再试！'))
 
     try:
         user = User.objects.get(uid=uid)
         if not user.is_admin and not user.can_download:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
         if not user.is_admin:
             cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未登录'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     resource_url = request.data.get('url', None)
     # 下载返回类型（不包括直接在OSS找到的资源），file/url/email，默认file
     t = request.data.get('t', 'file')
     if t == 'email' and not user.email:
-        return JsonResponse(dict(code=400, msg='账号未设置邮箱'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='账号未设置邮箱'))
 
     if not resource_url:
-        return JsonResponse(dict(code=400, msg='资源地址不能为空'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址不能为空'))
 
     ding('正在下载',
          resource_url=resource_url,
@@ -1467,7 +1467,7 @@ def download(request):
                     (re.match(settings.PATTERN_PUDN, resource_url) and point != settings.PUDN_POINT) or \
                     (re.match(settings.PATTERN_ITEYE, resource_url) and point != settings.ITEYE_POINT):
                 cache.delete(user.uid)
-                return JsonResponse(dict(code=400, msg='错误的请求'))
+                return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
             if user.point < point:
                 cache.delete(user.uid)
@@ -1501,15 +1501,15 @@ def download(request):
                           recipient_list=[user.email],
                           html_message=html_message,
                           fail_silently=False)
-                return JsonResponse(dict(code=200, msg='下载成功，请前往邮箱查收！'))
+                return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！'))
             except Exception as e:
                 ding('资源下载地址邮件发送失败',
                      error=e,
                      uid=user.uid,
                      logger=logging.error)
-                return JsonResponse(dict(code=500, msg='邮件发送失败'))
+                return JsonResponse(dict(code=requests.codes.server_error, msg='邮件发送失败'))
 
-        return JsonResponse(dict(code=200, url=url))
+        return JsonResponse(dict(code=requests.codes.ok, url=url))
 
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1540,11 +1540,11 @@ def download(request):
         resource = PudnResource(resource_url, user)
 
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     if t == 'file':
         status, result = resource.get_filepath()
-        if status != 200:  # 下载失败
+        if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
@@ -1556,7 +1556,7 @@ def download(request):
 
     elif t == 'url':
         status, result = resource.get_url()
-        if status != 200:  # 下载失败
+        if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
@@ -1564,14 +1564,14 @@ def download(request):
 
     elif t == 'email':
         status, result = resource.get_url(use_email=True)
-        if status != 200:  # 下载失败
+        if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
         return JsonResponse(dict(code=status, msg=result))
 
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @auth
@@ -1583,18 +1583,18 @@ def oss_download(request):
 
     uid = request.session.get('uid')
     if cache.get(uid):
-        return JsonResponse(dict(code=403, msg='下载请求过快，请稍后再尝试下载！'))
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='请求频率过快，请稍后再试！'))
 
     try:
         user = User.objects.get(uid=uid)
 
         cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未登录'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     t = request.GET.get('t', 'url')
     if t == 'email' and not user.email:
-        return JsonResponse(dict(code=400, msg='账号未设置邮箱'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='账号未设置邮箱'))
 
     point = settings.OSS_RESOURCE_POINT
     if user.point < point:
@@ -1606,7 +1606,7 @@ def oss_download(request):
         resource_id = int(resource_id)
     else:
         cache.delete(user.uid)
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     try:
         oss_resource = Resource.objects.get(id=resource_id)
@@ -1618,10 +1618,10 @@ def oss_download(request):
             oss_resource.is_audited = 0
             oss_resource.save()
             cache.delete(user.uid)
-            return JsonResponse(dict(code=400, msg='该资源暂时无法下载'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='该资源暂时无法下载'))
     except Resource.DoesNotExist:
         cache.delete(user.uid)
-        return JsonResponse(dict(code=400, msg='资源不存在'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源不存在'))
 
     DownloadRecord.objects.create(user=user,
                                   resource=oss_resource,
@@ -1632,7 +1632,7 @@ def oss_download(request):
     oss_resource.save()
 
     if t == 'url':
-        return JsonResponse(dict(code=200, url=url))
+        return JsonResponse(dict(code=requests.codes.ok, url=url))
     elif t == 'email':
         subject = '[源自下载] 资源下载成功'
         html_message = render_to_string('downloader/download_url.html', {'url': url})
@@ -1644,13 +1644,13 @@ def oss_download(request):
                       recipient_list=[user.email],
                       html_message=html_message,
                       fail_silently=False)
-            return JsonResponse(dict(code=200, msg='下载成功，请前往邮箱查收！'))
+            return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！'))
         except Exception as e:
             ding('资源下载地址邮件发送失败',
                  error=e,
                  uid=user.uid,
                  logger=logging.error)
-            return JsonResponse(dict(code=500, msg='邮件发送失败'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='邮件发送失败'))
 
 
 @auth
@@ -1667,7 +1667,7 @@ def parse_resource(request):
 
     resource_url = request.data.get('url', None)
     if not resource_url:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     logging.info(resource_url)
 
@@ -1679,7 +1679,7 @@ def parse_resource(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=403, msg='未登录'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     # CSDN资源
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1710,7 +1710,7 @@ def parse_resource(request):
         resource = PudnResource(resource_url, user)
 
     else:
-        return JsonResponse(dict(code=400, msg='资源地址有误'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址有误'))
 
     status, result = resource.parse()
     return JsonResponse(dict(code=status, resource=result))
@@ -1721,10 +1721,10 @@ def parse_resource(request):
 def check_resource_existed(request):
     url = request.data.get('url', None)
     if not url:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     is_resource_existed = Resource.objects.filter(url=url).count() > 0
-    return JsonResponse(dict(code=200, is_existed=is_resource_existed))
+    return JsonResponse(dict(code=requests.codes.ok, is_existed=is_resource_existed))
 
 
 @auth
@@ -1733,7 +1733,7 @@ def doc_convert(request):
     command = request.POST.get('c', None)
     file = request.FILES.get('file', None)
     if not command or not file:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     if command == 'pdf2word':
         url = 'https://converter.baidu.com/detail?type=1'
@@ -1750,7 +1750,7 @@ def doc_convert(request):
     elif command == 'ppt2pdf':
         url = 'https://converter.baidu.com/detail?type=14'
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     uid = request.session.get('uid')
     try:
@@ -1759,10 +1759,10 @@ def doc_convert(request):
         if user.point < point:
             return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未登录'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     if file.size > 100 * 1000 * 1000:
-        return JsonResponse(dict(code=400, msg='上传资源大小不能超过100MB'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='上传资源大小不能超过100MB'))
 
     unique_folder = str(uuid.uuid1())
     save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
@@ -1809,11 +1809,11 @@ def doc_convert(request):
             user.save()
             ding(f'[文档转换] 转换成功，{download_url}',
                  uid=user.uid)
-            return JsonResponse(dict(code=200, url=download_url))
+            return JsonResponse(dict(code=requests.codes.ok, url=download_url))
         except TimeoutException:
             DocConvertRecord(user=user).save()
             ding(f'[文档转换] 转换失败，{command}，{filepath}')
-            return JsonResponse(dict(code=500, msg='出了点小问题，请尝试重新转换'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='出了点小问题，请尝试重新转换'))
 
     finally:
         driver.close()
@@ -1821,4 +1821,4 @@ def doc_convert(request):
 
 @api_view()
 def get_download_interval(request):
-    return JsonResponse(dict(code=200, download_interval=settings.DOWNLOAD_INTERVAL))
+    return JsonResponse(dict(code=requests.codes.ok, download_interval=settings.DOWNLOAD_INTERVAL))

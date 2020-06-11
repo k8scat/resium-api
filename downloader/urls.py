@@ -7,7 +7,7 @@
 """
 from django.urls import path, re_path
 from downloader.apis import user, service, order, resource, advert, account, download_record, article, bot, \
-    oauth, open
+    oauth
 
 
 urlpatterns = [
@@ -69,14 +69,11 @@ urlpatterns = [
     path('bot/set_user_can_download/', bot.set_user_can_download),
     path('bot/get_user/', bot.get_user),
     path('bot/set_csdn_sms_validate_code/', bot.set_csdn_sms_validate_code),
-    path('bot/start_csdn_sms_validate/', bot.start_csdn_sms_validate),
     path('bot/get_csdn_accounts/', bot.get_csdn_accounts),
 
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),
     re_path(r'^oauth/github/?$', oauth.github),
     re_path(r'^oauth/gitee/?$', oauth.gitee),
-
-    path('open/dwz/', open.dwz)
 ]
 

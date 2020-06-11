@@ -76,10 +76,10 @@ def parse_csdn_article(request):
                 user.point -= point
                 user.used_point += point
                 user.save()
-                return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
+                return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
 
             ding(f'文章获取失败: {article_url}')
-            return JsonResponse(dict(code=500, msg='文章获取失败'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='文章获取失败'))
 
 
 @api_view()
@@ -95,13 +95,13 @@ def list_articles(request):
                                                                Q(desc__icontains=key) |
                                                                Q(content__icontains=key) |
                                                                Q(tags__icontains=key)).all()[start:end]
-    return JsonResponse(dict(code=200, articles=ArticleSerializers(articles, many=True).data))
+    return JsonResponse(dict(code=requests.codes.ok, articles=ArticleSerializers(articles, many=True).data))
 
 
 @api_view()
 def get_article_count(request):
     key = request.GET.get('key', '')
-    return JsonResponse(dict(code=200, count=Article.objects.filter(Q(title__icontains=key) |
+    return JsonResponse(dict(code=requests.codes.ok, count=Article.objects.filter(Q(title__icontains=key) |
                                                                     Q(desc__icontains=key) |
                                                                     Q(tags__icontains=key) |
                                                                     Q(content__icontains=key)).count()))
@@ -112,10 +112,10 @@ def get_article(request):
     try:
         article_id = request.GET.get('id', None)
         if not article_id:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
         article = Article.objects.get(id=article_id)
         article.view_count += 1
         article.save()
-        return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
+        return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
     except Article.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='博客不存在'))
+        return JsonResponse(dict(code=requests.codes.not_found, msg='文章不存在'))

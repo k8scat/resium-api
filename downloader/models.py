@@ -23,12 +23,11 @@ class User(Base):
     wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
     github_id = models.IntegerField(default=None, null=True)
     gitee_id = models.IntegerField(default=None, null=True)
-    is_admin = models.BooleanField(default=False, verbose_name='是否是管理员账号')
+    is_admin = models.BooleanField(default=False, verbose_name='管理员账号')
     mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
-
-    # 废弃的字段
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
     code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
+    is_pattern = models.BooleanField(default=False, verbose_name='合作伙伴')
 
     class Meta:
         db_table = 'user'
@@ -101,9 +100,6 @@ class CsdnAccount(Base):
     today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
     need_sms_validate = models.BooleanField(default=False, verbose_name='是否需要短信验证')
-    sms_code = models.CharField(max_length=10, default=None, null=True, verbose_name='短信验证码')
-    driver_cookies = models.TextField(null=True, default=None, verbose_name='给driver使用的cookies')
-    is_upload_account = models.BooleanField(default=False, verbose_name='上传账号')
 
     class Meta:
         db_table = 'csdn_account'
@@ -184,6 +180,12 @@ class Article(Base):
 
     class Meta:
         db_table = 'article'
+
+
+class ArticleComment(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    content = models.CharField(max_length=240)
 
 
 class DocerPreviewImage(Base):

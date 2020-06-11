@@ -14,7 +14,6 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view
 from wechatpy import WeChatPay
-from wechatpy.pay import calculate_signature
 
 from downloader.decorators import auth
 from downloader.models import Order, User
@@ -67,11 +66,11 @@ def delete_order(request):
             order = Order.objects.get(id=order_id, is_deleted=False)
             order.is_deleted = True
             order.save()
-            return JsonResponse(dict(code=200, msg='订单删除成功'))
+            return JsonResponse(dict(code=requests.codes.ok, msg='订单删除成功'))
         except Order.DoesNotExist:
-            return JsonResponse(dict(code=400, msg='订单不存在'))
+            return JsonResponse(dict(code=requests.codes.not_found, msg='订单不存在'))
     else:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @auth
@@ -87,10 +86,10 @@ def list_orders(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='用户不存在'))
+        return JsonResponse(dict(code=requests.codes.not_found, msg='用户不存在'))
 
     orders = Order.objects.order_by('-create_time').filter(user=user, is_deleted=False).all()
-    return JsonResponse(dict(code=200, orders=OrderSerializers(orders, many=True).data))
+    return JsonResponse(dict(code=requests.codes.ok, orders=OrderSerializers(orders, many=True).data))
 
 
 @api_view(['POST'])
@@ -108,7 +107,7 @@ def mp_pay(request):
     total_amount = request.data.get('total_amount', None)
     point = request.data.get('point', None)
     if not code or not total_amount or not point or not subject:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
     total_amount = int(total_amount * 100)
     logging.info(total_amount)
 
@@ -140,7 +139,7 @@ def mp_pay(request):
                         trade_type='JSAPI',
                         body=subject,
                         total_fee=total_amount,
-                        notify_url=settings.RESIUM_API + '/mp_pay_notify/',
+                        notify_url=settings.API_BASE_URL + '/mp_pay_notify/',
                         out_trade_no=out_trade_no,
                         user_id=data['openid']
                     )
@@ -162,23 +161,22 @@ def mp_pay(request):
                             'sign': sign,
                             'prepay_id': prepay_id
                         }
-                        return JsonResponse(dict(code=200, data=res_data))
-                    else:
-                        ding('[微信支付] 创建订单失败',
-                             error=json.dumps(create_order_res))
-                    return JsonResponse(dict(code=400, msg='错误的请求'))
+                        return JsonResponse(dict(code=requests.codes.ok, data=res_data))
+
+                    ding('[微信支付] 创建订单失败', error=json.dumps(create_order_res))
+                    return JsonResponse(dict(code=requests.codes.server_error, msg='订单创建失败'))
 
                 except User.DoesNotExist:
-                    return JsonResponse(dict(code=400, msg='错误的请求'))
+                    return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
             else:
                 ding('[微信支付] auth.code2Session接口请求成功，但返回结果错误',
                      error=r.text)
-                return JsonResponse(dict(code=500, msg='登录状态错误'))
+                return JsonResponse(dict(code=requests.codes.server_error, msg='登录状态错误'))
         else:
             ding(f'[微信支付] auth.code2Session接口调用失败',
                  error=r.text)
-            return JsonResponse(dict(code=500, msg='登录状态错误'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='登录状态错误'))
 
 
 @auth
@@ -193,14 +191,14 @@ def create_order(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=401, msg='未认证'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未认证'))
 
     subject = request.data.get('subject', None)
     total_amount = request.data.get('total_amount', None)
     point = request.data.get('point', None)
 
     if not total_amount or not point or not subject:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     ali_pay = get_alipay()
     # 生成唯一订单号
@@ -211,7 +209,7 @@ def create_order(request):
         out_trade_no=out_trade_no,
         total_amount=total_amount,
         subject=subject,
-        return_url=settings.RESIUM_UI
+        return_url=settings.FRONTEND_URL
     )
     # 生成支付链接
     pay_url = settings.ALIPAY_WEB_BASE_URL + order_string
@@ -221,7 +219,7 @@ def create_order(request):
         order = Order.objects.create(user=user, subject=subject,
                                      out_trade_no=out_trade_no, total_amount=total_amount,
                                      pay_url=pay_url, point=point)
-        return JsonResponse(dict(code=200, order=OrderSerializers(order).data))
+        return JsonResponse(dict(code=requests.codes.ok, order=OrderSerializers(order).data))
     except Exception as e:
         logging.info(e)
-        return JsonResponse(dict(code=400, msg='订单创建失败'))
+        return JsonResponse(dict(code=requests.codes.server_error, msg='订单创建失败'))

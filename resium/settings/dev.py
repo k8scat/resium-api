@@ -26,9 +26,9 @@ DATABASES = {
 # 远程 139.199.71.19 selenium只能用于认证
 SELENIUM_SERVER = 'http://127.0.0.1:4444/wd/hub'
 
-RESIUM_UI = 'http://localhost:3000'
+FRONTEND_URL = 'http://localhost:3000'
 
-RESIUM_API = 'http://localhost:8000'
+API_BASE_URL = 'http://localhost:8000'
 
 # 随机标签个数
 SAMPLE_TAG_COUNT = 3
@@ -48,6 +48,6 @@ CACHES = {
 RATELIMIT_BLOCK = False
 
 from . import prod
-ALIPAY_APP_NOTIFY_URL = prod.RESIUM_API + '/alipay_notify/'
+ALIPAY_APP_NOTIFY_URL = prod.API_BASE_URL + '/alipay_notify/'
 
 COOKIE_DOMAIN = 'localhost'

@@ -5,6 +5,7 @@
 @date: 2020/2/25
 
 """
+import requests
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
@@ -25,10 +26,10 @@ def list_download_records(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='用户不存在'))
+        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
     download_records = DownloadRecord.objects.order_by('-create_time').filter(user=user, is_deleted=False).all()
-    return JsonResponse(dict(code=200, msg='获取下载记录成功',
+    return JsonResponse(dict(code=requests.codes.ok, msg='获取下载记录成功',
                              download_records=DownloadRecordSerializers(download_records, many=True).data))
 
 

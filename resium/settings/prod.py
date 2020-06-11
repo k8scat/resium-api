@@ -26,10 +26,10 @@ DATABASES = {
 
 SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 
-RESIUM_UI = 'https://resium.cn'
+FRONTEND_URL = 'https://resium.cn'
 
-RESIUM_API = 'https://api.resium.cn'
-ALIPAY_APP_NOTIFY_URL = RESIUM_API + '/alipay_notify/'
+API_BASE_URL = 'https://api.resium.cn'
+ALIPAY_APP_NOTIFY_URL = API_BASE_URL + '/alipay_notify/'
 
 # 随机标签个数
 SAMPLE_TAG_COUNT = 50

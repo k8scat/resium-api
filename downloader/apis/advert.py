@@ -7,6 +7,7 @@
 """
 import random
 
+import requests
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
@@ -21,8 +22,8 @@ def get_random_advert(request):
     if count:
         try:
             adverts = random.sample(list(Advert.objects.all()), int(count))
-            return JsonResponse(dict(code=200, adverts=AdvertSerializers(adverts, many=True).data))
+            return JsonResponse(dict(code=requests.codes.ok, adverts=AdvertSerializers(adverts, many=True).data))
         except ValueError:
-            return JsonResponse(dict(code=400, msg='推广数据不足'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='推广数据不足'))
     advert = random.choice(Advert.objects.all())
-    return JsonResponse(dict(code=200, advert=AdvertSerializers(advert).data))
+    return JsonResponse(dict(code=requests.codes.ok, advert=AdvertSerializers(advert).data))

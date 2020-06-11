@@ -328,4 +328,3 @@ WX_PAY_MCH_ID = '1593040541'
 WX_PAY_API_KEY = 'N4tcdilXJOLEQkwb9h1KIxYn6BTDvRm7'  # 商户 key
 WX_PAY_MCH_CERT = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_cert.pem')
 WX_PAY_MCH_KEY = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_key.pem')
-

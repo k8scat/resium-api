@@ -10,7 +10,6 @@ import hashlib
 import logging
 import random
 import re
-import string
 import uuid
 from urllib.parse import quote
 
@@ -19,13 +18,10 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.html import strip_tags
-from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -38,6 +34,7 @@ from downloader.models import User, Order, DownloadRecord, Resource, ResourceCom
     CheckInRecord, QrCode
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email, generate_uid, generate_jwt
+from resium import codes
 
 
 @auth
@@ -46,9 +43,9 @@ def get_user(request):
     uid = request.session.get('uid')
     try:
         user = User.objects.get(uid=uid)
-        return JsonResponse(dict(code=200, user=UserSerializers(user).data))
+        return JsonResponse(dict(code=requests.codes.ok, user=UserSerializers(user).data))
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @api_view(['GET', 'POST'])
@@ -288,7 +285,7 @@ def mp_login(request):
     avatar_url = request.data.get('avatar_url', None)
     nickname = request.data.get('nickname', None)
     if not code or not avatar_url or not nickname:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     params = {
         'appid': settings.WX_MP_APP_ID,
@@ -315,16 +312,16 @@ def mp_login(request):
                                                login_time=login_time)
 
                 token = generate_jwt(user.uid, expire_seconds=0)
-                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+                return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
                      error=r.text)
-                return JsonResponse(dict(code=500, msg='登录失败'))
+                return JsonResponse(dict(code=requests.codes.server_error, msg='登录失败'))
         else:
             ding(f'auth.code2Session接口调用失败',
                  error=r.text)
-            return JsonResponse(dict(code=500, msg='登录失败'))
+            return JsonResponse(dict(code=requests.codes.server_error, msg='登录失败'))
 
 
 @api_view(['POST'])
@@ -339,10 +336,10 @@ def save_qr_code(request):
     cid = request.data.get('cid', None)
     code_type = request.data.get('t', None)
     if not cid or not code_type:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     QrCode(cid=cid, code_type=code_type).save()
-    return JsonResponse(dict(code=200, msg='ok'))
+    return JsonResponse(dict(code=requests.codes.ok, msg='ok'))
 
 
 @auth
@@ -359,12 +356,12 @@ def scan_code(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     code_type = request.GET.get('t', None)  # 扫码类型，分类登录和绑定已有账号
     cid = request.GET.get('cid', None)
     if not code_type or not cid:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     try:
         qr_code = QrCode.objects.get(cid=cid, code_type=code_type, has_scanned=False,
@@ -375,13 +372,13 @@ def scan_code(request):
         if code_type == 'login':
             qr_code.uid = user.uid
             qr_code.save()
-            return JsonResponse(dict(code=200, msg='登录成功'))
+            return JsonResponse(dict(code=requests.codes.ok, msg='登录成功'))
 
         else:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     except QrCode.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='二维码已失效'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='二维码已失效'))
 
 
 @api_view()
@@ -389,29 +386,29 @@ def check_scan(request):
     code_type = request.GET.get('t', None)  # 扫码类型，分类登录和绑定已有账号
     cid = request.GET.get('cid', None)
     if not code_type or not cid:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     try:
         qr_code = QrCode.objects.get(cid=cid, code_type=code_type)
         if not qr_code.has_scanned:
-            return JsonResponse(dict(code=4000, msg='等待扫码'))
+            return JsonResponse(dict(code=codes.WAITING_SCAN, msg='等待扫码'))
 
         if code_type == 'login':
             if not qr_code.uid:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
+                return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
             try:
                 user = User.objects.get(uid=qr_code.uid)
                 token = generate_jwt(user.uid)
-                return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data, msg='登录成功'))
+                return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data, msg='登录成功'))
             except User.DoesNotExist:
-                return JsonResponse(dict(code=400, msg='错误的请求'))
+                return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
         else:
-            return JsonResponse(dict(code=400, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     except QrCode.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
 
 @auth
@@ -421,15 +418,15 @@ def set_password(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     password = request.data.get('password', '')
     if not re.match(r'[a-zA-Z0-9]{6,24}', password):
-        return JsonResponse(dict(code=400, msg='密码必须是6到24位字母或数字'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='密码必须是6到24位字母或数字'))
 
     user.password = make_password(password)
     user.save()
-    return JsonResponse(dict(code=200, msg='密码设置成功'))
+    return JsonResponse(dict(code=requests.codes.ok, msg='密码设置成功'))
 
 
 @api_view(['POST'])
@@ -437,18 +434,18 @@ def login(request):
     uid = request.data.get('uid', None)
     password = request.data.get('password', None)
     if not uid or not password:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     try:
         user = User.objects.get(uid=uid)
         if not user.password:
-            return JsonResponse(dict(code=400, msg='该账号未设置密码'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='该账号未设置密码'))
 
         if check_password(password, user.password):
             token = generate_jwt(uid)
-            return JsonResponse(dict(code=200, token=token, user=UserSerializers(user).data))
+            return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))
         else:
-            return JsonResponse(dict(code=400, msg='ID或密码不正确'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='ID或密码不正确'))
 
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='ID不存在'))
@@ -461,13 +458,13 @@ def check_in(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     if not user.wx_openid:
-        return JsonResponse(dict(code=400, msg='请先在源自开发者微信公众号中绑定账号'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='请先在源自开发者微信公众号中绑定账号'))
 
     if user.has_check_in_today:
-        return JsonResponse(dict(code=400, msg='今日已签到'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='今日已签到'))
 
     # 随机获取积分
     points = [0, 1, 2]
@@ -487,7 +484,7 @@ def check_in(request):
     today_check_in_count = User.objects.filter(has_check_in_today=True).count()
     ding(f'{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人',
          uid=user.uid)
-    return JsonResponse(dict(code=200, msg=msg))
+    return JsonResponse(dict(code=requests.codes.ok, msg=msg))
 
 
 @auth
@@ -504,20 +501,20 @@ def request_set_email(request):
     try:
         user = User.objects.get(uid=uid)
     except User.DoesNotExist:
-        return JsonResponse(dict(code=400, msg='错误的请求'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     email = request.data.get('email', '')
     if not re.match(r'.+@.+\..+', email):
-        return JsonResponse(dict(code=400, msg='邮箱格式有误'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱格式有误'))
 
     if user.email == email:
-        return JsonResponse(dict(code=400, msg='新邮箱不能和当前邮箱相同'))
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='新邮箱不能和当前邮箱相同'))
 
     code = str(uuid.uuid1()).replace('-', '')
     cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
     uid = request.session.get('uid')
     cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
-    url = quote(settings.RESIUM_API + '/set_email/?code=' + code, encoding='utf-8')
+    url = quote(settings.API_BASE_URL + '/set_email/?code=' + code, encoding='utf-8')
     subject = '[源自下载] 设置邮箱'
     html_message = render_to_string('downloader/set_email.html', {'url': url})
     plain_message = strip_tags(html_message)
@@ -528,13 +525,13 @@ def request_set_email(request):
                   recipient_list=[email],
                   html_message=html_message,
                   fail_silently=False)
-        return JsonResponse(dict(code=200, msg='设置成功，请前往邮箱进行确认！'))
+        return JsonResponse(dict(code=requests.codes.ok, msg='设置成功，请前往邮箱进行确认！'))
     except Exception as e:
         ding('设置邮箱邮件发送失败',
              error=e,
              uid=user.uid,
              logger=logging.error)
-        return JsonResponse(dict(code=500, msg='邮件发送失败'))
+        return JsonResponse(dict(code=requests.codes.server_error, msg='邮件发送失败'))
 
 
 @api_view()

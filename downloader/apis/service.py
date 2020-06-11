@@ -5,6 +5,7 @@
 @date: 2020/2/9
 
 """
+import requests
 from django.conf import settings
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -18,7 +19,7 @@ def list_services(request):
     获取所有的服务
     """
     services = Service.objects.all()
-    return JsonResponse(dict(code=200, services=ServiceSerializers(services, many=True).data))
+    return JsonResponse(dict(code=requests.codes.ok, services=ServiceSerializers(services, many=True).data))
 
 
 @api_view()
@@ -40,4 +41,4 @@ def list_points(request):
         'pudn': settings.PUDN_POINT,
         'iteye': settings.ITEYE_POINT
     }
-    return JsonResponse(dict(code=200, points=points))
+    return JsonResponse(dict(code=requests.codes.ok, points=points))

@@ -26,7 +26,7 @@ from downloader.utils import generate_uid, generate_jwt, get_ding_talk_signature
 @api_view()
 def dev(request):
     if settings.DEBUG:
-        response = redirect(settings.RESIUM_UI)
+        response = redirect(settings.FRONTEND_URL)
 
         token = generate_jwt('666666')
         # 设置cookie
@@ -45,7 +45,7 @@ def qq(request):
     :param request:
     :return:
     """
-    response = redirect(settings.RESIUM_UI)
+    response = redirect(settings.FRONTEND_URL)
 
     code = request.GET.get('code', None)
     if code:
@@ -106,7 +106,7 @@ def qq(request):
 
 @api_view()
 def github(request):
-    response = redirect(settings.RESIUM_UI)
+    response = redirect(settings.FRONTEND_URL)
 
     code = request.GET.get('code', None)
     if code:
@@ -152,7 +152,7 @@ def github(request):
 
 @api_view()
 def gitee(request):
-    response = redirect(settings.RESIUM_UI)
+    response = redirect(settings.FRONTEND_URL)
 
     code = request.GET.get('code', None)
     if code:
