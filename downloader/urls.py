@@ -73,7 +73,6 @@ urlpatterns = [
 
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),
-    re_path(r'^oauth/github/?$', oauth.github),
     re_path(r'^oauth/gitee/?$', oauth.gitee),
 ]
 

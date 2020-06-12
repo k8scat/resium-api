@@ -21,7 +21,6 @@ class User(Base):
     qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
-    github_id = models.IntegerField(default=None, null=True)
     gitee_id = models.IntegerField(default=None, null=True)
     is_admin = models.BooleanField(default=False, verbose_name='管理员账号')
     mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')

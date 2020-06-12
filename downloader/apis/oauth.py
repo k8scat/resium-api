@@ -105,54 +105,6 @@ def qq(request):
 
 
 @api_view()
-def github(request):
-    response = redirect(settings.FRONTEND_URL)
-
-    code = request.GET.get('code', None)
-    if code:
-        data = {
-            'client_id': settings.GITHUB_CLIENT_ID,
-            'client_secret': settings.GITHUB_CLIENT_SECRET,
-            'code': code
-        }
-        with requests.post('https://github.com/login/oauth/access_token', data) as get_access_token_resp:
-            if get_access_token_resp.status_code != requests.codes.OK:
-                return response
-
-            # content: access_token=e72e16c7e42f292c6912e7710c838347ae178b4a&token_type=bearer
-            access_token = get_access_token_resp.text.split('&')[0].split('=')[1]
-            headers = {
-                'Authorization': f'token {access_token}'
-            }
-
-        with requests.get('https://api.github.com/user', headers=headers, timeout=60) as get_user_resp:
-            if get_user_resp.status_code == requests.codes.OK:
-                # Refer: https://developer.github.com/v3/users/#get-a-single-user
-                github_user = get_user_resp.json()
-                github_id = github_user['id']
-                nickname = github_user['login']
-                avatar_url = github_user['avatar_url']
-                login_time = datetime.datetime.now()
-                try:
-                    user = User.objects.get(github_id=github_id)
-                    user.nickname = nickname
-                    user.avatar_url = avatar_url
-                    user.login_time = login_time
-                    user.save()
-                except User.DoesNotExist:
-                    uid = generate_uid()
-                    user = User.objects.create(uid=uid, github_id=github_id,
-                                               nickname=nickname, avatar_url=avatar_url,
-                                               login_time=login_time)
-
-                if user:
-                    token = generate_jwt(user.uid)
-                    response.set_cookie(settings.JWT_COOKIE_KEY, token, domain=settings.COOKIE_DOMAIN)
-
-    return response
-
-
-@api_view()
 def gitee(request):
     response = redirect(settings.FRONTEND_URL)
 
