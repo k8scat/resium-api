@@ -40,9 +40,8 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(CsdnAccount)
 class CsdnAccountAdmin(admin.ModelAdmin):
-    list_display = ('id', 'is_enabled', 'email', 'used_count', 'update_time')
+    list_display = ('id', 'is_enabled', 'used_count', 'update_time')
     list_per_page = 50
-    search_fields = ['email']
 
 
 @admin.register(BaiduAccount)

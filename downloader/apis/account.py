@@ -12,36 +12,57 @@ import requests
 from bs4 import BeautifulSoup
 from rest_framework.decorators import api_view
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
-from downloader.models import DocerAccount, CsdnAccount, BaiduAccount, QiantuAccount
-from downloader.utils import ding, get_random_ua
+from downloader.decorators import auth
+from downloader.models import DocerAccount, CsdnAccount, BaiduAccount, QiantuAccount, User
+from downloader.serializers import CsdnAccountSerializers
+from downloader.utils import ding, get_random_ua, get_csdn_valid_count, send_email, get_csdn_id
 
 
 @api_view(['POST'])
 def check_csdn_cookies(request):
     """
-    更新CSDN cookies
+    检查CSDN cookies
     """
+
     token = request.data.get('token', None)
     if token == settings.ADMIN_TOKEN:
         csdn_accounts = CsdnAccount.objects.all()
         for csdn_account in csdn_accounts:
-            headers = {
-                'cookie': csdn_account.cookies
-            }
-            with requests.get('https://download.csdn.net/my/vip', headers=headers) as r:
-                soup = BeautifulSoup(r.text, 'lxml')
-                el = soup.select('div.vip_info p:nth-of-type(1) span')
-                if el:
-                    ding(f'[CSDN] 剩余下载个数：{el[0].text}',
-                         used_account=csdn_account.email)
-                elif len(soup.select('div.name span')) > 0:
-                    ding('[CSDN] Cookies仍有效',
-                         used_account=csdn_account.email)
+            valid_count = get_csdn_valid_count(csdn_account.cookies)
+            if valid_count is None:
+                csdn_account.is_disabled = True
+                csdn_account.is_cookies_valid = False
+                csdn_account.save()
+                send_email(
+                    subject='[源自下载] CSDN账号提醒',
+                    content='CSDN会员账号的Cookies已失效，请重新设置Cookies！',
+                    to_addr=csdn_account.user.email
+                )
+                ding('[CSDN] Cookies已失效',
+                     uid=csdn_account.user.uid,
+                     download_account_id=csdn_account.id)
+            else:
+                if valid_count == 0:
+                    csdn_account.is_disabled = True
+                    send_email(
+                        subject='[源自下载] CSDN账号提醒',
+                        content='CSDN会员账号可用下载数已用尽！',
+                        to_addr=csdn_account.user.email
+                    )
                 else:
-                    ding('[CSDN] Cookies已失效',
-                         used_account=csdn_account.email)
+                    if csdn_account.need_sms_validate:
+                        send_email(
+                            subject='[源自下载] CSDN账号提醒',
+                            content='CSDN会员账号需要短信验证！',
+                            to_addr=csdn_account.user.email
+                        )
+                ding(f'[CSDN] 剩余下载个数：{valid_count}',
+                     uid=csdn_account.user.uid,
+                     download_account_id=csdn_account.id)
+                csdn_account.valid_count = valid_count
+                csdn_account.save()
 
     return HttpResponse('')
 
@@ -72,12 +93,13 @@ def check_baidu_cookies(request):
                         share_doc_count = data['jiaoyu_vip_info']['download_ticket_count']
                         vip_special_doc_count = data['jiaoyu_vip_info']['professional_download_ticket_count']
                         ding(f'[百度文库] 可用共享文档下载特权 {share_doc_count} 次，可用VIP专享文档下载特权 {vip_special_doc_count} 次',
-                             used_account=baidu_account.email)
+                             download_account_id=baidu_account.id)
                     else:
                         ding('[百度文库] Cookies已失效',
-                             used_account=baidu_account.email,
+                             download_account_id=baidu_account.id,
                              error=r.text,
-                             logger=logging.error)
+                             logger=logging.error,
+                             need_email=True)
 
     return HttpResponse('')
 
@@ -98,12 +120,14 @@ def check_docer_cookies(request):
             with requests.get(url, headers=headers) as r:
                 if r.json()['result'] == 'ok':
                     ding('稻壳模板cookies仍有效',
-                         used_account=docer_account.email)
+                         download_account_id=docer_account.id)
                 else:
                     ding('稻壳模板cookies已失效，请尽快更新',
-                         used_account=docer_account.email)
+                         download_account_id=docer_account.id,
+                         need_email=True)
         except DocerAccount.DoesNotExist:
-            ding('没有可以使用的稻壳模板会员账号')
+            ding('没有可以使用的稻壳模板会员账号',
+                 need_email=True)
 
     return HttpResponse('')
 
@@ -120,7 +144,7 @@ def reset_csdn_today_download_count(request):
             csdn_account.today_download_count = 0
             csdn_account.save()
             ding('[CSDN] 今日下载数已重置',
-                 used_account=csdn_account.email)
+                 download_account_id=csdn_account.id)
     return HttpResponse('')
 
 
@@ -139,8 +163,55 @@ def check_qiantu_cookies(request):
                 # download_url = soup.select('a.clickRecord.autodown')[0]['href']
                 if len(soup.select('a.clickRecord.autodown')) > 0:
                     ding('[千图网] Cookies仍有效',
-                         used_account=qiantu_account.email)
+                         download_account_id=qiantu_account.id)
                 else:
                     ding('[千图网] Cookies已失效, 请尽快更新！',
-                         used_account=qiantu_account.email)
+                         download_account_id=qiantu_account.id,
+                         need_email=True)
     return HttpResponse('')
+
+
+@auth
+@api_view(['POST'])
+def add_or_update_csdn_account(request):
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+    if not user.is_pattern:
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='无权访问'))
+
+    cookies = request.data.get('cookies', None)
+    csdn_account_id = request.data.get('id', None)
+
+    valid_count = get_csdn_valid_count(cookies)
+    csdn_id = get_csdn_id(cookies)
+    if valid_count is None or not csdn_id:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='无效的cookies'))
+    if valid_count == 0:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='CSDN会员账号剩余可用下载数为零！'))
+
+    if csdn_account_id:
+        try:
+            csdn_account = CsdnAccount.objects.get(id=csdn_account_id, csdn_id=csdn_id, user=user)
+            csdn_account.cookies = cookies
+            csdn_account.valid_count = valid_count
+            csdn_account.save()
+            return JsonResponse(dict(code=requests.codes.ok, msg='成功更新CSDN会员账号的Cookies'))
+
+        except CsdnAccount.DoesNotExist:
+            return JsonResponse(dict(code=requests.codes.not_found, msg='CSDN账号不存在'))
+    else:
+        if CsdnAccount.objects.filter(csdn_id=csdn_id).count() > 0:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='CSDN账号已存在，请勿重复添加！'))
+
+        CsdnAccount(user=user, cookies=cookies, valid_count=valid_count, csdn_id=csdn_id).save()
+        return JsonResponse(dict(code=requests.codes.ok, msg='成功添加CSDN会员账号'))
+
+
+@auth
+@api_view()
+def list_csdn_accounts(request):
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+    csdn_accounts = CsdnAccount.objects.filter(user=user).all()
+    return JsonResponse(dict(code=requests.codes.ok, csdn_accounts=CsdnAccountSerializers(csdn_accounts, many=True).data))
+

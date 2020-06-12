@@ -24,6 +24,7 @@ import alipay
 import jwt
 import requests
 from Crypto.Cipher import AES
+from bs4 import BeautifulSoup
 from django.conf import settings
 
 import os
@@ -34,6 +35,8 @@ from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
 import oss2
+from pip._internal.utils.deprecation import deprecated
+from requests.exceptions import InvalidHeader
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import DesiredCapabilities
@@ -46,8 +49,9 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccoun
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
-         error=None, uid='', used_account='',
-         resource_url='', logger=logging.info):
+         error=None, uid='', download_account_id=None,
+         resource_url='', logger=logging.info,
+         need_email=False):
     """
     使用钉钉Webhook Robot监控线上系统
 
@@ -56,9 +60,10 @@ def ding(message, at_mobiles=None, is_at_all=False,
     :param is_at_all:
     :param error:
     :param uid:
-    :param used_account:
+    :param download_account_id:
     :param resource_url:
     :param logger:
+    :param need_email:
     :return:
     """
 
@@ -78,7 +83,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
               f'- 错误信息：{str(error) if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
               f'- 用户：{uid if uid else "无"}\n' \
-              f'- 会员账号：{used_account if used_account else "无"}\n' \
+              f'- 会员账号：{download_account_id if download_account_id else "无"}\n' \
               f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}'
     logger(content)
 
@@ -96,6 +101,13 @@ def ding(message, at_mobiles=None, is_at_all=False,
     dingtalk_api = f'https://oapi.dingtalk.com/robot/send?access_token={settings.DINGTALK_ACCESS_TOKEN}&timestamp={timestamp}&sign={sign}'
     with requests.post(dingtalk_api, data=json.dumps(data), headers=headers) as r:
         logging.info(f'ding {r.status_code} {r.text}')
+
+    if need_email:
+        send_email(
+            subject='[源自下载] 服务状态告警',
+            content=content,
+            to_addr=settings.ADMIN_EMAIL
+        )
 
 
 def get_aliyun_oss_bucket():
@@ -158,7 +170,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
     except Exception as e:
         ding(f'资源({filepath})上传OSS失败，请检查OSS上传代码',
              error=e,
-             logger=logging.error)
+             logger=logging.error,
+             need_email=True)
         return False
 
 
@@ -208,129 +221,6 @@ def aliyun_oss_sign_url(key, expire=3600):
     return bucket.sign_url('GET', key, expire)
 
 
-def baidu_auto_login():
-    """
-    百度第一次登录必须手动登录并保存cookies
-    自动登录是在已经验证异地登录的情况下进行的
-
-    :return:
-    """
-    baidu_accounts = BaiduAccount.objects.all()
-    for baidu_account in baidu_accounts:
-
-        wenku_home = 'https://wenku.baidu.com/'
-        logout = 'https://passport.baidu.com/?logout&aid=7&u=https%3A//login.bce.baidu.com/'
-
-        cookies = json.loads(baidu_account.cookies)
-        caps = DesiredCapabilities.CHROME
-        driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
-
-        try:
-            driver.get(wenku_home)
-            for cookie in cookies:
-                if 'expiry' in cookie:
-                    del cookie['expiry']
-                driver.add_cookie(cookie)
-
-            # 再退出登录
-            driver.get(logout)
-
-            # 百度云登录用户名输入框
-            username_input = WebDriverWait(driver, 60).until(
-                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__userName'))
-            )
-            # 百度云登录密码输入框
-            password_input = WebDriverWait(driver, 60).until(
-                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__password'))
-            )
-            # 百度云登录按钮
-            login_button = WebDriverWait(driver, 60).until(
-                EC.presence_of_element_located((By.ID, 'TANGRAM__PSP_4__submit'))
-            )
-
-            username_input.send_keys(baidu_account.username)
-            password_input.send_keys(baidu_account.password)
-            login_button.click()
-            # 等待跳转进百度云
-            time.sleep(5)
-            driver.get(wenku_home)
-
-            try:
-                # 尝试获取百度账号的昵称, 目前这个昵称是不能更改的
-                nickname = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, "//a[@id='userNameCon']/span"))
-                ).text.strip()
-            except TimeoutException:
-                nickname = None
-            if nickname == baidu_account.nickname:
-                # 保存cookies
-                baidu_cookies = driver.get_cookies()
-                baidu_cookies_str = json.dumps(baidu_cookies)
-                # 保存cookies以及更新百度账号状态
-                baidu_account.cookies = baidu_cookies_str
-                baidu_account.save()
-                ding(f'百度账号 {baidu_account.username} cookies 更新成功')
-            else:
-                ding(f'百度账号 {baidu_account.username} cookies更新失败, 请及时检查百度自动登录代码')
-        except Exception as e:
-            logging.error(e)
-            ding(f'百度账号 {baidu_account.username} 自动登录出现异常 ' + str(e))
-        finally:
-            driver.close()
-
-
-def csdn_auto_login():
-    """
-    CSDN自动登录
-    自动登录是在已经验证异地登录的情况下进行的
-
-    :return:
-    """
-    csdn_accounts = CsdnAccount.objects.all()
-    for csdn_account in csdn_accounts:
-        csdn_github_oauth_url = 'https://github.com/login?client_id=4bceac0b4d39cf045157&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3D4bceac0b4d39cf045157%26redirect_uri%3Dhttps%253A%252F%252Fpassport.csdn.net%252Faccount%252Flogin%253FpcAuthType%253Dgithub%2526state%253Dtest'
-        github_login_url = 'https://github.com/login'
-
-        caps = DesiredCapabilities.CHROME
-        driver = webdriver.Remote(command_executor=settings.SELENIUM_SERVER, desired_capabilities=caps)
-        try:
-            # 登录GitHub
-            driver.get(github_login_url)
-
-            login_field = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, 'login_field'))
-            )
-            login_field.send_keys(csdn_account.github_username)
-
-            password = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, 'password'))
-            )
-            password.send_keys(csdn_account.github_password)
-            # 回车登录
-            password.send_keys(Keys.ENTER)
-            # GitHub OAuth 登录CSDN
-            driver.get(csdn_github_oauth_url)
-            # 获取csdn cookies
-            csdn_cookies = driver.get_cookies()
-
-            for cookie in csdn_cookies:
-                if cookie['value'] == csdn_account.username:
-                    # 登录成功则保存cookies
-                    csdn_cookies_str = json.dumps(csdn_cookies)
-                    # 保存cookies并更新账号状态
-                    csdn_account.cookies = csdn_cookies_str
-                    csdn_account.save()
-                    ding(f'CSDN账号 {csdn_account.username} cookies更新成功')
-                    break
-            else:
-                ding(f'CSDN账号 {csdn_account.username} cookies更新失败，请及时检查CSDN自动登录脚本')
-        except Exception as e:
-            logging.error(e)
-            ding(f'CSDN账号 {csdn_account.username} 自动登录出现异常 ' + str(e))
-        finally:
-            driver.close()
-
-
 def get_alipay():
     """
     获取AliPay实例
@@ -368,7 +258,8 @@ def check_oss(resource_url):
         # 如果oss上没有存储资源，则提醒管理员检查资源
         if not aliyun_oss_check_file(resource.key):
             resource.delete()
-            ding(f'OSS资源未找到，请及时检查资源 {resource.key}')
+            ding(f'OSS资源未找到，请及时检查资源 {resource.key}',
+                 need_email=True)
             return None
         return resource
     except Resource.DoesNotExist:
@@ -406,7 +297,8 @@ def check_download(folder):
 
     else:
         ding(f'下载超时: {folder}',
-             logger=logging.error)
+             logger=logging.error,
+             need_email=True)
         return 500, '检查下载文件超时'
 
     # 下载完成后，文件夹下存在唯一的文件
@@ -445,7 +337,8 @@ def get_driver(folder='', load_images=False):
 
 
 def save_resource(resource_url, filename, filepath,
-                  resource_info, user, account=None):
+                  resource_info, user, account_id=None,
+                  return_url=False):
     """
     保存资源记录并上传到OSS
 
@@ -454,7 +347,8 @@ def save_resource(resource_url, filename, filepath,
     :param filepath:
     :param resource_info:
     :param user: 下载资源的用户
-    :param account: 使用的会员账号
+    :param account_id: 使用的会员账号
+    :param return_url:
     :return:
     """
 
@@ -475,30 +369,33 @@ def save_resource(resource_url, filename, filepath,
                                            url=resource_url, key=key, tags=settings.TAG_SEP.join(resource_info['tags']),
                                            file_md5=file_md5, desc=resource_info['desc'], user=user,
                                            wenku_type=resource_info.get('wenku_type', None),
-                                           is_docer_vip_doc=resource_info.get('is_docer_vip_doc', False), local_path=filepath)
+                                           is_docer_vip_doc=resource_info.get('is_docer_vip_doc', False),
+                                           local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
-                       account=account,
+                       account_id=account_id,
                        used_point=resource_info['point']).save()
 
         ding(f'资源保存成功: {resource_info["title"]}',
              uid=user.uid,
              resource_url=resource_url,
-             used_account=account)
+             download_account_id=account_id)
 
         # 上传资源到CSDN
         # t = Thread(target=upload_csdn_resource, args=(resource,))
         # t.start()
 
-        return aliyun_oss_sign_url(key)
+        if return_url:
+            return aliyun_oss_sign_url(key)
 
     except Exception as e:
         ding(f'资源信息保存失败，但资源已上传至OSS：{key}',
              error=e,
              resource_url=resource_url,
              uid=user.uid,
-             used_account=account,
-             logger=logging.error)
+             download_account_id=account_id,
+             logger=logging.error,
+             need_email=True)
         return None
 
 
@@ -572,7 +469,8 @@ def send_message(phone, code):
         return True
     except Exception as e:
         logging.error(e)
-        ding(f'短信验证码发送失败: {str(e)}')
+        ding(f'短信验证码发送失败: {str(e)}',
+             need_email=True)
         return False
 
 
@@ -639,9 +537,11 @@ def predict_code(image_path):
                 code = json.loads(result['RspData'])['result']
                 ding(f'验证码识别成功: {code}')
                 return code
-            ding(f'验证码识别失败: {r.content.decode()}')
+            ding(f'验证码识别失败: {r.content.decode()}',
+                 need_email=True)
             return None
-        ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}')
+        ding(f'验证码识别请求失败: {r.status_code} {r.content.decode()}',
+             need_email=True)
         return None
 
 
@@ -714,7 +614,8 @@ def upload_csdn_resource(resource):
                 except JSONDecodeError:
                     ding('资源上传到CSDN失败',
                          error=r.text,
-                         logger=logging.error)
+                         logger=logging.error,
+                         need_email=True)
 
                 if resp['code'] == 200:
                     # 上传成功
@@ -723,7 +624,8 @@ def upload_csdn_resource(resource):
                     # 上传失败
                     ding('资源上传到CSDN失败',
                          error=resp,
-                         logger=logging.error)
+                         logger=logging.error,
+                         need_email=True)
 
 
 def zip_file(filepath):
@@ -768,7 +670,8 @@ def get_short_url(url, long_term=False):
             return r.json()['ShortUrl']
         else:
             ding('[短网址] 生成失败',
-                 error=r.text)
+                 error=r.text,
+                 need_email=True)
             return None
 
 
@@ -794,7 +697,8 @@ def get_long_url(url):
             return r.json()['LongUrl']
         else:
             ding('[短网址] 生成失败',
-                 error=r.text)
+                 error=r.text,
+                 need_email=True)
             return None
 
 
@@ -836,6 +740,10 @@ def get_ding_talk_signature(app_secret, utc_timestamp):
 def switch_csdn_account(csdn_account, need_sms_validate=False):
     """
     切换到可用账号
+    切换的原因：
+    1. 账号需要短信验证
+    2. 账号cookies失效
+    3. 账号可用下载数用完
 
     :param csdn_account:
     :param need_sms_validate:
@@ -844,23 +752,46 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
 
     valid_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
                                                      today_download_count__lt=20,
-                                                     need_sms_validate=False).all()
+                                                     need_sms_validate=False,
+                                                     is_disabled=False).all()
     if len(valid_csdn_accounts) > 0:
         # 随机开启一个可用账号
         new_csdn_account = random.choice(valid_csdn_accounts)
         new_csdn_account.is_enabled = True
         new_csdn_account.save()
-        # 禁用下载数用完的账号
+        # 停止账号使用
         csdn_account.need_sms_validate = need_sms_validate
         csdn_account.is_enabled = False
+        if not need_sms_validate:
+            # 禁用账号
+            csdn_account.is_disabled = True
+            valid_count = get_csdn_valid_count(csdn_account.cookies)
+            if valid_count is None:
+                send_email(
+                    subject='[源自下载] CSDN账号提醒',
+                    content='CSDN登录已失效，请重新设置Cookies！',
+                    to_addr=csdn_account.user.email
+                )
+            elif valid_count == 0:
+                send_email(
+                    subject='[源自下载] CSDN账号提醒',
+                    content='CSDN会员账号可用下载数已用尽！',
+                    to_addr=csdn_account.user.email
+                )
+
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功',
-             used_account=csdn_account.email)
+             uid=csdn_account.user.uid,
+             download_account_id=csdn_account.id)
+        return new_csdn_account
     else:
         csdn_account.need_sms_validate = need_sms_validate
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号',
-             used_account=csdn_account.email)
+             download_account_id=csdn_account.id,
+             uid=csdn_account.user.uid,
+             need_email=True)
+        return None
 
 
 class WXBizDataCrypt:
@@ -881,12 +812,14 @@ class WXBizDataCrypt:
         try:
             app_id = decrypted['watermark']['appid']
             if app_id != self.app_id:
-                ding(f'[小程序登录] wrong appid: {app_id}')
+                ding(f'[小程序登录] wrong appid: {app_id}',
+                     need_email=True)
                 return None
 
             return decrypted
         except KeyError:
-            ding('[小程序登录] decrypt KeyError')
+            ding('[小程序登录] decrypt KeyError',
+                 need_email=True)
             return None
 
     def _unpad(self, s):
@@ -904,7 +837,53 @@ def generate_uid(num=6):
         else:
             if repetition_count > 0:
                 ding(f'UID生成重复次数: {repetition_count}',
-                     uid=uid)
+                     uid=uid,
+                     need_email=True)
             return uid
 
 
+def get_csdn_valid_count(cookies):
+    """
+    获取CSDN会员账号的可用下载数
+
+    :param cookies:
+    :return:
+    """
+
+    headers = {
+        'cookie': cookies,
+        'user-agent': get_random_ua()
+    }
+    try:
+        with requests.get('https://download.csdn.net/my/vip', headers=headers) as r:
+            soup = BeautifulSoup(r.text, 'lxml')
+            el = soup.select('div.vip_info p:nth-of-type(1) span')
+            try:
+                return int(el[0].text)
+            except Exception:
+                return None
+    except InvalidHeader:
+        return None
+
+
+def get_csdn_id(cookies):
+    """
+    获取CSDN账号ID
+
+    :param cookies:
+    :return:
+    """
+
+    try:
+        headers = {
+            'cookie': cookies,
+            'user-agent': get_random_ua()
+        }
+        with requests.get('https://me.csdn.net/api/user/show', headers=headers) as r:
+            resp = r.json()
+            if resp['code'] == 200:
+                return resp['data']['csdnid']
+            else:
+                return None
+    except InvalidHeader:
+        return None

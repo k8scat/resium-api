@@ -163,7 +163,8 @@ def mp_pay(request):
                         }
                         return JsonResponse(dict(code=requests.codes.ok, data=res_data))
 
-                    ding('[微信支付] 创建订单失败', error=json.dumps(create_order_res))
+                    ding('[微信支付] 创建订单失败', error=json.dumps(create_order_res),
+                         need_email=True)
                     return JsonResponse(dict(code=requests.codes.server_error, msg='订单创建失败'))
 
                 except User.DoesNotExist:
@@ -171,11 +172,13 @@ def mp_pay(request):
 
             else:
                 ding('[微信支付] auth.code2Session接口请求成功，但返回结果错误',
-                     error=r.text)
+                     error=r.text,
+                     need_email=True)
                 return JsonResponse(dict(code=requests.codes.server_error, msg='登录状态错误'))
         else:
             ding(f'[微信支付] auth.code2Session接口调用失败',
-                 error=r.text)
+                 error=r.text,
+                 need_email=True)
             return JsonResponse(dict(code=requests.codes.server_error, msg='登录状态错误'))
 
 

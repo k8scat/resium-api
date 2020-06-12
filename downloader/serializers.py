@@ -67,3 +67,20 @@ class ArticleSerializers(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = '__all__'
+
+
+class CsdnAccountSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = CsdnAccount
+        fields = ['id', 'update_time', 'is_enabled', 'is_disabled',
+                  'valid_count', 'used_count',
+                  'today_download_count', 'need_sms_validate']
+
+
+class UploadRecordSerializers(serializers.ModelSerializer):
+    title = serializers.CharField(source='resource.title')
+    is_audited = serializers.IntegerField(source='resource.is_audited')
+
+    class Meta:
+        model = UploadRecord
+        fields = ['id', 'create_time', 'title', 'is_audited']

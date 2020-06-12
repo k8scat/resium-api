@@ -25,6 +25,7 @@ from django.core.cache import cache
 from django.http import JsonResponse
 
 from downloader.models import User
+from downloader.utils import ding
 
 
 def auth(fn):
@@ -37,14 +38,16 @@ def auth(fn):
             token = token[len(settings.REQUEST_TOKEN_PREFIX):]
             # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
-        except Exception:
+        except Exception as e:
+            ding('[JWT认证] token解码失败',
+                 error=e)
             return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
         uid = payload.get('sub', None)
-        if uid is not None:
-            request.session['uid'] = uid
-            logging.info(f'Request by {uid}: {request.get_full_path()}')
-        else:
+        if not uid or User.objects.filter(uid=uid).count() <= 0:
             return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
+
+        request.session['uid'] = uid
+        logging.info(f'Request by {uid}: {request.get_full_path()}')
         return fn(request)
     return _wrapper

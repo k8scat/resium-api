@@ -11,6 +11,7 @@ from downloader.apis import user, service, order, resource, advert, account, dow
 
 
 urlpatterns = [
+    # user
     re_path(r'^wx/?$', user.wx),
     path('get_user/', user.get_user),
     path('reset_has_check_in_today/', user.reset_has_check_in_today),
@@ -24,9 +25,11 @@ urlpatterns = [
     re_path(r'^set_email/?$', user.set_email),
     path('request_set_email/', user.request_set_email),
 
+    # service
     path('list_services/', service.list_services),
     path('list_points/', service.list_points),
 
+    # order
     path('list_orders/', order.list_orders),
     path('create_order/', order.create_order),
     path('alipay_notify/', order.alipay_notify),
@@ -34,15 +37,20 @@ urlpatterns = [
     path('mp_pay/', order.mp_pay),
     path('mp_pay_notify/', order.mp_pay_notify),
 
+    # account
     re_path(r'^check_baidu_cookies/?$', account.check_baidu_cookies),
     re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
     re_path(r'^check_docer_cookies/?$', account.check_docer_cookies),
     re_path(r'^check_qiantu_cookies/?$', account.check_qiantu_cookies),
     re_path(r'^reset_csdn_today_download_count/?$', account.reset_csdn_today_download_count),
+    path('add_or_update_csdn_account/', account.add_or_update_csdn_account),
+    path('list_csdn_accounts/', account.list_csdn_accounts),
 
+    # download_record
     path('list_download_records/', download_record.list_download_records),
     re_path(r'^delete_download_record/?$', download_record.delete_download_record),
 
+    # resource
     path('oss_download/', resource.oss_download),
     path('download/', resource.download),
     path('upload/', resource.upload),
@@ -59,18 +67,22 @@ urlpatterns = [
     path('doc_convert/', resource.doc_convert),
     path('get_download_interval/', resource.get_download_interval),
 
+    # advert
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
 
+    # article
     path('parse_csdn_article/', article.parse_csdn_article),
     re_path(r'^list_articles/?$', article.list_articles),
     path('get_article_count/', article.get_article_count),
     re_path(r'^get_article/?$', article.get_article),
 
+    # bot
     path('bot/set_user_can_download/', bot.set_user_can_download),
     path('bot/get_user/', bot.get_user),
     path('bot/set_csdn_sms_validate_code/', bot.set_csdn_sms_validate_code),
     path('bot/get_csdn_accounts/', bot.get_csdn_accounts),
 
+    # oauth
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),
     re_path(r'^oauth/gitee/?$', oauth.gitee),

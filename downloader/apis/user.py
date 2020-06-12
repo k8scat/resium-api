@@ -204,8 +204,8 @@ def wx(request):
                     except Exception as e:
                         ding('迁移码邮件发送失败',
                              error=e,
-                             used_account=email,
-                             logger=logging.error)
+                             logger=logging.error,
+                             need_email=True)
                         content = '邮件发送失败，请重新尝试或联系管理员！'
                 except User.DoesNotExist:
                     content = '账号不存在'
@@ -316,11 +316,13 @@ def mp_login(request):
 
             else:
                 ding('[小程序登录] auth.code2Session接口请求成功，但返回结果错误',
-                     error=r.text)
+                     error=r.text,
+                     need_email=True)
                 return JsonResponse(dict(code=requests.codes.server_error, msg='登录失败'))
         else:
             ding(f'auth.code2Session接口调用失败',
-                 error=r.text)
+                 error=r.text,
+                 need_email=True)
             return JsonResponse(dict(code=requests.codes.server_error, msg='登录失败'))
 
 
@@ -530,7 +532,8 @@ def request_set_email(request):
         ding('设置邮箱邮件发送失败',
              error=e,
              uid=user.uid,
-             logger=logging.error)
+             logger=logging.error,
+             need_email=True)
         return JsonResponse(dict(code=requests.codes.server_error, msg='邮件发送失败'))
 
 

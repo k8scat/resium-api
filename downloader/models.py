@@ -18,6 +18,7 @@ class User(Base):
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
     login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
     can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
+    can_upload = models.BooleanField(default=True, verbose_name='是否可以上传资源')
     qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
     has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
     wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
@@ -26,7 +27,7 @@ class User(Base):
     mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
     code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
-    is_pattern = models.BooleanField(default=False, verbose_name='合作伙伴')
+    is_pattern = models.BooleanField(default=False, verbose_name='合作用户')
 
     class Meta:
         db_table = 'user'
@@ -69,13 +70,23 @@ class Resource(Base):
 
 class DownloadRecord(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    resource = models.ForeignKey(Resource, null=True, default=None, on_delete=models.CASCADE)
-    is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    is_deleted = models.BooleanField(default=False, verbose_name='是否被用户删除')
     used_point = models.IntegerField(default=0, verbose_name='下载使用的积分')
-    account = models.EmailField(null=True, default=None, verbose_name='使用的会员账号')
+    # null的时候表示直接从oss中下载的
+    account_id = models.IntegerField(default=None, null=True)
 
     class Meta:
         db_table = 'download_record'
+
+
+class UploadRecord(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    is_deleted = models.BooleanField(default=False, verbose_name='是否被用户删除')
+
+    class Meta:
+        db_table = 'upload_record'
 
 
 class Order(Base):
@@ -93,12 +104,16 @@ class Order(Base):
 
 
 class CsdnAccount(Base):
-    email = models.EmailField(verbose_name='联系邮箱')
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
+    valid_count = models.IntegerField(default=0, verbose_name='可用下载数')
     today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
+    is_cookies_valid = models.BooleanField(default=True, verbose_name='Cookies是否有效')
     need_sms_validate = models.BooleanField(default=False, verbose_name='是否需要短信验证')
+    is_disabled = models.BooleanField(default=False, verbose_name='是否被禁用')
+    csdn_id = models.IntegerField(verbose_name='CSDN ID')
 
     class Meta:
         db_table = 'csdn_account'

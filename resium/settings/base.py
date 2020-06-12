@@ -111,10 +111,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 EMAIL_HOST = 'smtp.exmail.qq.com'
 EMAIL_PORT = 465
-EMAIL_HOST_USER = 'admin@resium.cn'
-EMAIL_HOST_PASSWORD = 'QLVNHSDDDAAQCYWj'
+EMAIL_HOST_USER = 'noreply@resium.cn'
+EMAIL_HOST_PASSWORD = 'xFPgysUR9txJCJeu'
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = f'源自下载 <{EMAIL_HOST_USER}>'
+ADMIN_EMAIL = '1583096683@qq.com'
 
 # https://github.com/adamchainz/django-cors-headers
 CORS_ALLOW_METHODS = [

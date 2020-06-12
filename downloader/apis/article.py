@@ -78,7 +78,10 @@ def parse_csdn_article(request):
                 user.save()
                 return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
 
-            ding(f'文章获取失败: {article_url}')
+            ding(f'文章获取失败: {article_url}',
+                 need_email=True,
+                 uid=uid,
+                 error=r.text)
             return JsonResponse(dict(code=requests.codes.server_error, msg='文章获取失败'))
 
 

@@ -20,7 +20,7 @@ from django.shortcuts import redirect
 from rest_framework.decorators import api_view
 
 from downloader.models import User
-from downloader.utils import generate_uid, generate_jwt, get_ding_talk_signature
+from downloader.utils import generate_uid, generate_jwt
 
 
 @api_view()
