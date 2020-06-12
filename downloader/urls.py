@@ -45,6 +45,7 @@ urlpatterns = [
     re_path(r'^reset_csdn_today_download_count/?$', account.reset_csdn_today_download_count),
     path('add_or_update_csdn_account/', account.add_or_update_csdn_account),
     path('list_csdn_accounts/', account.list_csdn_accounts),
+    re_path(r'^remove_csdn_sms_validate/?$', account.remove_csdn_sms_validate),
 
     # download_record
     path('list_download_records/', download_record.list_download_records),

@@ -194,6 +194,8 @@ def add_or_update_csdn_account(request):
             csdn_account = CsdnAccount.objects.get(id=csdn_account_id, csdn_id=csdn_id, user=user)
             csdn_account.cookies = cookies
             csdn_account.valid_count = valid_count
+            csdn_account.is_cookies_valid = True
+            csdn_account.is_disabled = False
             csdn_account.save()
             return JsonResponse(dict(code=requests.codes.ok, msg='成功更新CSDN会员账号的Cookies'))
 
@@ -215,3 +217,20 @@ def list_csdn_accounts(request):
     csdn_accounts = CsdnAccount.objects.filter(user=user).all()
     return JsonResponse(dict(code=requests.codes.ok, csdn_accounts=CsdnAccountSerializers(csdn_accounts, many=True).data))
 
+
+@auth
+@api_view()
+def remove_csdn_sms_validate(request):
+    csdn_account_id = request.GET.get('id', None)
+    if not csdn_account_id:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+    try:
+        csdn_account = CsdnAccount.objects.get(id=csdn_account_id, user=user)
+        csdn_account.need_sms_validate = False
+        csdn_account.save()
+        return JsonResponse(dict(code=requests.codes.ok, msg='成功解除CSDN会员账号的短信验证'))
+    except CsdnAccount.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='禁止操作'))
