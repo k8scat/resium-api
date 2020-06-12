@@ -22,7 +22,7 @@ class ResourceSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = Resource
-        fields = ['id', 'create_time', 'desc', 'nickname', 'size',
+        fields = ['id', 'create_time', 'desc', 'nickname', 'size', 'is_audited',
                   'tags', 'title', 'filename', 'avatar_url', 'download_count']
 
 
