@@ -30,7 +30,7 @@ from wechatpy.messages import TextMessage
 from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
-from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, DwzRecord, Article, \
+from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
     CheckInRecord, QrCode
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email, generate_uid, generate_jwt

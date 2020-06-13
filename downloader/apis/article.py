@@ -15,8 +15,8 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from downloader.decorators import auth
-from downloader.models import CsdnAccount, Article, User
-from downloader.serializers import ArticleSerializers
+from downloader.models import CsdnAccount, Article, User, ArticleComment
+from downloader.serializers import ArticleSerializers, ArticleCommentSerializers
 from downloader.utils import ding, get_random_ua
 
 
@@ -122,3 +122,42 @@ def get_article(request):
         return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
     except Article.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg='文章不存在'))
+
+
+@auth
+@api_view(['POST'])
+def create_article_comment(request):
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+
+    content = request.data.get('content')
+    article_id = request.data.get('id')
+    if not content or not article_id:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    try:
+        article = Article.objects.get(id=article_id)
+        article_comment = ArticleComment.objects.create(user=user, resource=article, content=content)
+        return JsonResponse(dict(code=requests.codes.ok,
+                                 msg='评论成功',
+                                 comment=ArticleCommentSerializers(article_comment).data))
+    except Article.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found, msg='文章不存在'))
+
+
+@api_view()
+def list_article_comments(request):
+    article_id = request.GET.get('id', None)
+    if not article_id:
+        return JsonResponse(dict(code=requests.codes.bad_request,
+                                 msg='错误的请求'))
+
+    try:
+        article = Article.objects.get(id=article_id)
+        comments = ArticleComment.objects.filter(article=article).all()
+        return JsonResponse(dict(code=requests.codes.ok,
+                                 comments=ArticleCommentSerializers(comments, many=True).data))
+    except Article.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found,
+                                 msg='文章不存在'))
+

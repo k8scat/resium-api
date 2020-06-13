@@ -1358,22 +1358,25 @@ def get_resource(request):
 
 
 @api_view()
-def list_comments(request):
+def list_resource_comments(request):
     resource_id = request.GET.get('id', None)
-    if resource_id:
-        try:
-            comments = ResourceComment.objects.filter(resource_id=resource_id).all()
-            return JsonResponse(
-                dict(code=requests.codes.ok, comments=ResourceCommentSerializers(comments, many=True).data))
-        except Resource.DoesNotExist:
-            return JsonResponse(dict(code=404, msg='资源不存在'))
-    else:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+    if not resource_id:
+        return JsonResponse(dict(code=requests.codes.bad_request,
+                                 msg='错误的请求'))
+
+    try:
+        resource = Resource.objects.get(id=resource_id)
+        comments = ResourceComment.objects.filter(resource=resource).all()
+        return JsonResponse(dict(code=requests.codes.ok,
+                                 comments=ResourceCommentSerializers(comments, many=True).data))
+    except Resource.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found,
+                                 msg='资源不存在'))
 
 
 @auth
 @api_view(['POST'])
-def create_comment(request):
+def create_resource_comment(request):
     uid = request.session.get('uid')
     try:
         user = User.objects.get(uid=uid)
@@ -1382,16 +1385,17 @@ def create_comment(request):
 
     content = request.data.get('content', None)
     resource_id = request.data.get('id', None)
-    if content and resource_id:
-        try:
-            resource = Resource.objects.get(id=resource_id, is_audited=1)
-            resource_comment = ResourceComment.objects.create(user=user, resource=resource, content=content)
-            return JsonResponse(
-                dict(code=requests.codes.ok, msg='评论成功', comment=ResourceCommentSerializers(resource_comment).data))
-        except Resource.DoesNotExist:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
-    else:
+    if not content or not resource_id:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    try:
+        resource = Resource.objects.get(id=resource_id, is_audited=1)
+        resource_comment = ResourceComment.objects.create(user=user, resource=resource, content=content)
+        return JsonResponse(dict(code=requests.codes.ok,
+                                 msg='评论成功',
+                                 comment=ResourceCommentSerializers(resource_comment).data))
+    except Resource.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found, msg='资源不存在'))
 
 
 @api_view()

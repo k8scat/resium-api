@@ -78,12 +78,6 @@ class CheckInRecordAdmin(admin.ModelAdmin):
     list_per_page = 50
 
 
-@admin.register(DwzRecord)
-class DwzRecordAdmin(admin.ModelAdmin):
-    list_display = ('id', 'create_time', 'user', 'url', 'generated_url')
-    list_per_page = 50
-
-
 @admin.register(TaobaoWenkuAccount)
 class TaobaoWenkuAccountAdmin(admin.ModelAdmin):
     list_display = ('id', 'is_enabled', 'account', 'password')

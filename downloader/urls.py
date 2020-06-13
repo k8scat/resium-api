@@ -58,8 +58,8 @@ urlpatterns = [
     re_path(r'^check_file/?$', resource.check_file),
     path('list_uploaded_resources/', resource.list_uploaded_resources),
     re_path(r'^get_resource/?$', resource.get_resource),
-    re_path(r'^list_resource_comments/?$', resource.list_comments),
-    path('create_resource_comment/', resource.create_comment),
+    re_path(r'^list_resource_comments/?$', resource.list_resource_comments),
+    path('create_resource_comment/', resource.create_resource_comment),
     path('list_resource_tags/', resource.list_resource_tags),
     re_path(r'^list_resources/?$', resource.list_resources),
     path('get_resource_count/', resource.get_resource_count),
@@ -76,6 +76,8 @@ urlpatterns = [
     re_path(r'^list_articles/?$', article.list_articles),
     path('get_article_count/', article.get_article_count),
     re_path(r'^get_article/?$', article.get_article),
+    re_path(r'^list_article_comments/?$', article.list_article_comments),
+    path('create_article_comment/', article.create_article_comment),
 
     # bot
     path('bot/set_user_can_download/', bot.set_user_can_download),

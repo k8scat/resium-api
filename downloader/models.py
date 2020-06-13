@@ -201,6 +201,9 @@ class ArticleComment(Base):
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
     content = models.CharField(max_length=240)
 
+    class Meta:
+        db_table = 'article_comment'
+
 
 class DocerPreviewImage(Base):
     """
@@ -222,15 +225,6 @@ class TaobaoWenkuAccount(Base):
 
     class Meta:
         db_table = 'taobao_wenku_account'
-
-
-class DwzRecord(Base):
-    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    url = models.CharField(max_length=240, verbose_name='原网址')
-    generated_url = models.CharField(max_length=240, verbose_name='生成的网址')
-
-    class Meta:
-        db_table = 'dwz_record'
 
 
 class CheckInRecord(Base):

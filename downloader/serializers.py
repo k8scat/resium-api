@@ -57,6 +57,15 @@ class ResourceCommentSerializers(serializers.ModelSerializer):
         fields = ['id', 'content', 'avatar_url', 'nickname', 'create_time']
 
 
+class ArticleCommentSerializers(serializers.ModelSerializer):
+    avatar_url = serializers.CharField(source='user.avatar_url')
+    nickname = serializers.CharField(source='user.nickname')
+
+    class Meta:
+        model = ResourceComment
+        fields = ['id', 'content', 'avatar_url', 'nickname', 'create_time']
+
+
 class AdvertSerializers(serializers.ModelSerializer):
     class Meta:
         model = Advert
@@ -64,9 +73,13 @@ class AdvertSerializers(serializers.ModelSerializer):
 
 
 class ArticleSerializers(serializers.ModelSerializer):
+    nickname = serializers.CharField(source='user.nickname')
+    avatar_url = serializers.CharField(source='user.avatar_url')
+
     class Meta:
-        model = Article
-        fields = '__all__'
+        model = Resource
+        fields = ['id', 'create_time', 'desc', 'nickname', 'title', 'content',
+                  'tags', 'avatar_url', 'view_count', 'author', 'is_vip', 'url']
 
 
 class CsdnAccountSerializers(serializers.ModelSerializer):
