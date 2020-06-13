@@ -67,6 +67,7 @@ urlpatterns = [
     path('check_resource_existed/', resource.check_resource_existed),
     path('doc_convert/', resource.doc_convert),
     path('get_download_interval/', resource.get_download_interval),
+    re_path(r'^list_recommend_resources/?$', resource.list_recommend_resources),
 
     # advert
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
@@ -78,6 +79,7 @@ urlpatterns = [
     re_path(r'^get_article/?$', article.get_article),
     re_path(r'^list_article_comments/?$', article.list_article_comments),
     path('create_article_comment/', article.create_article_comment),
+    re_path(r'^list_recommend_articles/?$', article.list_recommend_articles),
 
     # bot
     path('bot/set_user_can_download/', bot.set_user_can_download),

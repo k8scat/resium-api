@@ -102,6 +102,11 @@ def list_articles(request):
 
 
 @api_view()
+def list_recommend_articles(request):
+    pass
+
+
+@api_view()
 def get_article_count(request):
     key = request.GET.get('key', '')
     return JsonResponse(dict(code=requests.codes.ok, count=Article.objects.filter(Q(title__icontains=key) |

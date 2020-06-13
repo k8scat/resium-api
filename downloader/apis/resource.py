@@ -1885,3 +1885,7 @@ def get_download_interval(request):
     return JsonResponse(dict(code=requests.codes.ok, download_interval=settings.DOWNLOAD_INTERVAL))
 
 
+@api_view()
+def list_recommend_resources(request):
+    pass
+

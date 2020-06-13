@@ -62,7 +62,7 @@ class ArticleCommentSerializers(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname')
 
     class Meta:
-        model = ResourceComment
+        model = ArticleComment
         fields = ['id', 'content', 'avatar_url', 'nickname', 'create_time']
 
 
