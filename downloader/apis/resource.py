@@ -162,6 +162,7 @@ class CsdnResource(BaseResource):
 
         status, result = self.parse()
         if status != requests.codes.ok:
+            cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return status, result
 
         try:
@@ -169,6 +170,7 @@ class CsdnResource(BaseResource):
             point = settings.CSDN_POINT
             # 可用积分不足
             if self.user.point < point:
+                cache.delete(settings.CSDN_DOWNLOADING_KEY)
                 return 5000, '积分不足，请进行捐赠支持。'
 
             # 判断账号当天下载数
@@ -181,18 +183,21 @@ class CsdnResource(BaseResource):
                 # 自动切换CSDN
                 self.account = switch_csdn_account(self.account)
                 if not self.account:
+                    cache.delete(settings.CSDN_DOWNLOADING_KEY)
                     return requests.codes.server_error, '下载失败，请联系管理员'
         except CsdnAccount.DoesNotExist:
             ding('[CSDN] 没有可用账号',
                  uid=self.user.uid,
                  resource_url=self.url,
                  need_email=True)
+            cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return requests.codes.server_error, '下载失败'
 
         if self.resource['point'] is None:
             ding('[CSDN] 用户尝试下载版权受限的资源',
                  uid=self.user.uid,
                  resource_url=self.url)
+            cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return requests.codes.bad_request, '版权受限，无法下载'
 
         resource_id = self.url.split('/')[-1]
@@ -214,6 +219,7 @@ class CsdnResource(BaseResource):
                          download_account_id=self.account.id,
                          logger=logging.error,
                          need_email=True)
+                    cache.delete(settings.CSDN_DOWNLOADING_KEY)
                     return requests.codes.server_error, '下载失败'
                 if resp['code'] == requests.codes.ok:
                     # 更新账号今日下载数
@@ -235,6 +241,7 @@ class CsdnResource(BaseResource):
                                 for chunk in download_resp.iter_content(chunk_size=1024):
                                     if chunk:
                                         f.write(chunk)
+                            cache.delete(settings.CSDN_DOWNLOADING_KEY)
                             return requests.codes.ok, '下载成功'
 
                         ding('[CSDN] 下载失败',
@@ -244,9 +251,11 @@ class CsdnResource(BaseResource):
                              download_account_id=self.account.id,
                              logger=logging.error,
                              need_email=True)
+                        cache.delete(settings.CSDN_DOWNLOADING_KEY)
                         return requests.codes.server_error, '下载失败'
                 else:
                     if resp.get('message', None) == '当前资源不开放下载功能':
+                        cache.delete(settings.CSDN_DOWNLOADING_KEY)
                         return requests.codes.bad_request, 'CSDN未开放该资源的下载功能'
                     elif resp.get('message', None) == '短信验证':
                         ding('[CSDN] 下载失败，需要短信验证',
@@ -258,6 +267,7 @@ class CsdnResource(BaseResource):
                              need_email=True)
                         # 自动切换CSDN
                         switch_result = switch_csdn_account(self.account, need_sms_validate=True)
+                        cache.delete(settings.CSDN_DOWNLOADING_KEY)
                         return requests.codes.server_error, '下载出了点小问题，请尝试重新下载' if switch_result else '下载失败，请联系管理员'
 
                     ding('[CSDN] 下载失败',
@@ -267,6 +277,7 @@ class CsdnResource(BaseResource):
                          download_account_id=self.account.id,
                          logger=logging.error,
                          need_email=True)
+                    cache.delete(settings.CSDN_DOWNLOADING_KEY)
                     return requests.codes.server_error, '下载失败'
             else:
                 ding('[CSDN] 下载失败',
@@ -276,6 +287,7 @@ class CsdnResource(BaseResource):
                      download_account_id=self.account.id,
                      logger=logging.error,
                      need_email=True)
+                cache.delete(settings.CSDN_DOWNLOADING_KEY)
                 return requests.codes.server_error, '下载失败'
 
     def get_filepath(self):
@@ -1475,10 +1487,6 @@ def download(request):
     if not resource_url:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址不能为空'))
 
-    ding('正在下载',
-         resource_url=resource_url,
-         uid=uid)
-
     if not re.match(settings.PATTERN_ZHIWANG, resource_url):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
@@ -1546,8 +1554,16 @@ def download(request):
 
         return JsonResponse(dict(code=requests.codes.ok, url=url))
 
+    ding('正在下载',
+         resource_url=resource_url,
+         uid=uid)
+
     # CSDN资源下载
     if re.match(settings.PATTERN_CSDN, resource_url):
+        if cache.get(settings.CSDN_DOWNLOADING_KEY):
+            return JsonResponse(dict(code=requests.codes.forbidden, msg='当前下载人数过多，请稍后再尝试下载！'))
+        cache.set(settings.CSDN_DOWNLOADING_KEY, True, settings.CSDN_DOWNLOADING_MAX_TIME)
+
         resource = CsdnResource(resource_url, user)
 
     elif re.match(settings.PATTERN_ITEYE, resource_url):
@@ -1855,4 +1871,13 @@ def doc_convert(request):
 
 @api_view()
 def get_download_interval(request):
+    """
+    获取下载间隔
+
+    :param request:
+    :return:
+    """
+
     return JsonResponse(dict(code=requests.codes.ok, download_interval=settings.DOWNLOAD_INTERVAL))
+
+
