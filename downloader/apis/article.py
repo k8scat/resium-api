@@ -94,10 +94,10 @@ def list_articles(request):
         page = 1
     start = count * (page - 1)
     end = start + count
-    articles = Article.objects.order_by('-create_time').filter(Q(title__icontains=key) |
-                                                               Q(desc__icontains=key) |
-                                                               Q(content__icontains=key) |
-                                                               Q(tags__icontains=key)).all()[start:end]
+    articles = Article.objects.filter(Q(title__icontains=key) |
+                                      Q(desc__icontains=key) |
+                                      Q(content__icontains=key) |
+                                      Q(tags__icontains=key)).order_by('-create_time').all()[start:end]
     return JsonResponse(dict(code=requests.codes.ok, articles=ArticleSerializers(articles, many=True).data))
 
 

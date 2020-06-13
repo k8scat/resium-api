@@ -77,7 +77,7 @@ class ArticleSerializers(serializers.ModelSerializer):
     avatar_url = serializers.CharField(source='user.avatar_url')
 
     class Meta:
-        model = Resource
+        model = Article
         fields = ['id', 'create_time', 'desc', 'nickname', 'title', 'content',
                   'tags', 'avatar_url', 'view_count', 'author', 'is_vip', 'url']
 
