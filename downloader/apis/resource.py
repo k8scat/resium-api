@@ -1366,7 +1366,7 @@ def list_resource_comments(request):
 
     try:
         resource = Resource.objects.get(id=resource_id)
-        comments = ResourceComment.objects.filter(resource=resource).all()
+        comments = ResourceComment.objects.filter(resource=resource).order_by('-create_time').all()
         return JsonResponse(dict(code=requests.codes.ok,
                                  comments=ResourceCommentSerializers(comments, many=True).data))
     except Resource.DoesNotExist:

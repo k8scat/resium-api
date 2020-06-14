@@ -117,10 +117,11 @@ def get_article_count(request):
 
 @api_view()
 def get_article(request):
+    article_id = request.GET.get('id', None)
+    if not article_id:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
     try:
-        article_id = request.GET.get('id', None)
-        if not article_id:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
         article = Article.objects.get(id=article_id)
         article.view_count += 1
         article.save()
