@@ -143,7 +143,7 @@ def create_article_comment(request):
 
     try:
         article = Article.objects.get(id=article_id)
-        article_comment = ArticleComment.objects.create(user=user, resource=article, content=content)
+        article_comment = ArticleComment.objects.create(user=user, article=article, content=content)
         return JsonResponse(dict(code=requests.codes.ok,
                                  msg='评论成功',
                                  comment=ArticleCommentSerializers(article_comment).data))
@@ -160,7 +160,7 @@ def list_article_comments(request):
 
     try:
         article = Article.objects.get(id=article_id)
-        comments = ArticleComment.objects.filter(article=article).all()
+        comments = ArticleComment.objects.filter(article=article).order_by('-create_time').all()
         return JsonResponse(dict(code=requests.codes.ok,
                                  comments=ArticleCommentSerializers(comments, many=True).data))
     except Article.DoesNotExist:
