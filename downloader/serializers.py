@@ -79,7 +79,8 @@ class ArticleSerializers(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = ['id', 'create_time', 'desc', 'nickname', 'title', 'content',
-                  'tags', 'avatar_url', 'view_count', 'author', 'is_vip', 'url']
+                  'tags', 'avatar_url', 'view_count', 'author', 'is_vip', 'url',
+                  'is_original']
 
 
 class CsdnAccountSerializers(serializers.ModelSerializer):

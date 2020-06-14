@@ -191,6 +191,7 @@ class Article(Base):
     desc = models.CharField(max_length=240, verbose_name='文章简介')
     tags = models.CharField(max_length=200, verbose_name='文章标签')
     view_count = models.IntegerField(default=0)
+    is_original = models.BooleanField(default=False, verbose_name='原创')
 
     class Meta:
         db_table = 'article'
