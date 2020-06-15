@@ -99,7 +99,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
         }
     }
     dingtalk_api = f'https://oapi.dingtalk.com/robot/send?access_token={settings.DINGTALK_ACCESS_TOKEN}&timestamp={timestamp}&sign={sign}'
-    with requests.post(dingtalk_api, data=json.dumps(data), headers=headers) as r:
+    with requests.post(dingtalk_api, data=json.dumps(data), headers=headers, verify=False) as r:
         logging.info(f'ding {r.status_code} {r.text}')
 
     if need_email:

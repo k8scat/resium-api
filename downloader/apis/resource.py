@@ -339,7 +339,7 @@ class WenkuResource(BaseResource):
         headers = {
             'user-agent': get_random_ua()
         }
-        with requests.get(get_doc_info_url, headers=headers) as r:
+        with requests.get(get_doc_info_url, headers=headers, verify=False) as r:
             if r.status_code == requests.codes.OK:
                 try:
                     data = json.loads(r.content.decode()[7:-1])
@@ -349,7 +349,7 @@ class WenkuResource(BaseResource):
                         point = settings.WENKU_SPECIAL_DOC_POINT
                         wenku_type = 'VIP专项文档'
                     elif doc_info.get('isPaymentDoc', None) == 0:
-                        with requests.get(get_vip_free_doc_url, headers=headers) as _:
+                        with requests.get(get_vip_free_doc_url, headers=headers, verify=False) as _:
                             if _.status_code == requests.codes.OK and _.json()['status']['code'] == 0:
                                 if _.json()['data']['is_vip_free_doc']:
                                     point = settings.WENKU_VIP_FREE_DOC_POINT
@@ -434,11 +434,12 @@ class WenkuResource(BaseResource):
         self.user.used_point += point
         self.user.save()
 
-        driver = get_driver(self.unique_folder)
+        driver = get_driver(self.unique_folder, load_images=True)
         try:
             if self.resource['wenku_type'] == '共享文档':
                 self.account = random.choice(TaobaoWenkuAccount.objects.filter(is_enabled=True).all())
                 driver.get('http://doc110.com/#/login/')
+
                 account_input = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//div[@class='el-form-item login-item'][1]//input[@class='el-input__inner']")
@@ -451,6 +452,32 @@ class WenkuResource(BaseResource):
                     )
                 )
                 password_input.send_keys(self.account.password)
+
+                # 验证码识别
+                # 获取截图
+                driver.get_screenshot_as_file(settings.WENKU_SCREENSHOT_IMAGE)
+                # 手动设置截取位置
+                left = 535
+                upper = 420
+                right = 680
+                lower = 470
+                # 通过Image处理图像
+                img = Image.open(settings.WENKU_SCREENSHOT_IMAGE)
+                # 剪切图片
+                img = img.crop((left, upper, right, lower))
+                # 保存剪切好的图片
+                img.save(settings.WENKU_CODE_IMAGE)
+                code = predict_code(settings.WENKU_CODE_IMAGE)
+                if code:
+                    code_input = WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//div[@class='el-form-item login-item'][3]//input[@class='el-input__inner']")
+                        )
+                    )
+                    code_input.send_keys(code)
+                else:
+                    return requests.codes.server_error, '下载失败'
+
                 login_button = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//button[@class='el-button submit_btn el-button--primary']")
@@ -875,7 +902,7 @@ class ZhiwangResource(BaseResource):
                 # print(lower)
 
                 # 获取截图
-                driver.get_screenshot_as_file(settings.SCREENSHOT_IMAGE)
+                driver.get_screenshot_as_file(settings.ZHIWANG_SCREENSHOT_IMAGE)
 
                 # 手动设置截取位置
                 left = 430
@@ -883,13 +910,13 @@ class ZhiwangResource(BaseResource):
                 right = 620
                 lower = 340
                 # 通过Image处理图像
-                img = Image.open(settings.SCREENSHOT_IMAGE)
+                img = Image.open(settings.ZHIWANG_SCREENSHOT_IMAGE)
                 # 剪切图片
                 img = img.crop((left, upper, right, lower))
                 # 保存剪切好的图片
-                img.save(settings.CODE_IMAGE)
+                img.save(settings.ZHIWANG_CODE_IMAGE)
 
-                code = predict_code(settings.CODE_IMAGE)
+                code = predict_code(settings.ZHIWANG_CODE_IMAGE)
                 if code:
                     code_input = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located(
