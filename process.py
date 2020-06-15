@@ -18,15 +18,12 @@ from django.db.models import Sum
 
 from django.utils import timezone
 
-from downloader.models import User, Order, DwzRecord, CheckInRecord
+from downloader.models import User, Order, CheckInRecord
 from downloader.utils import *
 
 
 if __name__ == '__main__':
-    cache.set('a', 'b')
-    print(cache.get('a'))
-    cache.delete('a')
-    print(cache.get('a'))
+    print(get_unique_str())
 
 
 

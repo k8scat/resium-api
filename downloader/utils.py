@@ -30,30 +30,26 @@ from django.conf import settings
 import os
 
 from django.core.mail import send_mail
-from django.db.models import Q
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
 import oss2
-from pip._internal.utils.deprecation import deprecated
+from qiniu import Auth, put_file, etag
 from requests.exceptions import InvalidHeader
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import DesiredCapabilities
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 
 from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
          error=None, uid='', download_account_id=None,
-         resource_url='', logger=logging.info,
-         need_email=False):
+         resource_url='', logger=None,
+         need_email=False, image=''):
     """
     使用钉钉Webhook Robot监控线上系统
+
+    https://ding-doc.dingtalk.com/doc#/serverapi2/qf2nxq
 
     :param message:
     :param at_mobiles:
@@ -64,6 +60,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
     :param resource_url:
     :param logger:
     :param need_email:
+    :param image:
     :return:
     """
 
@@ -84,8 +81,11 @@ def ding(message, at_mobiles=None, is_at_all=False,
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
               f'- 用户：{uid if uid else "无"}\n' \
               f'- 会员账号：{download_account_id if download_account_id else "无"}\n' \
-              f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}'
-    logger(content)
+              f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}\n' \
+              f'{"![](" + image + ")" if image else ""}'
+
+    if logger:
+        logger(content)
 
     data = {
         'msgtype': 'markdown',
@@ -535,7 +535,15 @@ def predict_code(image_path):
             logging.info(result)
             if result['RetCode'] == '0':
                 code = json.loads(result['RspData'])['result']
-                ding(f'验证码识别成功: {code}')
+                key = get_unique_str() + '.' + os.path.basename(image_path).split('.')[-1]
+                if qiniu_upload(settings.QINIU_OPEN_BUCKET, image_path, key):
+                    image_url = qiniu_get_url(key)
+                    ding(f'验证码识别成功: {code}', image=image_url)
+                else:
+                    ding(f'验证码识别成功: {code}',
+                         error='七牛云上传图片失败',
+
+                         need_email=True)
                 return code
             ding(f'验证码识别失败: {r.content.decode()}',
                  need_email=True)
@@ -887,3 +895,31 @@ def get_csdn_id(cookies):
                 return None
     except InvalidHeader:
         return None
+
+
+def qiniu_upload(bucket, local_file, key):
+    """
+    七牛云存储上传文件
+
+    :return:
+    """
+
+    q = Auth(settings.QINIU_ACCESS_KEY, settings.QINIU_SECRET_KEY)
+    token = q.upload_token(bucket, key, 3600)
+    ret, info = put_file(token, key, local_file)
+    logging.info(info)
+    return ret['key'] == key and ret['hash'] == etag(local_file)
+
+
+def get_unique_str():
+    """
+    获取唯一字符串
+
+    :return:
+    """
+
+    return str(uuid.uuid1()).replace('-', '')
+
+
+def qiniu_get_url(key):
+    return 'http://' + settings.QINIU_OPEN_DOMAIN + '/' + key

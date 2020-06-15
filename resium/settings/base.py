@@ -335,3 +335,8 @@ WX_PAY_MCH_KEY = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_
 
 CSDN_DOWNLOADING_KEY = 'csdn_downloading'
 CSDN_DOWNLOADING_MAX_TIME = 300
+
+QINIU_ACCESS_KEY = 'Adx9fTjienPcF8duV2nQQxZUUt33P4aHPAMbO8a2'
+QINIU_SECRET_KEY = 'orLcntGa69dqdrgo8HCsnjR_YjGgpSchVsIV3v7g'
+QINIU_OPEN_BUCKET = 'ncucoder'
+QINIU_OPEN_DOMAIN = 'cdn.qiniu.ncucoder.com'
