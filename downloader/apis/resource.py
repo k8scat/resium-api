@@ -460,7 +460,7 @@ class WenkuResource(BaseResource):
                 left = 535
                 upper = 420
                 right = 680
-                lower = 470
+                lower = 490
                 # 通过Image处理图像
                 img = Image.open(settings.WENKU_SCREENSHOT_IMAGE)
                 # 剪切图片
