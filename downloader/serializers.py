@@ -45,7 +45,7 @@ class OrderSerializers(serializers.ModelSerializer):
 class ServiceSerializers(serializers.ModelSerializer):
     class Meta:
         model = Service
-        fields = ['id', 'total_amount', 'point']
+        fields = ['id', 'total_amount', 'point', 'is_hot']
 
 
 class ResourceCommentSerializers(serializers.ModelSerializer):

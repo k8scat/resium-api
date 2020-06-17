@@ -478,6 +478,8 @@ def check_in(request):
         # 更新用户积分
         user.point += point
         msg = f'签到成功，恭喜获得{point}积分！'
+        PointRecord(user=user, point=user.point,
+                    add_point=point, comment='签到').save()
 
     # 保存签到记录
     CheckInRecord(user=user, point=point).save()
@@ -528,7 +530,7 @@ def request_set_email(request):
                   recipient_list=[email],
                   html_message=html_message,
                   fail_silently=False)
-        return JsonResponse(dict(code=requests.codes.ok, msg='设置成功，请前往邮箱进行确认！'))
+        return JsonResponse(dict(code=requests.codes.ok, msg='请前往邮箱进行确认！'))
     except Exception as e:
         ding('设置邮箱邮件发送失败',
              error=e,
