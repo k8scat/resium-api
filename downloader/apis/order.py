@@ -96,8 +96,7 @@ def list_orders(request):
 
 @api_view(['POST'])
 def mp_pay_notify(request):
-    data = request.POST.dict()
-    logging.info(data)
+    logging.info(request.data)
     return HttpResponse('')
 
 
