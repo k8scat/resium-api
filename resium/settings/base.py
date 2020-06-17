@@ -196,6 +196,10 @@ WX_ENCODING_AES_KEY = 'L32ggf9lyXAC7Noc37I3OrPLPW8HqzS6rgb9hC4ImNW'
 WX_MP_APP_ID = 'wxbdad878a32644dca'
 WX_MP_APP_SECRET = '91b3ad866563bf2c4248689e4edbdad8'
 
+# 微信支付
+WX_PAY_MP_APP_ID = 'wx909d8ff5894ec49b'
+WX_PAY_MP_APP_SECRET = 'fd9533054324c786d7eb7f5dcaf4779e'
+
 # 资源积分
 WENKU_VIP_FREE_DOC_POINT = 1
 WENKU_SHARE_DOC_POINT = 1
@@ -327,7 +331,7 @@ JWT_COOKIE_KEY = 'token'
 QR_CODE_EXPIRE = 300
 
 WX_PAY_APP_ID = WX_APP_ID  # 微信公众号 appid，使用未认证的appid
-WX_PAY_SUB_APP_ID = WX_MP_APP_ID  # 当前调起支付的小程序APPID
+WX_PAY_SUB_APP_ID = WX_PAY_MP_APP_ID  # 当前调起支付的小程序APPID
 WX_PAY_MCH_ID = '1593040541'
 WX_PAY_API_KEY = 'N4tcdilXJOLEQkwb9h1KIxYn6BTDvRm7'  # 商户 key
 WX_PAY_MCH_CERT = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_cert.pem')

@@ -913,7 +913,7 @@ def qiniu_upload(bucket, local_file, key):
 
 def get_unique_str():
     """
-    获取唯一字符串
+    通过uuid获取唯一字符串
 
     :return:
     """

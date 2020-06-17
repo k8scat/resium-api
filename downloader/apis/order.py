@@ -18,7 +18,7 @@ from wechatpy import WeChatPay
 from downloader.decorators import auth
 from downloader.models import Order, User, PointRecord
 from downloader.serializers import OrderSerializers
-from downloader.utils import get_alipay, ding
+from downloader.utils import get_alipay, ding, get_unique_str
 
 
 @api_view(['POST'])
@@ -104,6 +104,18 @@ def mp_pay_notify(request):
 @auth
 @api_view(['POST'])
 def mp_pay(request):
+    """
+    微信支付
+
+    创建订单
+
+    :param request:
+    :return:
+    """
+
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+
     code = request.data.get('code', None)
     subject = request.data.get('subject', None)
     total_amount = request.data.get('total_amount', None)
@@ -114,63 +126,60 @@ def mp_pay(request):
     logging.info(total_amount)
 
     params = {
-        'appid': settings.WX_MP_APP_ID,
-        'secret': settings.WX_MP_APP_SECRET,
+        'appid': settings.WX_PAY_MP_APP_ID,
+        'secret': settings.WX_PAY_MP_APP_SECRET,
         'js_code': code,
         'grant_type': 'authorization_code'
     }
     with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
         if r.status_code == requests.codes.OK:
             data = r.json()
+            logging.info(data)
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
-                wx_unionid = data['unionid']
-                try:
-                    user = User.objects.get(wx_unionid=wx_unionid)
-                    # 生成唯一订单号
-                    out_trade_no = str(uuid.uuid1()).replace('-', '')
+                # 生成唯一订单号
+                out_trade_no = get_unique_str()
 
-                    we_chat_pay = WeChatPay(
-                        appid=settings.WX_MP_APP_ID,
-                        mch_key=settings.WX_PAY_MCH_KEY,
-                        mch_cert=settings.WX_PAY_MCH_CERT,
-                        sub_appid=settings.WX_PAY_SUB_APP_ID,
-                        api_key=settings.WX_PAY_API_KEY,
-                        mch_id=settings.WX_PAY_MCH_ID
+                we_chat_pay = WeChatPay(
+                    appid=settings.WX_PAY_MP_APP_ID,
+                    mch_key=settings.WX_PAY_MCH_KEY,
+                    mch_cert=settings.WX_PAY_MCH_CERT,
+                    sub_appid=settings.WX_PAY_SUB_APP_ID,
+                    api_key=settings.WX_PAY_API_KEY,
+                    mch_id=settings.WX_PAY_MCH_ID
+                )
+                create_order_res = we_chat_pay.order.create(
+                    trade_type='JSAPI',
+                    body=subject,
+                    total_fee=total_amount,
+                    notify_url=settings.API_BASE_URL + '/mp_pay_notify/',
+                    out_trade_no=out_trade_no,
+                    user_id=data['openid']
+                )
+                logging.info(create_order_res)
+                if create_order_res.get('return_code', None) == 'SUCCESS' and \
+                        create_order_res.get('result_code', None) == 'SUCCESS':
+                    # 创建内部系统的订单
+                    Order(user=user, subject=subject,
+                          out_trade_no=out_trade_no, total_amount=total_amount,
+                          point=point).save()
+                    # 再次签名
+                    prepay_id = create_order_res.get('prepay_id')
+                    nonce_str = create_order_res.get('nonce_str')
+                    sign = we_chat_pay.jsapi.get_jsapi_signature(
+                        prepay_id=prepay_id,
+                        nonce_str=nonce_str
                     )
-                    create_order_res = we_chat_pay.order.create(
-                        trade_type='JSAPI',
-                        body=subject,
-                        total_fee=total_amount,
-                        notify_url=settings.API_BASE_URL + '/mp_pay_notify/',
-                        out_trade_no=out_trade_no,
-                        user_id=data['openid']
-                    )
-                    if create_order_res.get('return_code', None) == 'SUCCESS' and \
-                            create_order_res.get('result_code', None) == 'SUCCESS':
-                        # 创建内部系统的订单
-                        Order(user=user, subject=subject,
-                              out_trade_no=out_trade_no, total_amount=total_amount,
-                              point=point).save()
-                        # 再次签名
-                        prepay_id = create_order_res.get('prepay_id')
-                        nonce_str = create_order_res.get('nonce_str')
-                        sign = we_chat_pay.jsapi.get_jsapi_signature(
-                            prepay_id=prepay_id,
-                            nonce_str=nonce_str
-                        )
-                        res_data = {
-                            'nonce_str': nonce_str,
-                            'sign': sign,
-                            'prepay_id': prepay_id
-                        }
-                        return JsonResponse(dict(code=requests.codes.ok, data=res_data))
+                    res_data = {
+                        'nonce_str': nonce_str,
+                        'sign': sign,
+                        'prepay_id': prepay_id
+                    }
+                    return JsonResponse(dict(code=requests.codes.ok, data=res_data))
 
-                    ding('[微信支付] 创建订单失败', error=json.dumps(create_order_res),
-                         need_email=True)
-                    return JsonResponse(dict(code=requests.codes.server_error, msg='订单创建失败'))
-
-                except User.DoesNotExist:
-                    return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
+                ding('[微信支付] 创建订单失败',
+                     error=json.dumps(create_order_res),
+                     need_email=True)
+                return JsonResponse(dict(code=requests.codes.server_error, msg='订单创建失败'))
 
             else:
                 ding('[微信支付] auth.code2Session接口请求成功，但返回结果错误',
@@ -188,6 +197,8 @@ def mp_pay(request):
 @api_view(['POST'])
 def create_order(request):
     """
+    支付宝
+
     创建订单
     """
 
