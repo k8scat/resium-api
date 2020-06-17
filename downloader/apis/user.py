@@ -591,7 +591,16 @@ def list_point_records(request):
     user = User.objects.get(uid=uid)
 
     page = request.GET.get('page', 1)
-    per_page = request.GET.get('per_page', 10)
+    per_page = request.GET.get('per_page', 20)
+    try:
+        page = int(page)
+        if page < 1:
+            page = 1
+        per_page = int(per_page)
+        if per_page > 20:
+            per_page = 20
+    except ValueError:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     start = per_page * (page - 1)
     end = start + per_page
