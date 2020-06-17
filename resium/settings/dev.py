@@ -47,7 +47,4 @@ CACHES = {
 
 RATELIMIT_BLOCK = False
 
-from . import prod
-ALIPAY_APP_NOTIFY_URL = prod.API_BASE_URL + '/alipay_notify/'
-
 COOKIE_DOMAIN = 'localhost'

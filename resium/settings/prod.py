@@ -29,6 +29,8 @@ SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
 FRONTEND_URL = 'https://resium.cn'
 
 API_BASE_URL = 'https://api.resium.cn'
+
+WX_PAY_NOTIFY_URL = API_BASE_URL + '/mp_pay_notify/'
 ALIPAY_APP_NOTIFY_URL = API_BASE_URL + '/alipay_notify/'
 
 # 随机标签个数
