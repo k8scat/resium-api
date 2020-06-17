@@ -771,7 +771,7 @@ class DocerResource(BaseResource):
         # 保存资源
         t = Thread(target=save_resource,
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
-                   kwargs={'account_id': self.account.email})
+                   kwargs={'account_id': self.account.id})
         t.start()
         return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
@@ -1098,7 +1098,7 @@ class QiantuResource(BaseResource):
         # 保存资源
         t = Thread(target=save_resource,
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
-                   kwargs={'account_id': self.account.email})
+                   kwargs={'account_id': self.account.id})
         t.start()
         return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
 
