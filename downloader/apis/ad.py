@@ -4,6 +4,8 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/6/17
 
+广告
+
 """
 import requests
 from django.http import JsonResponse
@@ -15,6 +17,6 @@ from downloader.serializers import MpSwiperAdSerializers
 
 @api_view()
 def list_mp_swiper_ads(request):
-    mp_swiper_ads = MpSwiperAd.objects.all()
+    mp_swiper_ads = MpSwiperAd.objects.filter(is_ok=True).all()
     return JsonResponse(dict(code=requests.codes.ok,
                              mp_swiper_ads=MpSwiperAdSerializers(mp_swiper_ads, many=True).data))

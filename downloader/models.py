@@ -282,6 +282,7 @@ class MpSwiperAd(Base):
     image_url = models.CharField(max_length=200, verbose_name='swiper的图片')
     clipboard_data = models.CharField(max_length=100, verbose_name='复制到剪切板的内容')
     msg = models.CharField(max_length=100, verbose_name='复制成功的消息')
+    is_ok = models.BooleanField(default=True, verbose_name='是否展示')
 
     class Meta:
         db_table = 'mp_swiper_ad'
