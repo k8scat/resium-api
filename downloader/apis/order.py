@@ -16,7 +16,7 @@ from rest_framework.decorators import api_view
 from wechatpy import WeChatPay
 
 from downloader.decorators import auth
-from downloader.models import Order, User
+from downloader.models import Order, User, PointRecord
 from downloader.serializers import OrderSerializers
 from downloader.utils import get_alipay, ding
 
@@ -48,6 +48,8 @@ def alipay_notify(request):
             user = User.objects.get(id=order.user_id)
             user.point += order.point
             user.save()
+            PointRecord(user=user, point=user.point,
+                        add_point=order.point, comment='捐赠支持').save()
 
             ding(f'收入+{total_amount}',
                  uid=user.uid)

@@ -165,13 +165,20 @@ class CsdnResource(BaseResource):
             cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return status, result
 
+        point = self.resource['point']
+        if point is None:
+            ding('[CSDN] 用户尝试下载版权受限的资源',
+                 uid=self.user.uid,
+                 resource_url=self.url)
+            cache.delete(settings.CSDN_DOWNLOADING_KEY)
+            return requests.codes.bad_request, '版权受限，无法下载'
+        # 可用积分不足
+        if self.user.point < point:
+            cache.delete(settings.CSDN_DOWNLOADING_KEY)
+            return 5000, '积分不足，请进行捐赠支持。'
+
         try:
             self.account = CsdnAccount.objects.get(is_enabled=True)
-            point = settings.CSDN_POINT
-            # 可用积分不足
-            if self.user.point < point:
-                cache.delete(settings.CSDN_DOWNLOADING_KEY)
-                return 5000, '积分不足，请进行捐赠支持。'
 
             # 判断账号当天下载数
             if self.account.today_download_count >= 20:
@@ -192,13 +199,6 @@ class CsdnResource(BaseResource):
                  need_email=True)
             cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return requests.codes.server_error, '下载失败'
-
-        if self.resource['point'] is None:
-            ding('[CSDN] 用户尝试下载版权受限的资源',
-                 uid=self.user.uid,
-                 resource_url=self.url)
-            cache.delete(settings.CSDN_DOWNLOADING_KEY)
-            return requests.codes.bad_request, '版权受限，无法下载'
 
         resource_id = self.url.split('/')[-1]
         headers = {
@@ -231,6 +231,9 @@ class CsdnResource(BaseResource):
                     self.user.point -= point
                     self.user.used_point += point
                     self.user.save()
+                    PointRecord(user=self.user, used_point=point,
+                                point=self.user.point, comment='下载CSDN资源',
+                                url=self.url).save()
 
                     with requests.get(resp['data'], headers=headers, stream=True) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
@@ -361,6 +364,7 @@ class WenkuResource(BaseResource):
                                 return requests.codes.server_error, '资源获取失败'
                     else:
                         point = None
+                        wenku_type = '付费文档'
 
                     file_type = doc_info['docType']
                     if file_type == '6':
@@ -433,6 +437,9 @@ class WenkuResource(BaseResource):
         self.user.point -= point
         self.user.used_point += point
         self.user.save()
+        PointRecord(user=self.user, point=self.user.point,
+                    comment='下载百度文库文档', url=self.url,
+                    used_point=point).save()
 
         driver = get_driver(self.unique_folder, load_images=True)
         try:
@@ -682,7 +689,7 @@ class DocerResource(BaseResource):
         if status != requests.codes.ok:
             return status, result
 
-        point = settings.DOCER_POINT
+        point = self.resource['point']
         if self.user.point < point:
             return 5000, '积分不足，请进行捐赠支持。'
 
@@ -712,6 +719,9 @@ class DocerResource(BaseResource):
                     self.user.point -= point
                     self.user.used_point += point
                     self.user.save()
+                    PointRecord(user=self.user, used_point=point,
+                                comment='下载稻壳模板', url=self.url,
+                                point=self.user.point).save()
 
                     # 更新账号使用下载数
                     self.account.used_count += 1
@@ -836,7 +846,7 @@ class ZhiwangResource(BaseResource):
         if status != requests.codes.ok:
             return status, result
 
-        point = settings.ZHIWANG_POINT
+        point = self.resource['point']
         if self.user.point < point:
             return 5000, '积分不足，请进行捐赠支持。'
 
@@ -879,6 +889,9 @@ class ZhiwangResource(BaseResource):
             self.user.point -= point
             self.user.used_point += point
             self.user.save()
+            PointRecord(user=self.user, used_point=point,
+                        comment='下载知网文献', url=self.url,
+                        point=self.user.point).save()
 
             # 获取下载链接
             download_link = download_button.get_attribute('href')
@@ -1021,6 +1034,9 @@ class QiantuResource(BaseResource):
         status, result = self.parse()
         if status != requests.codes.ok:
             return status, result
+        point = self.resource['point']
+        if self.user.point < point:
+            return 5000, '积分不足，请进行捐赠支持。'
 
         try:
             self.account = QiantuAccount.objects.get(is_enabled=True)
@@ -1042,6 +1058,13 @@ class QiantuResource(BaseResource):
                     self.filepath = os.path.join(self.save_dir, self.filename)
                     with requests.get(download_url, stream=True, headers=headers) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
+                            self.user.point -= point
+                            self.user.used_point += point
+                            self.user.save()
+                            PointRecord(user=self.user, used_point=point,
+                                        comment='下载千图网资源', url=self.url,
+                                        point=self.user.point).save()
+
                             with open(self.filepath, 'wb') as f:
                                 for chunk in download_resp.iter_content(chunk_size=1024):
                                     if chunk:
@@ -1147,14 +1170,14 @@ class PudnResource(BaseResource):
         if status != requests.codes.ok:
             return status, result
 
+        point = self.resource['point']
+        if self.user.point < point:
+            return 5000, '积分不足，请进行捐赠支持。'
+
         try:
             self.account = PudnAccount.objects.get(is_enabled=True)
         except PudnAccount.DoesNotExist:
             return requests.codes.server_error, '[PUDN] 没有可用账号'
-
-        point = settings.DOCER_POINT
-        if self.user.point < point:
-            return 5000, '积分不足，请进行捐赠支持。'
 
         driver = get_driver(self.unique_folder)
         try:
@@ -1194,6 +1217,9 @@ class PudnResource(BaseResource):
                     self.user.point -= point
                     self.user.used_point += point
                     self.user.save()
+                    PointRecord(user=self.user, used_point=point,
+                                comment='下载PUDN资源', url=self.url,
+                                point=self.user.point).save()
 
                     driver.get(self.url)
                     resource_id = self.url.split('id/')[1].split('.')[0]
@@ -1430,28 +1456,24 @@ def list_resources(request):
     """
     分页获取资源
     """
-    page = request.GET.get('page', None)
-    if page is None:
-        page = 1
-    elif page and page.isnumeric():
+
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 10)
+    try:
         page = int(page)
         if page < 1:
             page = 1
-    else:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
-    count = request.GET.get('count', None)
-    if count is None:
-        count = 5
-    elif count and count.isnumeric():
-        count = int(count)
-    else:
+        per_page = int(per_page)
+        if per_page > 20:
+            per_page = 20
+    except ValueError:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     key = request.GET.get('key', '')
 
-    start = count * (page - 1)
-    end = start + count
+    start = per_page * (page - 1)
+    end = start + per_page
     # https://cloud.tencent.com/developer/ask/81558
     resources = Resource.objects.order_by('-create_time').filter(Q(is_audited=1),
                                                                  Q(title__icontains=key) |
@@ -1555,6 +1577,9 @@ def download(request):
         user.point -= point
         user.used_point += point
         user.save()
+        PointRecord(user=user, used_point=point,
+                    comment='下载资源', url=resource_url,
+                    point=user.point).save()
 
         # 生成临时下载地址，10分钟有效
         url = aliyun_oss_sign_url(oss_resource.key)
@@ -1671,13 +1696,8 @@ def oss_download(request):
     cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
 
     t = request.GET.get('t', 'url')
-    if t == 'email' and not user.email:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='账号未设置邮箱'))
-
-    point = settings.OSS_RESOURCE_POINT
-    if user.point < point:
-        cache.delete(user.uid)
-        return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
+    if not user.email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置邮箱'))
 
     resource_id = request.GET.get('id', None)
     if resource_id and resource_id.isnumeric():
@@ -1700,8 +1720,19 @@ def oss_download(request):
             return JsonResponse(dict(code=requests.codes.bad_request, msg='该资源暂时无法下载'))
     except Resource.DoesNotExist:
         cache.delete(user.uid)
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='资源不存在'))
+        return JsonResponse(dict(code=requests.codes.not_found, msg='资源不存在'))
 
+    point = settings.OSS_RESOURCE_POINT + oss_resource.download_count - 1
+    if user.point < point:
+        cache.delete(user.uid)
+        return JsonResponse(dict(code=5000, msg='积分不足，请进行捐赠支持。'))
+
+    user.point -= point
+    user.used_point += point
+    user.save()
+    PointRecord(user=user, point=user.point,
+                comment='下载资源', used_point=point,
+                resource=oss_resource).save()
     DownloadRecord.objects.create(user=user,
                                   resource=oss_resource,
                                   used_point=settings.OSS_RESOURCE_POINT)
@@ -1887,6 +1918,8 @@ def doc_convert(request):
             user.point -= point
             user.used_point += point
             user.save()
+            PointRecord(user=user, used_point=point,
+                        point=user.point, comment='文档转换').save()
             ding(f'[文档转换] 转换成功，{download_url}',
                  uid=user.uid)
             return JsonResponse(dict(code=requests.codes.ok, url=download_url))
@@ -1915,4 +1948,3 @@ def get_download_interval(request):
 @api_view()
 def list_recommend_resources(request):
     pass
-

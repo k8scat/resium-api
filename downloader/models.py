@@ -255,11 +255,14 @@ class QrCode(Base):
         db_table = 'qr_code'
 
 
-class PointUsageRecord(Base):
+class PointRecord(Base):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    pid = models.CharField(max_length=100, unique=True, verbose_name='积分使用记录唯一标识')
-    point = models.IntegerField()
+    point = models.IntegerField(verbose_name='剩余积分')
+    used_point = models.IntegerField(default=0, verbose_name='使用积分')
+    add_point = models.IntegerField(default=0, verbose_name='增加积分')
     comment = models.CharField(max_length=100, verbose_name='积分使用备注')
+    url = models.CharField(max_length=240, default=None, null=True, verbose_name='链接')
+    resource = models.ForeignKey(Resource, default=None, null=True, on_delete=models.DO_NOTHING)
 
     class Meta:
-        db_table = 'point_usage_record'
+        db_table = 'point_record'

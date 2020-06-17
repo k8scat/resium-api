@@ -15,7 +15,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from downloader.decorators import auth
-from downloader.models import CsdnAccount, Article, User, ArticleComment
+from downloader.models import CsdnAccount, Article, User, ArticleComment, PointRecord
 from downloader.serializers import ArticleSerializers, ArticleCommentSerializers
 from downloader.utils import ding, get_random_ua
 
@@ -76,6 +76,9 @@ def parse_csdn_article(request):
                 user.point -= point
                 user.used_point += point
                 user.save()
+                PointRecord(user=user, used_point=point,
+                            url=article_url, comment='解析VIP文章',
+                            point=user.point).save()
                 return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
 
             ding(f'文章获取失败: {article_url}',
@@ -87,13 +90,22 @@ def parse_csdn_article(request):
 
 @api_view()
 def list_articles(request):
-    page = int(request.GET.get('page', 1))
-    count = int(request.GET.get('count', 5))
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 10)
+    try:
+        page = int(page)
+        if page < 1:
+            page = 1
+        per_page = int(per_page)
+        if per_page > 20:
+            per_page = 20
+    except ValueError:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
     key = request.GET.get('key', '')
-    if page < 1:
-        page = 1
-    start = count * (page - 1)
-    end = start + count
+
+    start = per_page * (page - 1)
+    end = start + per_page
     articles = Article.objects.filter(Q(title__icontains=key) |
                                       Q(desc__icontains=key) |
                                       Q(content__icontains=key) |
@@ -110,9 +122,9 @@ def list_recommend_articles(request):
 def get_article_count(request):
     key = request.GET.get('key', '')
     return JsonResponse(dict(code=requests.codes.ok, count=Article.objects.filter(Q(title__icontains=key) |
-                                                                    Q(desc__icontains=key) |
-                                                                    Q(tags__icontains=key) |
-                                                                    Q(content__icontains=key)).count()))
+                                                                                  Q(desc__icontains=key) |
+                                                                                  Q(tags__icontains=key) |
+                                                                                  Q(content__icontains=key)).count()))
 
 
 @api_view()
@@ -166,4 +178,3 @@ def list_article_comments(request):
     except Article.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found,
                                  msg='文章不存在'))
-

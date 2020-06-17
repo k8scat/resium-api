@@ -31,7 +31,7 @@ from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
-    CheckInRecord, QrCode
+    CheckInRecord, QrCode, PointRecord
 from downloader.serializers import UserSerializers
 from downloader.utils import ding, send_email, generate_uid, generate_jwt
 from resium import codes
@@ -243,7 +243,6 @@ def wx(request):
                             DownloadRecord.objects.filter(user=old_user).update(user=new_user)
                             Resource.objects.filter(user=old_user).update(user=new_user)
                             ResourceComment.objects.filter(user=old_user).update(user=new_user)
-                            DwzRecord.objects.filter(user=old_user).update(user=new_user)
                             Article.objects.filter(user=old_user).update(user=new_user)
                             CheckInRecord.objects.filter(user=old_user).update(user=new_user)
 
@@ -417,16 +416,18 @@ def check_scan(request):
 @api_view(['POST'])
 def set_password(request):
     uid = request.session.get('uid')
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+    user = User.objects.get(uid=uid)
 
-    password = request.data.get('password', '')
-    if not re.match(r'[a-zA-Z0-9]{6,24}', password):
+    new_password = request.data.get('new_password', '')
+    old_password = request.data.get('old_password', '')
+    if not re.match(r'[a-zA-Z0-9]{6,24}', new_password):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='密码必须是6到24位字母或数字'))
 
-    user.password = make_password(password)
+    if user.password:
+        if not check_password(old_password, user.password):
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='密码不正确'))
+
+    user.password = make_password(new_password)
     user.save()
     return JsonResponse(dict(code=requests.codes.ok, msg='密码设置成功'))
 
@@ -441,16 +442,16 @@ def login(request):
     try:
         user = User.objects.get(uid=uid)
         if not user.password:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='该账号未设置密码'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置密码'))
 
         if check_password(password, user.password):
             token = generate_jwt(uid)
             return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))
         else:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='ID或密码不正确'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='用户ID或密码不正确'))
 
     except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='ID不存在'))
+        return JsonResponse(dict(code=404, msg='用户ID不存在'))
 
 
 @auth
@@ -567,3 +568,15 @@ def set_email(request):
                 msg = '错误的请求'
 
     return render(request, 'downloader/msg.html', {'msg': msg})
+
+
+@auth
+@api_view()
+def list_point_record(request):
+    uid = request.session.get('uid')
+    user = User.objects.get(uid=uid)
+
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 10)
+
+    PointRecord.objects.filter(user=user)
