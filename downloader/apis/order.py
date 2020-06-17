@@ -169,12 +169,8 @@ def mp_pay(request):
                         prepay_id=prepay_id,
                         nonce_str=nonce_str
                     )
-                    res_data = {
-                        'nonce_str': nonce_str,
-                        'sign': sign,
-                        'prepay_id': prepay_id
-                    }
-                    return JsonResponse(dict(code=requests.codes.ok, data=res_data))
+                    return JsonResponse(dict(code=requests.codes.ok, nonce_str=nonce_str,
+                                             sign=sign, prepay_id=prepay_id))
 
                 ding('[微信支付] 创建订单失败',
                      error=json.dumps(create_order_res),
