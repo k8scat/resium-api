@@ -94,9 +94,10 @@ def list_orders(request):
     return JsonResponse(dict(code=requests.codes.ok, orders=OrderSerializers(orders, many=True).data))
 
 
-@api_view(['POST', 'GET'])
+@api_view(['POST'])
 def mp_pay_notify(request):
     logging.info(request.data)
+    logging.info(request.POST)
     return HttpResponse('')
 
 
@@ -132,6 +133,7 @@ def mp_pay(request):
     with requests.get('https://api.weixin.qq.com/sns/jscode2session', params=params) as r:
         if r.status_code == requests.codes.OK:
             data = r.json()
+            logging.info(data)
             if data.get('errcode', 0) == 0:  # 没有errcode或者errcode为0时表示请求成功
                 # 生成唯一订单号
                 out_trade_no = get_unique_str()
@@ -144,6 +146,7 @@ def mp_pay(request):
                     api_key=settings.WX_PAY_API_KEY,
                     mch_id=settings.WX_PAY_MCH_ID
                 )
+                logging.info(settings.WX_PAY_NOTIFY_URL)
                 create_order_res = we_chat_pay.order.create(
                     trade_type='JSAPI',
                     body=subject,
@@ -152,6 +155,7 @@ def mp_pay(request):
                     out_trade_no=out_trade_no,
                     user_id=data['openid']
                 )
+                logging.info(create_order_res)
                 if create_order_res.get('return_code', None) == 'SUCCESS' and \
                         create_order_res.get('result_code', None) == 'SUCCESS':
                     # 创建内部系统的订单
