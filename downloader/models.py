@@ -269,3 +269,19 @@ class PointRecord(Base):
 
     class Meta:
         db_table = 'point_record'
+
+
+class MpSwiperAd(Base):
+    """
+    小程序轮播图广告
+
+    """
+
+    title = models.CharField(max_length=100, verbose_name='Modal的标题')
+    content = models.CharField(max_length=100, verbose_name='Modal的内容')
+    image_url = models.CharField(max_length=200, verbose_name='swiper的图片')
+    clipboard_data = models.CharField(max_length=100, verbose_name='复制到剪切板的内容')
+    msg = models.CharField(max_length=100, verbose_name='复制成功的消息')
+
+    class Meta:
+        db_table = 'mp_swiper_ad'

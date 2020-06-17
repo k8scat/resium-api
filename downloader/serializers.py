@@ -101,7 +101,12 @@ class UploadRecordSerializers(serializers.ModelSerializer):
 
 
 class PointRecordSerializers(serializers.ModelSerializer):
-
     class Meta:
         model = PointRecord
+        fields = '__all__'
+
+
+class MpSwiperAdSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = MpSwiperAd
         fields = '__all__'

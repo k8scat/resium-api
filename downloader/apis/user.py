@@ -438,7 +438,7 @@ def set_password(request):
 def login(request):
     uid = request.data.get('uid', None)
     password = request.data.get('password', None)
-    gender = request.data.get('gender', None) # 通过小程序登录获取用户性别
+    gender = request.data.get('gender', None)  # 通过小程序登录获取用户性别
     if not uid or not password:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 

@@ -7,8 +7,7 @@
 """
 from django.urls import path, re_path
 from downloader.apis import user, service, order, resource, advert, account, download_record, article, bot, \
-    oauth
-
+    oauth, ad
 
 urlpatterns = [
     # user
@@ -93,5 +92,8 @@ urlpatterns = [
     re_path(r'^oauth/dev/?$', oauth.dev),
     re_path(r'^oauth/qq/?$', oauth.qq),
     re_path(r'^oauth/gitee/?$', oauth.gitee),
+
+    # ad
+    path('list_mp_swiper_ads/', ad.list_mp_swiper_ads),
 ]
 
