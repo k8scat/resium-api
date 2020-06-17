@@ -283,6 +283,7 @@ def mp_login(request):
     code = request.data.get('code', None)
     avatar_url = request.data.get('avatar_url', None)
     nickname = request.data.get('nickname', None)
+    gender = request.data.get('gender', None)
     if not code or not avatar_url or not nickname:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
@@ -303,6 +304,7 @@ def mp_login(request):
                     user.login_time = login_time
                     user.avatar_url = avatar_url
                     user.nickname = nickname
+                    user.gender = gender
                     user.save()
                 except User.DoesNotExist:
                     uid = generate_uid()
@@ -436,6 +438,7 @@ def set_password(request):
 def login(request):
     uid = request.data.get('uid', None)
     password = request.data.get('password', None)
+    gender = request.data.get('gender', None) # 通过小程序登录获取用户性别
     if not uid or not password:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
@@ -445,13 +448,15 @@ def login(request):
             return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置密码'))
 
         if check_password(password, user.password):
+            user.gender = gender
+            user.save()
             token = generate_jwt(uid)
             return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))
         else:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='用户ID或密码不正确'))
 
     except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg='用户ID不存在'))
+        return JsonResponse(dict(code=404, msg='用户不存在'))
 
 
 @auth

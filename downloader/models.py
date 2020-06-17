@@ -28,6 +28,7 @@ class User(Base):
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
     code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
     is_pattern = models.BooleanField(default=False, verbose_name='合作用户')
+    gender = models.SmallIntegerField(null=True, default=None, verbose_name='性别')
 
     class Meta:
         db_table = 'user'
