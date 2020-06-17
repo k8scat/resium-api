@@ -98,3 +98,10 @@ class UploadRecordSerializers(serializers.ModelSerializer):
     class Meta:
         model = UploadRecord
         fields = ['id', 'create_time', 'title', 'is_audited']
+
+
+class PointRecordSerializers(serializers.ModelSerializer):
+
+    class Meta:
+        model = PointRecord
+        fields = '__all__'

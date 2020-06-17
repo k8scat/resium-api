@@ -263,6 +263,7 @@ class PointRecord(Base):
     comment = models.CharField(max_length=100, verbose_name='积分使用备注')
     url = models.CharField(max_length=240, default=None, null=True, verbose_name='链接')
     resource = models.ForeignKey(Resource, default=None, null=True, on_delete=models.DO_NOTHING)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'point_record'

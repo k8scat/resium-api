@@ -32,7 +32,7 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
     CheckInRecord, QrCode, PointRecord
-from downloader.serializers import UserSerializers
+from downloader.serializers import UserSerializers, PointRecordSerializers
 from downloader.utils import ding, send_email, generate_uid, generate_jwt
 from resium import codes
 
@@ -572,11 +572,32 @@ def set_email(request):
 
 @auth
 @api_view()
-def list_point_record(request):
+def list_point_records(request):
     uid = request.session.get('uid')
     user = User.objects.get(uid=uid)
 
     page = request.GET.get('page', 1)
     per_page = request.GET.get('per_page', 10)
 
-    PointRecord.objects.filter(user=user)
+    start = per_page * (page - 1)
+    end = start + per_page
+
+    point_records = PointRecord.objects.filter(user=user, is_deleted=False).order_by('-create_time').all()[start:end]
+    return JsonResponse(dict(code=requests.codes.ok,
+                             point_records=PointRecordSerializers(point_records, many=True).data))
+
+
+@auth
+@api_view()
+def delete_point_record(request):
+    point_record_id = request.GET.get('id', None)
+    if not point_record_id:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    try:
+        point_record = PointRecord.objects.get(id=point_record_id)
+        point_record.is_deleted = True
+        point_record.save()
+        return JsonResponse(dict(code=requests.codes.ok, msg='删除成功'))
+    except PointRecord.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found, msg='积分记录不存在'))
