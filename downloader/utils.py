@@ -790,7 +790,6 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
 
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功',
-             uid=csdn_account.user.uid,
              download_account_id=csdn_account.id)
         return new_csdn_account
     else:
@@ -798,7 +797,6 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功失败，没有可用的CSDN账号',
              download_account_id=csdn_account.id,
-             uid=csdn_account.user.uid,
              need_email=True)
         return None
 
