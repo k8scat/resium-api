@@ -1475,10 +1475,10 @@ def list_resources(request):
     start = per_page * (page - 1)
     end = start + per_page
     # https://cloud.tencent.com/developer/ask/81558
-    resources = Resource.objects.order_by('-create_time').filter(Q(is_audited=1),
-                                                                 Q(title__icontains=key) |
-                                                                 Q(desc__icontains=key) |
-                                                                 Q(tags__icontains=key)).all()[start:end]
+    resources = Resource.objects.filter(Q(is_audited=1),
+                                        Q(title__icontains=key) |
+                                        Q(desc__icontains=key) |
+                                        Q(tags__icontains=key)).order_by('-create_time').all()[start:end]
     return JsonResponse(dict(code=requests.codes.ok, resources=ResourceSerializers(resources, many=True).data))
 
 
