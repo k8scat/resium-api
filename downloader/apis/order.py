@@ -18,7 +18,7 @@ from wechatpy import WeChatPay
 from downloader.decorators import auth
 from downloader.models import Order, User, PointRecord
 from downloader.serializers import OrderSerializers
-from downloader.utils import get_alipay, ding, get_unique_str
+from downloader.utils import get_alipay, ding, get_unique_str, get_we_chat_pay
 
 
 @api_view(['POST'])
@@ -95,8 +95,9 @@ def list_orders(request):
 
 
 def mp_pay_notify(request):
-    logging.info('*********************************7777')
-    logging.info(request.body)
+    we_chat_pay = get_we_chat_pay()
+    payment_result = we_chat_pay.parse_payment_result(request.body)
+    logging.info(payment_result)
     return HttpResponse('')
 
 
@@ -137,15 +138,8 @@ def mp_pay(request):
                 # 生成唯一订单号
                 out_trade_no = get_unique_str()
 
-                we_chat_pay = WeChatPay(
-                    appid=settings.WX_PAY_MP_APP_ID,
-                    mch_key=settings.WX_PAY_MCH_KEY,
-                    mch_cert=settings.WX_PAY_MCH_CERT,
-                    sub_appid=settings.WX_PAY_SUB_APP_ID,
-                    api_key=settings.WX_PAY_API_KEY,
-                    mch_id=settings.WX_PAY_MCH_ID
-                )
-                logging.info(settings.WX_PAY_NOTIFY_URL)
+                we_chat_pay = get_we_chat_pay()
+
                 create_order_res = we_chat_pay.order.create(
                     trade_type='JSAPI',
                     body=subject,

@@ -38,6 +38,7 @@ from qiniu import Auth, put_file, etag
 from requests.exceptions import InvalidHeader
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
+from wechatpy import WeChatPay
 
 from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User
 
@@ -923,3 +924,14 @@ def get_unique_str():
 
 def qiniu_get_url(key):
     return 'http://' + settings.QINIU_OPEN_DOMAIN + '/' + key
+
+
+def get_we_chat_pay():
+    return WeChatPay(
+        appid=settings.WX_PAY_MP_APP_ID,
+        mch_key=settings.WX_PAY_MCH_KEY,
+        mch_cert=settings.WX_PAY_MCH_CERT,
+        sub_appid=settings.WX_PAY_SUB_APP_ID,
+        api_key=settings.WX_PAY_API_KEY,
+        mch_id=settings.WX_PAY_MCH_ID
+    )
