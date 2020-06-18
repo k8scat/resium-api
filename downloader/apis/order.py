@@ -99,6 +99,7 @@ def mp_pay_notify(request):
     logging.info('*********************************7777')
     logging.info(request.data)
     logging.info(request.POST)
+    logging.info(request.body)
     return HttpResponse('')
 
 
