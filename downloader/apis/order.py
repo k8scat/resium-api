@@ -163,14 +163,7 @@ def mp_pay(request):
                           point=point).save()
                     # 再次签名
                     prepay_id = create_order_res.get('prepay_id')
-                    nonce_str = create_order_res.get('nonce_str')
-                    sign = we_chat_pay.jsapi.get_jsapi_signature(
-                        prepay_id=prepay_id,
-                        nonce_str=nonce_str
-                    )
-                    logging.info(we_chat_pay.jsapi.get_jsapi_params(prepay_id=prepay_id))
-                    return JsonResponse(dict(code=requests.codes.ok, nonce_str=nonce_str,
-                                             sign=sign, prepay_id=prepay_id))
+                    return JsonResponse(dict(code=requests.codes.ok, data=we_chat_pay.jsapi.get_jsapi_params(prepay_id=prepay_id)))
 
                 ding('[微信支付] 创建订单失败',
                      error=json.dumps(create_order_res),
