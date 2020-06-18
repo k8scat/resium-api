@@ -5,6 +5,7 @@
 @date: 2020/2/25
 
 """
+import collections
 import json
 import logging
 import uuid
@@ -14,6 +15,8 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view
 from wechatpy import WeChatPay
+from wechatpy.exceptions import InvalidSignatureException
+from wechatpy.pay import dict_to_xml
 
 from downloader.decorators import auth
 from downloader.models import Order, User, PointRecord
@@ -45,14 +48,14 @@ def alipay_notify(request):
             order.has_paid = True
             order.save()
 
-            user = User.objects.get(id=order.user_id)
-            user.point += order.point
-            user.save()
-            PointRecord(user=user, point=user.point,
+            order.user.point += order.point
+            order.user.save()
+
+            PointRecord(user=order.user, point=order.user.point,
                         add_point=order.point, comment='捐赠支持').save()
 
             ding(f'收入+{total_amount}',
-                 uid=user.uid)
+                 uid=order.user.uid)
         except Order.DoesNotExist:
             return HttpResponse('failure')
         return HttpResponse('success')
@@ -95,10 +98,48 @@ def list_orders(request):
 
 
 def mp_pay_notify(request):
+    """
+    支付结果通知
+    https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_7&index=8
+
+    :param request:
+    :return:
+    """
+
     we_chat_pay = get_we_chat_pay()
-    payment_result = we_chat_pay.parse_payment_result(request.body)
-    logging.info(payment_result)
-    return HttpResponse('')
+    try:
+        payment_result = we_chat_pay.parse_payment_result(request.body)  # sdk已经验证了签名
+        return_code = 'SUCCESS'
+        return_msg = 'OK'
+
+        total_amount = payment_result.get('total_fee')
+        out_trade_no = payment_result.get('out_trade_no')
+        try:
+            order = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
+            order.has_paid = True
+            order.save()
+
+            order.user.point += order.point
+            order.user.save()
+
+            PointRecord(user=order.user, point=order.user.point,
+                        add_point=order.point, comment='捐赠支持').save()
+
+            ding(f'收入+{total_amount}',
+                 uid=order.user.uid)
+        except Order.DoesNotExist:
+            pass
+    except InvalidSignatureException:
+        ding('[微信支付] 签名校验失败',
+             error=request.body)
+        return_code = 'FAIL'
+        return_msg = '签名失败'
+
+    ret_data = dict_to_xml({
+        'return_code': return_code,
+        'return_msg': return_msg
+    })
+    return HttpResponse(ret_data, content_type="text/xml")
 
 
 @auth
