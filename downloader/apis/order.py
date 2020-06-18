@@ -168,6 +168,7 @@ def mp_pay(request):
                         prepay_id=prepay_id,
                         nonce_str=nonce_str
                     )
+                    logging.info(we_chat_pay.jsapi.get_jsapi_params(prepay_id=prepay_id))
                     return JsonResponse(dict(code=requests.codes.ok, nonce_str=nonce_str,
                                              sign=sign, prepay_id=prepay_id))
 
