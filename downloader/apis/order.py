@@ -54,7 +54,7 @@ def alipay_notify(request):
             PointRecord(user=order.user, point=order.user.point,
                         add_point=order.point, comment='捐赠支持').save()
 
-            ding(f'收入+{total_amount}',
+            ding(f'收入+{total_amount}元',
                  uid=order.user.uid)
         except Order.DoesNotExist:
             return HttpResponse('failure')
@@ -112,7 +112,7 @@ def mp_pay_notify(request):
         return_code = 'SUCCESS'
         return_msg = 'OK'
 
-        total_amount = payment_result.get('total_fee')
+        total_amount = payment_result.get('total_fee') / 100  # 单位元
         out_trade_no = payment_result.get('out_trade_no')
         try:
             order = Order.objects.get(out_trade_no=out_trade_no, total_amount=total_amount)
@@ -125,7 +125,7 @@ def mp_pay_notify(request):
             PointRecord(user=order.user, point=order.user.point,
                         add_point=order.point, comment='捐赠支持').save()
 
-            ding(f'收入+{total_amount}',
+            ding(f'收入+{total_amount}元',
                  uid=order.user.uid)
         except Order.DoesNotExist:
             pass
@@ -163,7 +163,7 @@ def mp_pay(request):
     point = request.data.get('point', None)
     if not code or not total_amount or not point or not subject:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
-    total_amount = int(total_amount * 100)  # 单位分
+    total_fee = int(total_amount * 100)  # 单位分
 
     params = {
         'appid': settings.WX_PAY_MP_APP_ID,
@@ -184,7 +184,7 @@ def mp_pay(request):
                 create_order_res = we_chat_pay.order.create(
                     trade_type='JSAPI',
                     body=subject,
-                    total_fee=total_amount,
+                    total_fee=total_fee,
                     notify_url=settings.WX_PAY_NOTIFY_URL,
                     out_trade_no=out_trade_no,
                     user_id=data['openid']
