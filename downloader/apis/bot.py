@@ -5,6 +5,7 @@
 @date: 2020/3/28
 
 """
+import json
 
 import requests
 from django.conf import settings
@@ -12,7 +13,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from downloader.models import User, CsdnAccount
-from downloader.serializers import UserSerializers
+from downloader.serializers import UserSerializers, CsdnAccountSerializers
 
 
 @api_view(['POST'])
@@ -76,7 +77,7 @@ def set_csdn_sms_validate_code(request):
 
 
 @api_view(['POST'])
-def get_csdn_accounts(request):
+def list_csdn_accounts(request):
     """
     获取csdn账号信息
 
@@ -90,10 +91,7 @@ def get_csdn_accounts(request):
     accounts = CsdnAccount.objects.all()
     msg = ''
     for index, account in enumerate(accounts):
-        msg += '邮箱: ' + account.email + ' \n' + \
-              '是否启用: ' + ('是' if account.is_enabled else '否') + ' \n' + \
-              '是否需要短信验证: ' + ('是' if account.need_sms_validate else '否') + ' \n' + \
-              '今日下载数: ' + str(account.today_download_count)
+        msg += json.dumps(CsdnAccountSerializers(account).data)
         if index < len(accounts)-1:
             msg += '\n\n'
 
