@@ -422,7 +422,7 @@ def set_password(request):
 
     new_password = request.data.get('new_password', '')
     old_password = request.data.get('old_password', '')
-    if not re.match(r'[a-zA-Z0-9]{6,24}', new_password):
+    if not re.match(r'^[a-zA-Z0-9]{6,24}$', new_password):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='密码必须是6到24位字母或数字'))
 
     if user.password:
@@ -624,3 +624,4 @@ def delete_point_record(request):
         return JsonResponse(dict(code=requests.codes.ok, msg='删除成功'))
     except PointRecord.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg='积分记录不存在'))
+

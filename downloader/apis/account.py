@@ -145,6 +145,7 @@ def reset_csdn_today_download_count(request):
             csdn_account.save()
             ding('[CSDN] 今日下载数已重置',
                  download_account_id=csdn_account.id)
+            logging.info(f'CSDN账号 {csdn_account.id} 已重置今日下载数')
     return HttpResponse('')
 
 

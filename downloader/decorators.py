@@ -39,7 +39,7 @@ def auth(fn):
             # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
         except Exception as e:
-            logging.error(e)
+            logging.info(e)
             return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
 
         uid = payload.get('sub', None)

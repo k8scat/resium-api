@@ -1515,6 +1515,12 @@ def list_resource_tags(request):
 def download(request):
     """
     资源下载
+
+    参数
+    url
+    t
+
+
     """
 
     uid = request.session.get('uid')
