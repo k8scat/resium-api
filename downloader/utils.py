@@ -776,17 +776,38 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
             csdn_account.is_disabled = True
             valid_count = get_csdn_valid_count(csdn_account.cookies)
             if valid_count is None:
+                msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）的Cookies已失效，为了保障会员账号的可用性，请及时登录网站（https://resium.cn/user）进行重新设置Cookies，如有疑问请联系管理员！'
                 send_email(
                     subject='[源自下载] CSDN账号提醒',
-                    content='CSDN登录已失效，请重新设置Cookies！',
+                    content=msg,
                     to_addr=csdn_account.user.email
                 )
+                qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
+                                  msg=msg,
+                                  at_member=csdn_account.qq)
+                ding('[CSDN] Cookies已失效',
+                     download_account_id=csdn_account.id)
             elif valid_count == 0:
+                csdn_account.is_disabled = True
+                msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）的会员下载数已用尽，请知悉！'
                 send_email(
                     subject='[源自下载] CSDN账号提醒',
-                    content='CSDN会员账号可用下载数已用尽！',
+                    content=msg,
                     to_addr=csdn_account.user.email
                 )
+                qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
+                                  msg=msg,
+                                  at_member=csdn_account.qq)
+        else:
+            msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）需要进行短信验证，为了保障会员账号的可用性，请及时进行短信验证并登录网站（https://resium.cn/user）解除短信验证，如有疑问请联系管理员！【此消息来自定时任务，如已知悉请忽略】'
+            send_email(
+                subject='[源自下载] CSDN账号提醒',
+                content=msg,
+                to_addr=csdn_account.user.email
+            )
+            qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
+                              msg=msg,
+                              at_member=csdn_account.qq)
 
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功',
@@ -933,3 +954,35 @@ def get_we_chat_pay():
         api_key=settings.WX_PAY_API_KEY,
         mch_id=settings.WX_PAY_MCH_ID
     )
+
+
+def qq_send_group_msg(group_id, msg, at_member=None):
+    data = {
+        'token': settings.BOT_TOKEN,
+        'group_id': group_id,
+        'msg': msg
+    }
+    if at_member:
+        data['at_member'] = at_member
+    with requests.post(settings.BOT_BASE_API + '/send_group_msg', json=data) as r:
+        if r.status_code == requests.codes.ok:
+            res_data = r.json()
+            if res_data['code'] != requests.codes.ok:
+                ding(res_data['msg'])
+        else:
+            ding('QQ发送群消息接口请求失败')
+
+
+def qq_send_private_msg(user_id, msg):
+    data = {
+        'token': settings.BOT_TOKEN,
+        'user_id': user_id,
+        'msg': msg
+    }
+    with requests.post(settings.BOT_BASE_API + '/send_private_msg', json=data) as r:
+        if r.status_code == requests.codes.ok:
+            res_data = r.json()
+            if res_data['code'] != requests.codes.ok:
+                ding(res_data['msg'])
+        else:
+            ding('QQ发送私聊消息接口请求失败')

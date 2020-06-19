@@ -23,7 +23,7 @@ from downloader.utils import *
 
 
 if __name__ == '__main__':
-    print(get_unique_str())
+    qq_send_private_msg(1583096683, 'hello')
 
 
 

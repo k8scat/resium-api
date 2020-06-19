@@ -542,7 +542,7 @@ def request_set_email(request):
                   recipient_list=[email],
                   html_message=html_message,
                   fail_silently=False)
-        return JsonResponse(dict(code=requests.codes.ok, msg='请前往邮箱进行确认！'))
+        return JsonResponse(dict(code=requests.codes.ok, msg='请前往邮箱进行确认！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
     except Exception as e:
         ding('设置邮箱邮件发送失败',
              error=e,
