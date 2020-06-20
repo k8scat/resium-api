@@ -349,7 +349,7 @@ def save_qr_code(request):
 @api_view()
 def scan_code(request):
     """
-    小程序扫码登录
+    用户使用小程序扫码登录
 
     :param request:
     :return:
@@ -386,6 +386,15 @@ def scan_code(request):
 
 @api_view()
 def check_scan(request):
+    """
+    检查用户是否扫描二维码并登陆
+
+    Todo: 二维码过期
+
+    :param request:
+    :return:
+    """
+
     code_type = request.GET.get('t', None)  # 扫码类型，分类登录和绑定已有账号
     cid = request.GET.get('cid', None)
     if not code_type or not cid:

@@ -4,8 +4,6 @@
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/1/29
 
-每天凌晨3点定时刷新cookies
-
 """
 import requests
 

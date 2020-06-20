@@ -287,3 +287,13 @@ class MpSwiperAd(Base):
 
     class Meta:
         db_table = 'mp_swiper_ad'
+
+
+class SystemInfo(Base):
+    """
+    系统信息
+
+    """
+
+    mp_version = models.CharField(max_length=50, verbose_name='小程序版本')
+
