@@ -297,3 +297,6 @@ class SystemInfo(Base):
 
     mp_version = models.CharField(max_length=50, verbose_name='小程序版本')
 
+    class Meta:
+        db_table = 'system_info'
+
