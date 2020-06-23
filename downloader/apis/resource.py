@@ -326,19 +326,18 @@ class CsdnResource(BaseResource):
 
 
 class WenkuResource(BaseResource):
-    def __init__(self, url, user):
+    def __init__(self, url, user, doc_id):
         super().__init__(url, user)
+        self.doc_id = doc_id
 
     def parse(self):
         """
         资源信息获取地址: https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id=
         """
-        # https://wenku.baidu.com/view/c3853acaab00b52acfc789eb172ded630b1c9809.htm
-        doc_id = self.url.split('?')[0].split('://wenku.baidu.com/view/')[1].split('.')[0]
-        logging.info(f'百度文库文档ID: {doc_id}')
+        logging.info(f'百度文库文档ID: {self.doc_id}')
 
-        get_doc_info_url = f'https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={doc_id}'
-        get_vip_free_doc_url = f'https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={doc_id}'
+        get_doc_info_url = f'https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={self.doc_id}'
+        get_vip_free_doc_url = f'https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={self.doc_id}'
         headers = {
             'user-agent': get_random_ua()
         }
@@ -1550,6 +1549,13 @@ def download(request):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
 
+    doc_id = None
+    if re.match(settings.PATTERN_WENKU, resource_url):
+        doc_id = resource_url.split('?')[0].split('baidu.com/view/')[1]
+        if doc_id.count('.') > 0:
+            doc_id = doc_id.split('.')[0]
+        resource_url = 'https://wenku.baidu.com/view/' + doc_id + '.html'
+
     # 检查OSS是否存有该资源
     oss_resource = check_oss(resource_url)
     if oss_resource:
@@ -1634,7 +1640,12 @@ def download(request):
 
     # 百度文库文档下载
     elif re.match(settings.PATTERN_WENKU, resource_url):
-        resource = WenkuResource(resource_url, user)
+        if not doc_id:
+            ding('[百度文库] 资源地址正则通过，但没有doc_id',
+                 resource_url=resource_url)
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址有误'))
+        else:
+            resource = WenkuResource(resource_url, user, doc_id)
 
     # 稻壳模板下载
     elif re.match(settings.PATTERN_DOCER, resource_url):
