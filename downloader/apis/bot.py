@@ -6,6 +6,7 @@
 
 """
 import json
+import re
 
 import requests
 from django.conf import settings
@@ -96,3 +97,23 @@ def list_csdn_accounts(request):
             msg += '\n\n'
 
     return JsonResponse(dict(code=requests.codes.ok, msg=msg))
+
+
+@api_view()
+def activate_taobao_user(request):
+    uid = request.data.get('uid', None)
+    token = request.data.get('token', None)
+    if token != settings.BOT_TOKEN or not re.match(r'^\d{6}$', uid):
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    try:
+        user = User.objects.get(uid=uid)
+        if user.can_download:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='淘宝用户只能购买一次'))
+        user.point += 10
+        user.can_download = True
+        user.from_taobao = True
+        user.save()
+        return JsonResponse(dict(code=requests.codes.ok, msg='成功授权并发放积分'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.not_found, msg='用户不存在'))

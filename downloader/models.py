@@ -29,6 +29,7 @@ class User(Base):
     code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
     is_pattern = models.BooleanField(default=False, verbose_name='合作用户')
     gender = models.SmallIntegerField(null=True, default=None, verbose_name='性别')
+    from_taobao = models.BooleanField(default=False, verbose_name='是否来自淘宝')
 
     class Meta:
         db_table = 'user'
@@ -117,6 +118,7 @@ class CsdnAccount(Base):
     is_disabled = models.BooleanField(default=False, verbose_name='是否被禁用')
     csdn_id = models.IntegerField(verbose_name='CSDN ID')
     qq = models.CharField(max_length=20, verbose_name='账号拥有者的QQ号')
+    unit_price = models.FloatField(default=None, null=True, verbose_name='下载单价')
 
     class Meta:
         db_table = 'csdn_account'

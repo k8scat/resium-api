@@ -87,6 +87,7 @@ urlpatterns = [
     path('bot/get_user/', bot.get_user),
     path('bot/set_csdn_sms_validate_code/', bot.set_csdn_sms_validate_code),
     path('bot/list_csdn_accounts/', bot.list_csdn_accounts),
+    path('bot/activate_taobao_user/', bot.activate_taobao_user),
 
     # oauth
     re_path(r'^oauth/dev/?$', oauth.dev),
