@@ -1551,10 +1551,7 @@ def download(request):
 
     doc_id = None
     if re.match(settings.PATTERN_WENKU, resource_url):
-        doc_id = resource_url.split('?')[0].split('baidu.com/view/')[1]
-        if doc_id.count('.') > 0:
-            doc_id = doc_id.split('.')[0]
-        resource_url = 'https://wenku.baidu.com/view/' + doc_id + '.html'
+        resource_url, doc_id = get_wenku_doc_id(resource_url)
 
     # 检查OSS是否存有该资源
     oss_resource = check_oss(resource_url)
@@ -1803,11 +1800,12 @@ def parse_resource(request):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
 
+    doc_id = None
+    if re.match(settings.PATTERN_WENKU, resource_url):
+        resource_url, doc_id = get_wenku_doc_id(resource_url)
+
     uid = request.session.get('uid')
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
+    user = User.objects.get(uid=uid)
 
     # CSDN资源
     if re.match(settings.PATTERN_CSDN, resource_url):
@@ -1819,7 +1817,7 @@ def parse_resource(request):
 
     # 百度文库文档
     elif re.match(settings.PATTERN_WENKU, resource_url):
-        resource = WenkuResource(resource_url, user)
+        resource = WenkuResource(resource_url, user, doc_id)
 
     # 稻壳模板
     elif re.match(settings.PATTERN_DOCER, resource_url):

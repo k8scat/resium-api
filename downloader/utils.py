@@ -986,3 +986,11 @@ def qq_send_private_msg(user_id, msg):
                 ding(res_data['msg'])
         else:
             ding('QQ发送私聊消息接口请求失败')
+
+
+def get_wenku_doc_id(url):
+    doc_id = url.split('?')[0].split('baidu.com/view/')[1]
+    if doc_id.count('.') > 0:
+        doc_id = doc_id.split('.')[0]
+    url = 'https://wenku.baidu.com/view/' + doc_id + '.html'
+    return url, doc_id
