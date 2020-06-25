@@ -99,7 +99,7 @@ def list_csdn_accounts(request):
     return JsonResponse(dict(code=requests.codes.ok, msg=msg))
 
 
-@api_view()
+@api_view(['POST'])
 def activate_taobao_user(request):
     uid = request.data.get('uid', None)
     token = request.data.get('token', None)
@@ -109,7 +109,7 @@ def activate_taobao_user(request):
     try:
         user = User.objects.get(uid=uid)
         if user.can_download:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='淘宝用户只能购买一次'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='淘宝用户或者源自用户只能购买一次'))
         user.point += 10
         user.can_download = True
         user.from_taobao = True

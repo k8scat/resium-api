@@ -55,7 +55,7 @@ class Resource(Base):
     # 存储在oss中的key，默认为空
     key = models.CharField(max_length=200, null=True, default=None, verbose_name='资源存储文件')
     # 以 !sep! 分离
-    tags = models.CharField(null=True, default=None, max_length=240, verbose_name='资源标签')
+    tags = models.TextField(null=True, default=None, verbose_name='资源标签')
     # 下载次数
     download_count = models.IntegerField(default=1)
     # 上传资源的用户

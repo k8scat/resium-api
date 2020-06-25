@@ -88,7 +88,8 @@ class CsdnAccountSerializers(serializers.ModelSerializer):
         model = CsdnAccount
         fields = ['id', 'csdn_id', 'update_time', 'is_enabled', 'is_disabled',
                   'valid_count', 'used_count',
-                  'today_download_count', 'need_sms_validate', 'is_cookies_valid']
+                  'today_download_count', 'need_sms_validate', 'is_cookies_valid',
+                  'unit_price']
 
 
 class UploadRecordSerializers(serializers.ModelSerializer):
