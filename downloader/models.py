@@ -124,16 +124,6 @@ class CsdnAccount(Base):
         db_table = 'csdn_account'
 
 
-class PudnAccount(Base):
-    email = models.EmailField(verbose_name='登录邮箱')
-    password = models.EmailField(verbose_name='登录密码')
-    buy_time = models.DateTimeField(verbose_name='账号购买时间')
-    is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
-
-    class Meta:
-        db_table = 'pudn_account'
-
-
 class BaiduAccount(Base):
     email = models.EmailField(verbose_name='联系邮箱')
     cookies = models.TextField(null=True, default=None)
@@ -171,7 +161,7 @@ class QiantuAccount(Base):
 class ResourceComment(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
-    content = models.CharField(max_length=240)
+    content = models.TextField()
 
     class Meta:
         db_table = 'resource_comment'
@@ -205,7 +195,7 @@ class Article(Base):
 class ArticleComment(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
-    content = models.CharField(max_length=240)
+    content = models.TextField()
 
     class Meta:
         db_table = 'article_comment'
@@ -291,14 +281,37 @@ class MpSwiperAd(Base):
         db_table = 'mp_swiper_ad'
 
 
-class SystemInfo(Base):
-    """
-    系统信息
-
-    """
-
-    mp_version = models.CharField(max_length=50, verbose_name='小程序版本')
+class Talk(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    is_delete = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'system_info'
+        db_table = 'talk'
+
+
+class TalkComment(Base):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
+    content = models.TextField()
+
+    class Meta:
+        db_table = 'talk_comment'
+
+
+class TalkImage(Base):
+    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
+    url = models.CharField(max_length=240)
+
+    class Meta:
+        db_table = 'talk_image'
+
+
+class TalkLike(Base):
+    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'talk_like'
+
 

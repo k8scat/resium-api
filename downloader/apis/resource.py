@@ -81,7 +81,7 @@ class BaseResource:
                       recipient_list=[self.user.email],
                       html_message=html_message,
                       fail_silently=False)
-            return requests.codes.ok, '下载成功，请前往邮箱查收！'
+            return requests.codes.ok, url
         except Exception as e:
             ding('资源下载地址邮件发送失败',
                  error=e,
@@ -317,7 +317,7 @@ class CsdnResource(BaseResource):
                                      return_url=True)
 
         if use_email:
-            return self.send_email(download_url)
+            return self.send_email(download_url)  # 这里也是返回status_code, url
 
         if download_url:
             return requests.codes.ok, download_url
@@ -1119,181 +1119,6 @@ class QiantuResource(BaseResource):
             return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
-class PudnResource(BaseResource):
-    def __init__(self, url, user):
-        super().__init__(url, user)
-
-    def parse(self):
-        with requests.get(self.url) as r:
-            if r.status_code == requests.codes.OK:
-                try:
-                    soup = BeautifulSoup(r.text, 'lxml')
-                    title = soup.select('div.item-name')[0].string
-                    desc = soup.select('div.item-intro')[0].contents
-                    logging.info(desc)
-                    desc_len = len(desc)
-                    if desc_len == 1:
-                        desc = desc[0].strip()[5:]
-                    elif desc_len == 3:
-                        desc = desc[0].strip()[5:] + '\n' + desc[2].strip()
-                    else:
-                        ding('[PUDN] 资源描述获取失败，长度有误',
-                             logger=logging.error,
-                             uid=self.user.uid,
-                             resource_url=self.url,
-                             need_email=True)
-                        return requests.codes.server_error, "资源获取失败"
-                    size = soup.select('div.item-info')[0].contents[11][1:]
-                    tags = [tag.string for tag in soup.select('div.item-keyword a')]
-                    self.resource = {
-                        'title': title,
-                        'size': size,
-                        'tags': tags,
-                        'desc': desc,
-                        'point': settings.PUDN_POINT
-                    }
-                    return requests.codes.ok, self.resource
-                except Exception as e:
-                    ding('资源获取失败',
-                         error=e,
-                         logger=logging.error,
-                         uid=self.user.uid,
-                         resource_url=self.url,
-                         need_email=True)
-                    return requests.codes.server_error, "资源获取失败"
-
-    def __download(self):
-        self._before_download()
-
-        status, result = self.parse()
-        if status != requests.codes.ok:
-            return status, result
-
-        point = self.resource['point']
-        if self.user.point < point:
-            return 5000, '积分不足，请进行捐赠支持。'
-
-        try:
-            self.account = PudnAccount.objects.get(is_enabled=True)
-        except PudnAccount.DoesNotExist:
-            return requests.codes.server_error, '[PUDN] 没有可用账号'
-
-        driver = get_driver(self.unique_folder)
-        try:
-            driver.get('http://www.pudn.com/User/login.html')
-            email_input = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][1]/input")
-                )
-            )
-            email_input.send_keys(self.account.email)
-            password_input = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][2]/input")
-                )
-            )
-            password_input.send_keys(self.account.password)
-            code_input = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//form[@id='login-form']/div[@class='form-group'][3]/input")
-                )
-            )
-            code_input.send_keys('abcd')
-            login_button = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//form[@id='login-form']/button")
-                )
-            )
-            login_button.click()
-            try:
-                logout = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@id='navbar']/ul[@class='navbar-user navbar-right']/li[6]/a")
-                    )
-                )
-                if logout.text == '退出':
-                    # 更新用户积分
-                    self.user.point -= point
-                    self.user.used_point += point
-                    self.user.save()
-                    PointRecord(user=self.user, used_point=point,
-                                comment='下载PUDN资源', url=self.url,
-                                point=self.user.point).save()
-
-                    driver.get(self.url)
-                    resource_id = self.url.split('id/')[1].split('.')[0]
-                    driver.get(f'http://www.pudn.com/Download/dl/id/{resource_id}')
-                    download_button = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//a[1]")
-                        )
-                    )
-                    download_button.click()
-
-                    status, result = check_download(self.save_dir)
-                    if status == requests.codes.ok:
-                        self.filename = result['filename']
-                        self.filepath = result['filepath']
-                        return requests.codes.ok, '下载成功'
-                    else:
-                        return status, result
-                else:
-                    ding('[PUDN] 登录失败，退出按钮文字判断出错',
-                         uid=self.user.uid,
-                         download_account_id=self.account.id,
-                         resource_url=self.url,
-                         need_email=True)
-                    return requests.codes.server_error, '下载失败'
-            except TimeoutException as e:
-                ding('[PUDN] 登录失败，退出按钮获取失败',
-                     error=e,
-                     uid=self.user.uid,
-                     download_account_id=self.account.id,
-                     resource_url=self.url,
-                     need_email=True)
-                return requests.codes.server_error, '下载失败'
-
-        except Exception as e:
-            ding('[PUDN] 下载失败',
-                 error=e,
-                 uid=self.user.uid,
-                 download_account_id=self.account.id,
-                 resource_url=self.url,
-                 need_email=True)
-            return requests.codes.server_error, '下载失败'
-        finally:
-            driver.close()
-
-    def get_filepath(self):
-        status, result = self.__download()
-        if status != requests.codes.ok:
-            return status, result
-
-        # 保存资源
-        t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
-                   kwargs={'account_id': self.account.id})
-        t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
-
-    def get_url(self, use_email=False):
-        status, result = self.__download()
-        if status != requests.codes.ok:
-            return status, result
-
-        download_url = save_resource(resource_url=self.url, resource_info=self.resource,
-                                     filepath=self.filepath, filename=self.filename,
-                                     user=self.user, return_url=True,
-                                     account_id=self.account.id)
-        if use_email:
-            return self.send_email(download_url)
-
-        if download_url:
-            return requests.codes.ok, download_url
-        else:
-            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
-
-
 @auth
 @api_view(['POST'])
 def upload(request):
@@ -1515,10 +1340,10 @@ def download(request):
     """
     资源下载
 
-    参数
+    参数:
     url
     t
-
+    point
 
     """
 
@@ -1568,7 +1393,6 @@ def download(request):
                     (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                     (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
                     (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT) or \
-                    (re.match(settings.PATTERN_PUDN, resource_url) and point != settings.PUDN_POINT) or \
                     (re.match(settings.PATTERN_ITEYE, resource_url) and point != settings.ITEYE_POINT):
                 cache.delete(user.uid)
                 return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
@@ -1608,7 +1432,7 @@ def download(request):
                           recipient_list=[user.email],
                           html_message=html_message,
                           fail_silently=False)
-                return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！'))
+                return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！（如果未收到邮件，请检查是否被收入垃圾箱！）', url=url))
             except Exception as e:
                 ding('资源下载地址邮件发送失败',
                      error=e,
@@ -1657,9 +1481,6 @@ def download(request):
     elif re.match(settings.PATTERN_ZHIWANG, resource_url):
         resource = ZhiwangResource(resource_url, user)
 
-    elif re.match(settings.PATTERN_PUDN, resource_url):
-        resource = PudnResource(resource_url, user)
-
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
@@ -1689,7 +1510,7 @@ def download(request):
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
-        return JsonResponse(dict(code=status, msg=result))
+        return JsonResponse(dict(code=status, msg='下载成功，请前往邮箱查收！（如果未收到邮件，请检查是否被收入垃圾箱！）', url=result))
 
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
@@ -1768,7 +1589,7 @@ def oss_download(request):
                       recipient_list=[user.email],
                       html_message=html_message,
                       fail_silently=False)
-            return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！'))
+            return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
         except Exception as e:
             ding('资源下载地址邮件发送失败',
                  error=e,
@@ -1831,9 +1652,6 @@ def parse_resource(request):
 
     elif re.match(settings.PATTERN_QIANTU, resource_url):
         resource = QiantuResource(resource_url, user)
-
-    elif re.match(settings.PATTERN_PUDN, resource_url):
-        resource = PudnResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址有误'))
