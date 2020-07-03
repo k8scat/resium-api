@@ -281,37 +281,4 @@ class MpSwiperAd(Base):
         db_table = 'mp_swiper_ad'
 
 
-class Talk(Base):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = models.TextField()
-    is_delete = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'talk'
-
-
-class TalkComment(Base):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
-    content = models.TextField()
-
-    class Meta:
-        db_table = 'talk_comment'
-
-
-class TalkImage(Base):
-    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
-    url = models.CharField(max_length=240)
-
-    class Meta:
-        db_table = 'talk_image'
-
-
-class TalkLike(Base):
-    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'talk_like'
-
 

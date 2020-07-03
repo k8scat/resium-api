@@ -429,25 +429,13 @@ def set_password(request):
     uid = request.session.get('uid')
     user = User.objects.get(uid=uid)
 
-    new_password = request.data.get('new_password', '')
-    old_password = request.data.get('old_password', '')
-    if not re.match(r'^[a-zA-Z0-9]{6,24}$', new_password):
+    password = request.data.get('password', '')
+    if not re.match(r'^[a-zA-Z0-9]{6,24}$', password):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='密码必须是6到24位字母或数字'))
 
-    if user.password:
-        if check_password(old_password, user.password):
-            if old_password == new_password:
-                return JsonResponse(dict(code=requests.codes.bad_request, msg='新密码不能和旧密码相同'))
-            else:
-                msg = '密码修改成功'
-        else:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='密码不正确'))
-    else:
-        msg = '密码设置成功'
-
-    user.password = make_password(new_password)
+    user.password = make_password(password)
     user.save()
-    return JsonResponse(dict(code=requests.codes.ok, msg=msg))
+    return JsonResponse(dict(code=requests.codes.ok, msg='密码设置成功'))
 
 
 @api_view(['POST'])
