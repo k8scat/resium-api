@@ -1531,8 +1531,6 @@ def oss_download(request):
     cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
 
     t = request.GET.get('t', 'url')
-    if not user.email:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置邮箱'))
 
     resource_id = request.GET.get('id', None)
     if resource_id and resource_id.isnumeric():
@@ -1579,6 +1577,9 @@ def oss_download(request):
     if t == 'url':
         return JsonResponse(dict(code=requests.codes.ok, url=url))
     elif t == 'email':
+        if not user.email:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置邮箱'))
+
         subject = '[源自下载] 资源下载成功'
         html_message = render_to_string('downloader/download_url.html', {'url': url})
         plain_message = strip_tags(html_message)
