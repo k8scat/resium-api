@@ -1590,7 +1590,7 @@ def oss_download(request):
                       recipient_list=[user.email],
                       html_message=html_message,
                       fail_silently=False)
-            return JsonResponse(dict(code=requests.codes.ok, msg='下载成功，请前往邮箱查收！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
+            return JsonResponse(dict(code=requests.codes.ok, url=url, msg='下载成功，请前往邮箱查收！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
         except Exception as e:
             ding('资源下载地址邮件发送失败',
                  error=e,
