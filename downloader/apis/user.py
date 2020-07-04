@@ -454,7 +454,7 @@ def login(request):
         if check_password(password, user.password):
             user.gender = gender
             user.save()
-            token = generate_jwt(uid)
+            token = generate_jwt(user.uid, expire_seconds=0)
             return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))
         else:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='用户ID或密码不正确'))
