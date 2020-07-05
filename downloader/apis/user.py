@@ -433,9 +433,10 @@ def set_password(request):
     if not re.match(r'^[a-zA-Z0-9]{6,24}$', password):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='密码必须是6到24位字母或数字'))
 
+    msg = '密码修改成功' if user.password else '密码设置成功'
     user.password = make_password(password)
     user.save()
-    return JsonResponse(dict(code=requests.codes.ok, msg='密码设置成功'))
+    return JsonResponse(dict(code=requests.codes.ok, msg=msg))
 
 
 @api_view(['POST'])
