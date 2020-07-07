@@ -7,4 +7,5 @@ __pycache__
 upload/*
 !upload/.gitkeep
 *.png
-logs
+logs/*
+!logs/.gitkeep
