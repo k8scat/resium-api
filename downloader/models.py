@@ -63,8 +63,10 @@ class Resource(Base):
     # 是否通过审核 1审核通过 0正在审核 -1已删除
     is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
     file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
+
     wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
     is_docer_vip_doc = models.BooleanField(default=False, verbose_name='是否是稻壳VIP文档')
+
     local_path = models.CharField(max_length=200, default=None, null=True, verbose_name='资源本地保存路径')
 
     class Meta:
@@ -281,4 +283,15 @@ class MpSwiperAd(Base):
         db_table = 'mp_swiper_ad'
 
 
+class MbzjAccount(Base):
+    """
+    http://www.cssmoban.com/
+    """
+
+    is_enabled = models.BooleanField(default=False)
+    user_id = models.CharField(max_length=20, verbose_name='账号ID')
+    secret_key = models.CharField(max_length=100, verbose_name='用于请求接口')
+
+    class Meta:
+        db_table = 'mbzj_account'
 

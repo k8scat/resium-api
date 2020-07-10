@@ -1,7 +1,5 @@
 # Resium
 
-[![CodeFactor](https://www.codefactor.io/repository/github/resium-dev/resium/badge?s=203e0639dd031e8f239a574a23ea782c8ec73523)](https://www.codefactor.io/repository/github/resium-dev/resium)
-
 基础镜像: https://git.ncucoder.com/hsowan/python37-django
 
 OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
@@ -20,6 +18,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 
+* [ ] 模板之家下载
+    http://www.cssmoban.com/
 * [x] 用户是否正在下载状态: 数据库 -> redis
     通过限制用户下载频率来达到用户
 * [x] 集成稻壳模板
@@ -30,12 +30,13 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 重复保存资源的问题
 * [x] 爬取CSDN已下载资源
 * [x] 检查csdn当天下载数
-* [ ] 后端分布式
+* [ ] 后端分布式/集群
+    * [ ] go实现集群部署
 * [ ] 删除 文件碎片
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 * [x] 集成知网
 * [x] 上传奖励
-* [ ] wenku_download_requests
+* [ ] wenku_download_requests使用requests下载百度文库
 * [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
     静态文件映射到本地
@@ -44,7 +45,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] Coverage.py 统计测试覆盖率
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/89/
 * [ ] parse_resource 和 download 重复解析资源信息的问题
-* [ ] 后端接口地址更新的问题
+* [ ] 后端接口地址更新的问题（更换域名）
     后端settings/prod.py
     前端.env.production
     微信公众号 > 基本配置 > 服务器配置 > 服务器地址
@@ -55,10 +56,9 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [x] 资源下载
 * [ ] Use sha512 over md5 to verify file integrity
 * [ ] 下载和保存上传资源是分开的
-* [ ] 毕设、大作业代做
 * [ ] 错误信息：{'code': 400, 'message': '资源不存在', 'data': ''}
     https://download.csdn.net/download/x_uhen/12013989
-* [x] csdn自动上传，使用新账号
+* [x] ~~csdn自动上传，使用新账号（会导致封号）~~
 * [x] 机器人下载
 * [ ] 知网下载补充
     https://kns.cnki.net/KCMS/detail/detail.aspx?dbcode=CMFD&dbname=CMFD2008&filename=2008138848.nh&v=MDAzNDdmWk9SckZ5RGtVcnpCVjEyN0ZySzdGdG5JcDVFYlBJUjhlWDFMdXhZUzdEaDFUM3FUcldNMUZyQ1VSN3E=
@@ -69,13 +69,14 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 代码重构，资源下载的代码多处存在重复
 * [x] 800m资源下载成功后，aliyun oss check失败
     解决方案：不check上传资源的完整性，默认上传OK
-* [ ] 语音验证码
+* [x] 语音验证码，结合qq机器人可以实现
 * [ ] 微云
     https://open.weiyun.com/api/twoa_restful_api.html
 * [ ] 百度文库pdf解析，类似于冰点文库
     http://www.html22.com/doc/
-* [ ] 会员账号自主接入，提现
-* [ ] 源自下载小程序
+* [x] 会员账号自主接入
+    * [ ] 微信自动提现
+* [x] 源自下载小程序
     https://git.cloudevops.cn/hsowan/resium-app
 * [x] 淘宝文库账号接入
     暂时无法解决服务端返回的set-cookie
@@ -87,19 +88,12 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     return {code: 200, downUrl: "url", times: "746", session: "8671203093", msg: "下载成功!", filename: "租房.doc", path: ""}
     
     get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
-* [ ] 管理员上传资源，通过qq分享到群里
-* [x] 废弃手机绑定
-* [ ] 百度文档格式转换 
+* [ ] 百度文档格式转换
     https://converter.baidu.com/?origin=wenkuConverterOther
-* [ ] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
-* [ ] 公众号添加百度文库VIP免费文档下载功能
-* [ ] 第三方登录必然是相当于新账号注册，所以需要添加账号注销（也就是添加字段is_delete），以及已注册账号关联第三方账号
-* [x] github gitee第三方登录
+* [x] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
+    采用滚动加载
+* [x] gitee第三方登录
 * [ ] 前后端同时需要添加正则匹配的问题，考虑仅在后端进行判断
-* [x] 短链接生成
-    https://dwz.cn/
-    https://console.bce.baidu.com/dwz/#/dwz/package/list
-    https://dwz.cn/console/price
 * [ ] 命令行工具 py
     例如: rd -resource url 就可以下载资源
 * [ ] 快速切换到更新服务器
@@ -130,7 +124,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [x] Teambition
     
     修改图片大小的工具：https://www.sojson.com/image/change.html
-* [ ] 下载失败清除用户redis uid
+* [x] 下载失败清除用户redis uid
 * [ ] Django 时间、时区的问题
     DwzRecord.objects.filter(user=user, create_time__day=timezone.now().day).count()
     
@@ -138,13 +132,9 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     timezone.now() UTC
     timezone.datetime.now() UTC+8
 * [ ] csdn账号当天下载量到达时，尝试自动切换
-* [ ] 合作
-    http://dl.ipaycenter.cn/Index.gspx
-* [ ] 积分使用记录表
-* [ ] uid 改成6位数字
-   
-## 支付宝
- 
+* [x] 积分使用记录表
+* [x] uid 改成6位数字
+
 ## CoolQ
 
 https://github.com/richardchien/coolq-http-api

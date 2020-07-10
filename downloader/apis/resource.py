@@ -792,6 +792,142 @@ class DocerResource(BaseResource):
             return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
 
 
+class MbzjResource(BaseResource):
+    def __init__(self, url, user):
+        super().__init__(url, user)
+
+    def parse(self):
+        headers = {
+            'referer': 'http://www.cssmoban.com/',
+            'user-agent': get_random_ua()
+        }
+        with requests.get(self.url, headers=headers) as r:
+            if r.status_code == requests.codes.OK:
+                soup = BeautifulSoup(r.content.decode(), 'lxml')
+                tags = [tag.text for tag in soup.select('div.tags a')[:-1]]
+
+                self.resource = {
+                    'title': soup.select('div.con-right h1')[0].text,
+                    'tags': tags,
+                    'desc': '',
+                    'point': settings.MBZJ_POINT,
+                }
+                return requests.codes.ok, self.resource
+
+            return requests.codes.server_error, '资源获取失败'
+
+    def __download(self):
+        self._before_download()
+
+        status, result = self.parse()
+        if status != requests.codes.ok:
+            return status, result
+
+        point = self.resource['point']
+        if self.user.point < point:
+            return 5000, '积分不足，请进行捐赠支持。'
+
+        try:
+            self.account = MbzjAccount.objects.get(is_enabled=True)
+        except MbzjAccount.DoesNotExist:
+            ding('没有可以使用的模板之家账号',
+                 uid=self.user.uid,
+                 resource_url=self.url,
+                 logger=logging.error,
+                 need_email=True)
+            return requests.codes.server_error, '下载失败'
+
+        # 下载资源
+        resource_id = self.url.split('/')[-1].split('.shtml')[0]
+        download_url = 'http://vip.cssmoban.com/api/Down'
+        data = {
+            'userid': self.account.user_id,
+            'screkey': self.account.secret_key,
+            'mobanid': resource_id
+        }
+        headers = {
+            'referer': self.url,
+            'user-agent': get_random_ua()
+        }
+        # 如果cookies失效，r.json()会抛出异常
+        with requests.get(download_url, headers=headers, data=data) as r:
+            try:
+                resp = r.json()
+                if resp['code'] == 0:
+                    # 更新用户积分
+                    self.user.point -= point
+                    self.user.used_point += point
+                    self.user.save()
+                    PointRecord(user=self.user, used_point=point,
+                                comment='下载模板之家模板', url=self.url,
+                                point=self.user.point).save()
+
+                    download_url = 'http://down.qfpffmp.cn' + resp['data']
+                    self.filename = resp['data'].split('/')[-1]
+                    self.filepath = os.path.join(self.save_dir, self.filename)
+                    with requests.get(download_url, stream=True) as download_resp:
+                        if download_resp.status_code == requests.codes.OK:
+                            with open(self.filepath, 'wb') as f:
+                                for chunk in download_resp.iter_content(chunk_size=1024):
+                                    if chunk:
+                                        f.write(chunk)
+
+                            return requests.codes.ok, '下载成功'
+
+                        ding('[模板之家] 下载失败',
+                             error=download_resp.text,
+                             uid=self.user.uid,
+                             download_account_id=self.account.id,
+                             resource_url=self.url,
+                             logger=logging.error,
+                             need_email=True)
+                        return requests.codes.server_error, '下载失败'
+                else:
+                    ding('[模板之家] 下载失败',
+                         error=r.text,
+                         uid=self.user.uid,
+                         resource_url=self.url,
+                         logger=logging.error,
+                         need_email=True)
+                    return requests.codes.server_error, '下载失败'
+            except JSONDecodeError:
+                ding('[模板之家] Cookies失效',
+                     uid=self.user.uid,
+                     resource_url=self.url,
+                     logger=logging.error,
+                     need_email=True)
+                return requests.codes.server_error, '下载失败'
+
+    def get_filepath(self):
+        status, result = self.__download()
+        if status != requests.codes.ok:
+            return status, result
+
+        # 保存资源
+        t = Thread(target=save_resource,
+                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   kwargs={'account_id': self.account.id})
+        t.start()
+        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+
+    def get_url(self, use_email=False):
+        status, result = self.__download()
+        if status != requests.codes.ok:
+            return status, result
+
+        download_url = save_resource(resource_url=self.url, resource_info=self.resource,
+                                     filename=self.filename, filepath=self.filepath,
+                                     user=self.user, account_id=self.account.id,
+                                     return_url=True)
+        if use_email:
+            return self.send_email(download_url)
+
+        if download_url:
+            return requests.codes.ok, download_url
+        else:
+            return requests.codes.server_error, '下载出了点小问题，请尝试重新下载'
+
+
 class ZhiwangResource(BaseResource):
     def __init__(self, url, user):
         super().__init__(url, user)
@@ -1393,7 +1529,8 @@ def download(request):
                     (re.match(settings.PATTERN_DOCER, resource_url) and point != settings.DOCER_POINT) or \
                     (re.match(settings.PATTERN_ZHIWANG, resource_url) and point != settings.ZHIWANG_POINT) or \
                     (re.match(settings.PATTERN_QIANTU, resource_url) and point != settings.QIANTU_POINT) or \
-                    (re.match(settings.PATTERN_ITEYE, resource_url) and point != settings.ITEYE_POINT):
+                    (re.match(settings.PATTERN_ITEYE, resource_url) and point != settings.ITEYE_POINT) or \
+                    (re.match(settings.PATTERN_MBZJ, resource_url) and point != settings.MBZJ_POINT):
                 cache.delete(user.uid)
                 return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
@@ -1480,6 +1617,9 @@ def download(request):
     # https://kns.cnki.net/KCMS/detail/ 官网
     elif re.match(settings.PATTERN_ZHIWANG, resource_url):
         resource = ZhiwangResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_MBZJ, resource_url):
+        resource = MbzjResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
@@ -1653,6 +1793,9 @@ def parse_resource(request):
 
     elif re.match(settings.PATTERN_QIANTU, resource_url):
         resource = QiantuResource(resource_url, user)
+
+    elif re.match(settings.PATTERN_MBZJ, resource_url):
+        resource = MbzjResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='资源地址有误'))
