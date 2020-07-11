@@ -296,7 +296,7 @@ PATTERN_ZHIWANG = r'^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$'
 PATTERN_QIANTU = r'^(http(s)?://www\.58pic\.com/newpic/)\d+(\.html)$'
 PATTERN_PUDN = r'^http(s)?://www\.pudn\.com/Download/item/id/\d+\.html$'
 PATTERN_ITEYE = r'^http(s)?://www\.iteye\.com/resource/.+-\d+$'
-PATTERN_MBZJ = r'^(http(s)?://www\.cssmoban\.com/cssthemes/\d+\.shtml).*$'
+PATTERN_MBZJ = r'^(http(s)?://www\.cssmoban\.com/(cssthemes|wpthemes)/\d+\.shtml).*$'
 
 COOLQ_API = 'http://49.235.161.70:5700'
 COOLQ_AUTH_HEADERS = {

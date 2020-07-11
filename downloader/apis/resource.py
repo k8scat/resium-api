@@ -804,7 +804,10 @@ class MbzjResource(BaseResource):
         with requests.get(self.url, headers=headers) as r:
             if r.status_code == requests.codes.OK:
                 soup = BeautifulSoup(r.content.decode(), 'lxml')
-                tags = [tag.text for tag in soup.select('div.tags a')[:-1]]
+                if self.url.count('wpthemes') > 0:
+                    tags = [tag.text for tag in soup.select('div.tags a')]
+                else:
+                    tags = [tag.text for tag in soup.select('div.tags a')[:-1]]
 
                 self.resource = {
                     'title': soup.select('div.con-right h1')[0].text,

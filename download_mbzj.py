@@ -33,15 +33,17 @@ def parse_resources(url):
 
         next_page_url = soup.find('td', attrs={'id': 'pagelist'}).select('a.next')[1].get('href')
         if soup.find('td', attrs={'id': 'pagelist'}).select('a.next')[1].get('href') != 'javascript:;':
-            next_page_url = 'http://www.cssmoban.com/cssthemes/' + next_page_url
+            next_page_url = 'http://www.cssmoban.com/wpthemes/' + next_page_url
             parse_resources(next_page_url)
 
 
 if __name__ == '__main__':
     # resources = {}
-    # parse_resources(url='http://www.cssmoban.com/cssthemes/index.shtml')
+    # parse_resources(url='http://www.cssmoban.com/wpthemes/index.shtml')
     # with open('mbzj.json', 'w') as f:
     #     f.write(json.dumps(resources))
+
+
 
     with open('mbzj.json', 'r') as f:
         resources = json.loads(f.read())
