@@ -1502,6 +1502,9 @@ def download(request):
         # 去除资源地址参数
         resource_url = resource_url.split('?')[0]
 
+    if re.match(settings.PATTERN_MBZJ, resource_url):
+        resource_url = re.sub(r'\.shtml.*', '.shtml', resource_url)
+
     doc_id = None
     if re.match(settings.PATTERN_WENKU, resource_url):
         resource_url, doc_id = get_wenku_doc_id(resource_url)
