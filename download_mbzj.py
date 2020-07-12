@@ -43,8 +43,6 @@ if __name__ == '__main__':
     # with open('mbzj.json', 'w') as f:
     #     f.write(json.dumps(resources))
 
-
-
     with open('mbzj.json', 'r') as f:
         resources = json.loads(f.read())
 

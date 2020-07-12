@@ -155,7 +155,10 @@ class CsdnResource(BaseResource):
                          uid=self.user.uid,
                          need_email=True)
                     return requests.codes.server_error, '资源获取失败'
-            return
+            elif r.status_code == requests.codes.not_found:
+                return requests.codes.not_found, '资源不存在，请检查资源地址是否正确'
+            else:
+                return requests.codes.server_error, '资源获取失败'
 
     def __download(self):
         self._before_download()
