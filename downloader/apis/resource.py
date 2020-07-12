@@ -1488,7 +1488,7 @@ def download(request):
     try:
         user = User.objects.get(uid=uid)
         if not user.is_admin and not user.can_download:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='未授权'))
 
         if not user.is_admin:
             cache.set(uid, True, timeout=settings.DOWNLOAD_INTERVAL)
