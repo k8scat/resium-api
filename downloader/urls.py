@@ -23,6 +23,7 @@ urlpatterns = [
     re_path(r'^check_in/?$', user.check_in),
     re_path(r'^set_email/?$', user.set_email),
     path('request_set_email/', user.request_set_email),
+    path('request_email_code/', user.request_email_code),
     path('list_point_records/', user.list_point_records),
     re_path(r'^delete_point_record/?$', user.delete_point_record),
 

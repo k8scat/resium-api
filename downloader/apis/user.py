@@ -504,6 +504,53 @@ def check_in(request):
 
 @auth
 @api_view(['POST'])
+def request_email_code(request):
+    """
+    请求设置邮箱，会向邮箱发送确认链接
+
+    :param request:
+    :return:
+    """
+
+    uid = request.session.get('uid')
+    try:
+        user = User.objects.get(uid=uid)
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    email = request.data.get('email', '')
+    if not re.match(r'.+@.+\..+', email):
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱格式有误'))
+
+    if user.email == email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='新邮箱不能和当前邮箱相同'))
+
+    code = str(uuid.uuid1()).replace('-', '')
+    cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
+    uid = request.session.get('uid')
+    cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
+    subject = '[源自下载] 验证码'
+    html_message = render_to_string('downloader/email_code.html', {'code': code})
+    plain_message = strip_tags(html_message)
+    try:
+        send_mail(subject=subject,
+                  message=plain_message,
+                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  recipient_list=[email],
+                  html_message=html_message,
+                  fail_silently=False)
+        return JsonResponse(dict(code=requests.codes.ok, msg='验证码发送成功！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
+    except Exception as e:
+        ding('邮箱验证码发送失败',
+             error=e,
+             uid=user.uid,
+             logger=logging.error,
+             need_email=True)
+        return JsonResponse(dict(code=requests.codes.server_error, msg='验证码发送失败'))
+
+
+@auth
+@api_view(['POST'])
 def request_set_email(request):
     """
     请求设置邮箱，会向邮箱发送确认链接
