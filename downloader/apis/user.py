@@ -537,7 +537,7 @@ def request_email_code(request):
                   recipient_list=[email],
                   html_message=html_message,
                   fail_silently=False)
-        return JsonResponse(dict(code=requests.codes.ok, msg='验证码发送成功！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
+        return JsonResponse(dict(code=requests.codes.ok, msg='验证码发送成功！'))
     except Exception as e:
         ding('邮箱验证码发送失败',
              error=e,
@@ -548,7 +548,7 @@ def request_email_code(request):
 
 
 @auth
-@api_view()
+@api_view(['POST'])
 def set_email_with_code(request):
     """
     通过验证码设置邮箱
@@ -567,7 +567,7 @@ def set_email_with_code(request):
     if not re.match(r'.+@.+\..+', post_email):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱格式有误'))
 
-    code = request.GET.get('code', None)
+    code = request.data.get('code', None)
     if not code:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
     else:
