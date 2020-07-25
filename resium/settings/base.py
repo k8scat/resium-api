@@ -350,3 +350,5 @@ QINIU_OPEN_DOMAIN = 'cdn.qiniu.ncucoder.com'
 # 基于Flask的CQHTTP后端
 BOT_BASE_API = 'http://139.199.71.19:5000'
 PATTERN_GROUP_ID = 1106917093
+
+ADMIN_UID = ['666666']

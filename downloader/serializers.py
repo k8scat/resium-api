@@ -111,3 +111,9 @@ class MpSwiperAdSerializers(serializers.ModelSerializer):
     class Meta:
         model = MpSwiperAd
         fields = '__all__'
+
+
+class NoticeSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = '__all__'

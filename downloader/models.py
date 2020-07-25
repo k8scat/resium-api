@@ -295,3 +295,14 @@ class MbzjAccount(Base):
     class Meta:
         db_table = 'mbzj_account'
 
+
+class Notice(Base):
+    """
+    公告
+    """
+
+    title = models.CharField(max_length=100, verbose_name="公告标题")
+    content = models.CharField(max_length=240, verbose_name="公告内容")
+
+    class Meta:
+        db_table = 'notice'
