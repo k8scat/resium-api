@@ -994,3 +994,7 @@ def get_wenku_doc_id(url):
         doc_id = doc_id.split('.')[0]
     url = 'https://wenku.baidu.com/view/' + doc_id + '.html'
     return url, doc_id
+
+
+def get_random_int(num=6):
+    return ''.join(random.sample(string.digits, num))

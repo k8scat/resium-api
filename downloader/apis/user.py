@@ -33,7 +33,7 @@ from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
     CheckInRecord, QrCode, PointRecord
 from downloader.serializers import UserSerializers, PointRecordSerializers
-from downloader.utils import ding, send_email, generate_uid, generate_jwt
+from downloader.utils import ding, send_email, generate_uid, generate_jwt, get_random_int
 from resium import codes
 
 
@@ -525,10 +525,8 @@ def request_email_code(request):
     if user.email == email:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='新邮箱不能和当前邮箱相同'))
 
-    code = str(uuid.uuid1()).replace('-', '')
-    cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
-    uid = request.session.get('uid')
-    cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
+    code = get_random_int()
+    cache.set(code, email, timeout=settings.EMAIL_CODE_EXPIRES)
     subject = '[源自下载] 验证码'
     html_message = render_to_string('downloader/email_code.html', {'code': code})
     plain_message = strip_tags(html_message)
@@ -550,10 +548,10 @@ def request_email_code(request):
 
 
 @auth
-@api_view(['POST'])
-def request_set_email(request):
+@api_view()
+def set_email_with_code(request):
     """
-    请求设置邮箱，会向邮箱发送确认链接
+    通过验证码设置邮箱
 
     :param request:
     :return:
@@ -565,68 +563,24 @@ def request_set_email(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
-    email = request.data.get('email', '')
-    if not re.match(r'.+@.+\..+', email):
+    post_email = request.data.get('email', None)
+    if not re.match(r'.+@.+\..+', post_email):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱格式有误'))
 
-    if user.email == email:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='新邮箱不能和当前邮箱相同'))
-
-    code = str(uuid.uuid1()).replace('-', '')
-    cache.set(code, email, timeout=settings.SET_EMAIL_URL_EXPIRES)
-    uid = request.session.get('uid')
-    cache.set(email, uid, timeout=settings.SET_EMAIL_URL_EXPIRES)
-    url = quote(settings.API_BASE_URL + '/set_email/?code=' + code, encoding='utf-8')
-    subject = '[源自下载] 设置邮箱'
-    html_message = render_to_string('downloader/set_email.html', {'url': url})
-    plain_message = strip_tags(html_message)
-    try:
-        send_mail(subject=subject,
-                  message=plain_message,
-                  from_email=settings.DEFAULT_FROM_EMAIL,
-                  recipient_list=[email],
-                  html_message=html_message,
-                  fail_silently=False)
-        return JsonResponse(dict(code=requests.codes.ok, msg='请前往邮箱进行确认！（如果未收到邮件，请检查是否被收入垃圾箱！）'))
-    except Exception as e:
-        ding('设置邮箱邮件发送失败',
-             error=e,
-             uid=user.uid,
-             logger=logging.error,
-             need_email=True)
-        return JsonResponse(dict(code=requests.codes.server_error, msg='邮件发送失败'))
-
-
-@api_view()
-def set_email(request):
-    """
-    用户通过 发送至邮箱的确认链接 确认设置邮箱
-
-    :param request:
-    :return:
-    """
-
-    code = request.GET.get('code', '')
-    if not re.match(r'[0-9a-zA-Z]{32}', code):
-        msg = '验证码错误'
+    code = request.GET.get('code', None)
+    if not code:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
     else:
         email = cache.get(code)
-        uid = cache.get(email)
-        if not email or not uid:
-            msg = '链接已失效'
+        if email != post_email:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱不一致，请重新获取验证码！'))
+        if not email:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
         else:
-            try:
-                user = User.objects.get(uid=uid)
-                user.email = email
-                user.save()
-                cache.delete(code)
-                cache.delete(email)
-                msg = '邮箱设置成功！'
-
-            except User.DoesNotExist:
-                msg = '错误的请求'
-
-    return render(request, 'downloader/msg.html', {'msg': msg})
+            user.email = email
+            user.save()
+            cache.delete(code)
+            return JsonResponse(dict(code=requests.codes.ok, msg='邮箱设置成功'))
 
 
 @auth
