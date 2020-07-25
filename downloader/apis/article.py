@@ -54,8 +54,6 @@ def parse_csdn_article(request):
                 soup = BeautifulSoup(r.text, 'lxml')
                 # VIP文章
                 is_vip = len(soup.select('span.vip_article')) > 0
-                if not is_vip:
-                    return JsonResponse(dict(code=400, msg='非VIP文章'))
                 # 文章标题
                 title = soup.select('h1.title-article')[0].string
                 # 文章作者
@@ -77,7 +75,7 @@ def parse_csdn_article(request):
                 user.used_point += point
                 user.save()
                 PointRecord(user=user, used_point=point,
-                            url=article_url, comment='解析VIP文章',
+                            url=article_url, comment='解析CSDN文章',
                             point=user.point).save()
                 return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
 
