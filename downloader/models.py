@@ -185,7 +185,7 @@ class Article(Base):
     content = models.TextField(verbose_name='文章内容')
     author = models.CharField(max_length=100, verbose_name='文章作者')
     is_vip = models.BooleanField(default=False, verbose_name='VIP文章')
-    desc = models.CharField(max_length=240, verbose_name='文章简介')
+    desc = models.TextField(verbose_name='文章简介')
     tags = models.CharField(max_length=200, verbose_name='文章标签')
     view_count = models.IntegerField(default=0)
     is_original = models.BooleanField(default=False, verbose_name='原创')
