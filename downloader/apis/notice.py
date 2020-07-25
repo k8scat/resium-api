@@ -40,7 +40,7 @@ def update_notice(request):
         if content:
             notice.content = content
         notice.save()
-        return JsonResponse(code=requests.codes.ok, msg='公告更新成功')
+        return JsonResponse(dict(code=requests.codes.ok, msg='公告更新成功'))
 
     except Notice.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg='公告不存在'))
