@@ -537,7 +537,7 @@ def request_email_code(request):
                   recipient_list=[email],
                   html_message=html_message,
                   fail_silently=False)
-        return JsonResponse(dict(code=requests.codes.ok, msg='验证码发送成功！'))
+        return JsonResponse(dict(code=requests.codes.ok, msg='发送成功！'))
     except Exception as e:
         ding('邮箱验证码发送失败',
              error=e,
