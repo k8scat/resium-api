@@ -572,6 +572,8 @@ def set_email_with_code(request):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
     else:
         email = cache.get(code)
+        if not email:
+            return JsonResponse(dict(code=requests.codes.bad_request, msg='无效的验证码'))
         if email != post_email:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱不一致，请重新获取验证码！'))
         if not email:
