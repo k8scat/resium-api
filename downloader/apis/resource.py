@@ -1638,7 +1638,7 @@ def download(request):
         return response
 
     elif t == 'url':
-        status, result = resource.get_url()
+        status, result = resource.get_url(use_email=True) if user.email else resource.get_url()
         if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
