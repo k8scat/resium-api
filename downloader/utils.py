@@ -120,7 +120,7 @@ def get_aliyun_oss_bucket():
     return bucket
 
 
-def aliyun_oss_upload(filepath: str, key: str) -> bool:
+def aliyun_oss_upload(filepath: str, key: str, use_print=False) -> bool:
     """
     阿里云 OSS 上传
 
@@ -130,7 +130,11 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
     :param key: 保存在oss上的文件名
     :return:
     """
-    logging.info('开始上传资源...')
+
+    if use_print:
+        print('正在上传资源...')
+    else:
+        logging.info('开始上传资源...')
     try:
         bucket = get_aliyun_oss_bucket()
 
@@ -159,6 +163,8 @@ def aliyun_oss_upload(filepath: str, key: str) -> bool:
                 parts.append(PartInfo(part_number, result.etag))
                 offset += num_to_upload
                 part_number += 1
+                if use_print:
+                    print(f"上传进度: {offset / total_size * 100}%")
 
             # 完成分片上传。
             # 如果需要在完成分片上传时设置文件访问权限ACL，请在complete_multipart_upload函数中设置相关headers，参考如下。
