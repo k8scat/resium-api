@@ -9,3 +9,4 @@ upload/*
 *.png
 logs/*
 !logs/.gitkeep
+.env
