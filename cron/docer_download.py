@@ -6,7 +6,6 @@
 
 """
 import requests
-from resium.settings.base import ADMIN_TOKEN
 
 
 def url(page, per_page=64):
@@ -40,7 +39,7 @@ if __name__ == '__main__':
                             # 检查资源是否存在
                             docer_url = f'https://www.docer.com/preview/{resource_id}'
                             payload = {
-                                'token': ADMIN_TOKEN,
+                                'token': 'csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ',
                                 'url': docer_url
                             }
                             with requests.post('https://api.resium.cn/check_docer_existed/', data=payload) as check_res:
@@ -62,6 +61,7 @@ if __name__ == '__main__':
                                             requests.post('https://api.resium.cn/download/',
                                                           headers=download_headers,
                                                           data=payload)
+                                            exit(0)
 
                     else:
                         exit(1)
