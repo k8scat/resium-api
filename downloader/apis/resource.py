@@ -1925,6 +1925,17 @@ def get_download_interval(request):
     return JsonResponse(dict(code=requests.codes.ok, download_interval=settings.DOWNLOAD_INTERVAL))
 
 
-@api_view()
-def list_recommend_resources(request):
-    pass
+@api_view(['POST'])
+def check_docer_existed(request):
+    token = request.data.get('token', '')
+    if token != settings.ADMIN_TOKEN:
+        return JsonResponse(dict(code=requests.codes.forbidden))
+
+    docer_url = request.data.get('url', '')
+    if re.match(settings.PATTERN_DOCER, docer_url):
+        if docer_url.count('/webmall') > 0:
+            docer_url = docer_url.replace('/webmall', '')
+        docer_existed = Resource.objects.filter(url=docer_url).count() > 0
+        return JsonResponse(dict(code=requests.codes.ok, existed=docer_existed))
+    else:
+        return JsonResponse(dict(code=requests.codes.bad_request))

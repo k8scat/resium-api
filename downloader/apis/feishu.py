@@ -9,7 +9,7 @@ import logging
 
 from django.conf import settings
 from django.http import JsonResponse
-from django.http.response import HttpResponseBase, HttpResponse
+from django.http.response import HttpResponse
 from rest_framework.decorators import api_view
 
 from downloader import utils
@@ -20,7 +20,6 @@ from downloader.utils import ding
 def bot(request):
     encrypt = request.data.get('encrypt', '')
     data = utils.feishu_verify_decrypt(encrypt)
-    logging.info(type(data))
     if data:
         token = data.get('token', '')
         # 验证事件来源

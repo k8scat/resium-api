@@ -68,7 +68,7 @@ urlpatterns = [
     path('check_resource_existed/', resource.check_resource_existed),
     path('doc_convert/', resource.doc_convert),
     path('get_download_interval/', resource.get_download_interval),
-    re_path(r'^list_recommend_resources/?$', resource.list_recommend_resources),
+    path('check_docer_existed/', resource.check_docer_existed),
 
     # advert
     re_path(r'^get_random_advert/?$', advert.get_random_advert),
