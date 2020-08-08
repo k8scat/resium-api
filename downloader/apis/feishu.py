@@ -18,9 +18,9 @@ from downloader.utils import ding
 
 @api_view(['POST'])
 def bot(request):
-    logging.info(request.data)
     encrypt = request.data.get('encrypt', '')
     data = utils.feishu_verify_decrypt(encrypt)
+    logging.info(data)
     token = data.get('token', '')
     if token == settings.FEISHU_APP_VERIFICATION_TOKEN:
         feishu_request_type = data.get('type', '')
