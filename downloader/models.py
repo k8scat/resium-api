@@ -210,7 +210,7 @@ class DocerPreviewImage(Base):
 
     resource_url = models.CharField(max_length=240, verbose_name='资源地址')
     url = models.CharField(max_length=240, verbose_name='图片地址')
-    alt = models.CharField(max_length=200, verbose_name='图片解释')
+    alt = models.TextField(verbose_name='图片解释')
 
     class Meta:
         db_table = 'docer_preview_image'
