@@ -46,7 +46,6 @@ def bot(request):
                         if access_token:
                             # 机器人 echo 收到的消息
                             utils.feishu_send_message(access_token, event.get('open_id'), 'Got!')
-                            return HttpResponseBase()
         else:
             ding(message='feishu verification token not match, token = ' + token,
                  logger=logging.warning)
