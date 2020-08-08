@@ -40,7 +40,7 @@ from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from wechatpy import WeChatPay
 
-from downloader.models import Resource, DownloadRecord, CsdnAccount, BaiduAccount, User
+from downloader.models import Resource, DownloadRecord, CsdnAccount, User
 
 
 def ding(message, at_mobiles=None, is_at_all=False,
@@ -1004,3 +1004,71 @@ def get_wenku_doc_id(url):
 
 def get_random_int(num=6):
     return ''.join(random.sample(string.digits, num))
+
+
+class AESCipher(object):
+    def __init__(self, key):
+        self.bs = AES.block_size
+        self.key = hashlib.sha256(AESCipher.str_to_bytes(key)).digest()
+
+    @staticmethod
+    def str_to_bytes(data):
+        u_type = type(b"".decode('utf8'))
+        if isinstance(data, u_type):
+            return data.encode('utf8')
+        return data
+
+    @staticmethod
+    def _unpad(s):
+        return s[:-ord(s[len(s) - 1:])]
+
+    def decrypt(self, enc):
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size:]))
+
+    def decrypt_string(self, enc):
+        enc = base64.b64decode(enc)
+        return self.decrypt(enc).decode('utf8')
+
+
+def feishu_verify_decrypt(encrypt):
+    cipher = AESCipher(settings.FEISHU_APP_ENCRYPT_KEY)
+    try:
+        return cipher.decrypt_string(encrypt)
+    except UnicodeDecodeError:
+        return None
+
+
+def feishu_get_tenant_access_token():
+    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/"
+    data = {
+        'app_id': settings.FEISHU_APP_ID,
+        'app_secret': settings.FEISHU_APP_SECRET
+    }
+    with requests.post(url, json=data) as r:
+        if r.status_code == requests.codes.ok:
+            res_data = r.json()
+            if res_data.get('code', -1) == 0:
+                return res_data.get('tenant_access_token', '')
+            else:
+                return None
+        else:
+            return None
+
+
+def feishu_send_message(token, open_id, text):
+    url = "https://open.feishu.cn/open-apis/message/v4/send/"
+    headers = {
+        "Authorization": "Bearer " + token
+    }
+    data = {
+        'open_id': open_id,
+        'msg_type': 'text',
+        'content': {
+            'text': text
+        }
+    }
+    with requests.post(url, json=data, headers=headers) as r:
+        return r.status_code == requests.codes.ok and r.json().get('code', -1) == 0
+

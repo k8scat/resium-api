@@ -1608,6 +1608,8 @@ def download(request):
 
     # 稻壳模板下载
     elif re.match(settings.PATTERN_DOCER, resource_url):
+        if resource_url.count('webmall') > 0:
+            resource_url = resource_url.replace('/webmall', '')
         resource = DocerResource(resource_url, user)
 
     elif re.match(settings.PATTERN_QIANTU, resource_url):
