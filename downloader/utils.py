@@ -1035,7 +1035,8 @@ class AESCipher(object):
 def feishu_verify_decrypt(encrypt):
     cipher = AESCipher(settings.FEISHU_APP_ENCRYPT_KEY)
     try:
-        return cipher.decrypt_string(encrypt)
+        decrypt_string = cipher.decrypt_string(encrypt)
+        return json.loads(decrypt_string)
     except UnicodeDecodeError:
         return None
 
