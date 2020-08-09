@@ -5,6 +5,8 @@
 @date: 2020/8/9
 
 """
+import json
+
 import requests
 
 
@@ -20,21 +22,27 @@ if __name__ == '__main__':
     # 获取稻壳模板的资源列表
     current_page = 1
     while True:
-        with requests.get(url(current_page), headers=headers) as r:
+        print(f'当前页：{current_page}')
+        current_url = url(current_page)
+        with requests.get(current_url, headers=headers) as r:
             if r.status_code == requests.codes.ok:
+                print(f'Get {current_url} {r.status_code}')
                 res = r.json()
                 if res.get('result', '') == 'ok':
                     resources = res['data']['data']
                     resources_len = len(resources)
+                    print(f'稻壳模板列表获取成功：{resources_len}')
                     if resources_len > 0:
                         if resources_len == 64:
                             current_page += 1
                         else:
+                            print(f'没有更多稻壳模板了，当前页：{current_url}')
                             exit(1)
 
                         for resource in resources:
                             resource_id = resource.get('id', '')
                             if not resource_id:
+                                print(f'稻壳模板ID获取失败：{json.dumps(resource)}')
                                 exit(1)
                             # 检查资源是否存在
                             docer_url = f'https://www.docer.com/preview/{resource_id}'
@@ -47,6 +55,7 @@ if __name__ == '__main__':
                                     res = check_res.json()
                                     if res['code'] == requests.codes.ok:
                                         if res['existed']:
+                                            print(f'资源已存在，跳过：{docer_url}')
                                             continue
                                         else:
                                             download_headers = {
@@ -61,7 +70,18 @@ if __name__ == '__main__':
                                             requests.post('https://api.resium.cn/download/',
                                                           headers=download_headers,
                                                           data=payload)
+                                            print(f'下载请求发送成功：{docer_url}')
                                             exit(0)
+                                else:
+                                    print(f'接口请求失败：{check_res.status_code}')
 
                     else:
+                        print(f'当前页没有更多稻壳模板了：{current_url}')
                         exit(1)
+                else:
+                    print(f'稻壳模板列表获取失败：{json.dumps(r.json())}')
+                    exit(1)
+            else:
+                print(f'Get {current_url} failed, code: {r.status_code}')
+                exit(1)
+
