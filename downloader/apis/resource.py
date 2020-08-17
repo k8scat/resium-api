@@ -514,6 +514,14 @@ class WenkuResource(BaseResource):
                     )
                 )
                 download_button.click()
+
+                status, result = check_download(self.save_dir)
+                if status == requests.codes.ok:
+                    self.filename = result['filename']
+                    self.filepath = result['filepath']
+                    return requests.codes.ok, '下载成功'
+                else:
+                    return status, result
             else:
                 try:
                     self.account = BaiduAccount.objects.get(is_enabled=True)
@@ -524,66 +532,65 @@ class WenkuResource(BaseResource):
                          need_email=True)
                     return requests.codes.server_error, '下载失败'
 
-                driver.get('https://www.baidu.com/')
-                # 添加cookies
-                cookies = json.loads(self.account.cookies)
-                for cookie in cookies:
-                    if 'expiry' in cookie:
-                        del cookie['expiry']
-                    driver.add_cookie(cookie)
-                driver.get(self.url)
                 if self.resource['wenku_type'] == 'VIP免费文档':
                     self.account.vip_free_count += 1
                 elif self.resource['wenku_type'] == 'VIP专项文档':
                     self.account.special_doc_count += 1
                 self.account.save()
 
-                # 显示下载对话框的按钮
-                show_download_modal_button = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.reader-download.btn-download'))
-                )
-                show_download_modal_button.click()
-                # 下载按钮
-                try:
-                    # 首次下载
-                    download_button = WebDriverWait(driver, 3).until(
-                        EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, 'div.dialog-inner.tac > a.ui-bz-btn-senior.btn-diaolog-downdoc'))
-                    )
-                    # 取消转存网盘
-                    cancel_wp_upload_check = WebDriverWait(driver, 3).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.wpUpload input'))
-                    )
-                    cancel_wp_upload_check.click()
-                    download_button.click()
-                except TimeoutException:
-                    if self.resource['wenku_type'] != 'VIP专享文档':
-                        # 已转存过此文档
-                        download_button = WebDriverWait(driver, 5).until(
-                            EC.presence_of_element_located((By.ID, 'WkDialogOk'))
-                        )
-                        download_button.click()
-                    else:
-                        ding('百度文库下载失败',
-                             uid=self.user.uid,
-                             download_account_id=self.account.id,
-                             resource_url=self.url,
-                             logger=logging.error,
-                             need_email=True)
-                        return requests.codes.server_error, '下载失败'
+                data = {
+                    "url": self.url
+                }
+                headers = {
+                    "token": settings.DOWNHUB_TOKEN
+                }
+                with requests.post(f'{settings.DOWNHUB_SERVER}/parse/baiduwenku', json=data, headers=headers) as r:
+                    if r.status_code == requests.codes.ok:
+                        download_url = r.json().get('data', None)
+                        if not download_url:
+                            ding('[百度文库] DownHub下载链接获取失败',
+                                 error=r.text,
+                                 logger=logging.error,
+                                 resource_url=self.url,
+                                 need_email=True)
+                            return requests.codes.server_error, '下载失败'
+                        for queryItem in parse.urlparse(parse.unquote(download_url)).query.replace(' ', '').split(';'):
+                            if re.match(r'^filename=".*"$', queryItem):
+                                self.filename = queryItem.split('=')[0]
+                                break
+                            else:
+                                continue
+                        if not self.filename:
+                            ding('[百度文库] 文件名解析失败',
+                                 error=download_url,
+                                 logger=logging.error,
+                                 resource_url=self.url,
+                                 need_email=True)
+                            return requests.codes.server_error, '下载失败'
+                        self.filepath = os.path.join(self.save_dir, self.filename)
+                        with requests.get(download_url, stream=True) as download_resp:
+                            if download_resp.status_code == requests.codes.OK:
+                                with open(self.filepath, 'wb') as f:
+                                    for chunk in download_resp.iter_content(chunk_size=1024):
+                                        if chunk:
+                                            f.write(chunk)
 
-            status, result = check_download(self.save_dir)
-            if status == requests.codes.ok:
-                self.filename = result['filename']
-                self.filepath = result['filepath']
-                return requests.codes.ok, '下载成功'
-            else:
-                return status, result
+                                return requests.codes.ok, '下载成功'
+
+                            ding('[百度文库] 下载失败',
+                                 error=download_resp.text,
+                                 uid=self.user.uid,
+                                 resource_url=self.url,
+                                 logger=logging.error,
+                                 need_email=True)
+                            return requests.codes.server_error, '下载失败'
+                    else:
+                        return requests.codes.server_error, "下载失败"
+
         except Exception as e:
             ding('[百度文库] 下载失败',
                  error=e,
                  uid=self.user.uid,
-                 download_account_id=self.account.id,
                  resource_url=self.url,
                  need_email=True)
             return requests.codes.server_error, '下载失败'
