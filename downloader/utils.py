@@ -568,9 +568,12 @@ def get_random_ua():
     """
 
     ua_list = [
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36',  # Google Chrome
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/82.0.4083.0 Safari/537.36 Edg/82.0.456.0',  # Microsoft Edge
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15',  # Safari
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36',
+        # Google Chrome
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/82.0.4083.0 Safari/537.36 Edg/82.0.456.0',
+        # Microsoft Edge
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15',
+        # Safari
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:74.0) Gecko/20100101 Firefox/74.0'  # Firefox
     ]
     return random.choice(ua_list)
@@ -717,7 +720,7 @@ def get_long_url(url):
             return None
 
 
-def generate_jwt(sub, expire_seconds=3600*24):
+def generate_jwt(sub, expire_seconds=3600 * 24):
     """
     生成token
 
@@ -765,13 +768,22 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
     :return:
     """
 
+    valid_admin_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
+                                                           today_download_count__lt=20,
+                                                           need_sms_validate=False,
+                                                           is_disabled=False,
+                                                           csdn_id__in=settings.ADMIN_CSDN_ACCOUNTS).all()
+
     valid_csdn_accounts = CsdnAccount.objects.filter(is_enabled=False,
                                                      today_download_count__lt=20,
                                                      need_sms_validate=False,
                                                      is_disabled=False).all()
     if len(valid_csdn_accounts) > 0:
-        # 随机开启一个可用账号
-        new_csdn_account = random.choice(valid_csdn_accounts)
+        # 随机开启一个可用账号，并尽可能使用管理员的CSDN账号
+        if len(valid_admin_csdn_accounts) > 0:
+            new_csdn_account = random.choice(valid_admin_csdn_accounts)
+        else:
+            new_csdn_account = random.choice(valid_csdn_accounts)
         new_csdn_account.is_enabled = True
         new_csdn_account.save()
         # 停止账号使用
@@ -857,7 +869,7 @@ class WXBizDataCrypt:
             return None
 
     def _unpad(self, s):
-        return s[:-ord(s[len(s)-1:])]
+        return s[:-ord(s[len(s) - 1:])]
 
 
 def generate_uid(num=6):
@@ -1072,4 +1084,3 @@ def feishu_send_message(token, open_id, text):
     }
     with requests.post(url, json=data, headers=headers) as r:
         return r.status_code == requests.codes.ok and r.json().get('code', -1) == 0
-

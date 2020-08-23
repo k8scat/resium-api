@@ -7,7 +7,6 @@ fi
 
 remotes=$2
 if [ -n "$remotes" ];then
-  echo "remotes: $remotes"
   for remote in ${remotes//,/ };do
     echo "git push $remote $branch"
     git push "$remote" "$branch"
