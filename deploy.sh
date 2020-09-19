@@ -8,7 +8,11 @@ docker rmi resium
 # 更新基础镜像
 docker pull registry.cn-hangzhou.aliyuncs.com/hsowan/python37-django:latest
 # 删除none镜像
-docker rmi `docker images | grep '<none>' | awk '{print $3}'`
+noneImageIDs=$(docker images | grep '<none>' | awk 'NR!=1 {print $3}')
+for imageID in ${noneImageIDs[@]}
+do
+  docker rmi $imageID
+done
 
 # 启动并重新构建镜像
 docker-compose up -d
