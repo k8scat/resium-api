@@ -60,3 +60,5 @@ sentry_sdk.init(
 )
 
 COOKIE_DOMAIN = 'resium.cn'
+
+NGINX_DOWNLOAD_URL = 'https://file.resium.cn'

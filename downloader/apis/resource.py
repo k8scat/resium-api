@@ -306,7 +306,11 @@ class CsdnResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -607,7 +611,11 @@ class WenkuResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -782,7 +790,11 @@ class DocerResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -913,7 +925,11 @@ class MbzjResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -1116,7 +1132,11 @@ class ZhiwangResource(BaseResource):
         t = Thread(target=save_resource,
                    args=(self.url, self.filename, self.filepath, self.resource, self.user))
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -1240,7 +1260,11 @@ class QiantuResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
-        return requests.codes.ok, dict(filepath=self.filepath, filename=self.filename)
+        # 使用Nginx静态资源下载服务
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        return requests.codes.ok, dict(filepath=self.filepath,
+                                       filename=self.filename,
+                                       download_url=download_url)
 
     def get_url(self, use_email=False):
         status, result = self.__download()
@@ -1647,12 +1671,12 @@ def download(request):
         return response
 
     elif t == 'url':
-        status, result = resource.get_url(use_email=True) if user.email else resource.get_url()
+        status, result = resource.get_filepath()
         if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
             return JsonResponse(dict(code=status, msg=result))
 
-        return JsonResponse(dict(code=status, url=result))
+        return JsonResponse(dict(code=status, url=result['download_url']))
 
     elif t == 'email':
         status, result = resource.get_url(use_email=True)
