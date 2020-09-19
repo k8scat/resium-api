@@ -553,7 +553,7 @@ class WenkuResource(BaseResource):
                 headers = {
                     "token": settings.DOWNHUB_TOKEN
                 }
-                with requests.post(f'{settings.DOWNHUB_SERVER}/parse/baiduwenku', json=data, headers=headers) as r:
+                with requests.post(f'{settings.DOWNHUB_SERVER}/parse/wenku', json=data, headers=headers) as r:
                     if r.status_code == requests.codes.ok:
                         download_url = r.json().get('data', None)
                         if not download_url:
