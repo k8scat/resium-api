@@ -310,10 +310,7 @@ def check_download(folder):
 
     # 下载完成后，文件夹下存在唯一的文件
     filename = files[0]
-    # 生成文件的绝对路径
-    filepath = os.path.join(folder, filename)
-
-    return 200, dict(filename=filename, filepath=filepath)
+    return 200, filename
 
 
 def get_driver(folder='', load_images=False):

@@ -49,6 +49,7 @@ class BaseResource:
         self.filename = None
         self.resource = None
         self.account = None
+        self.filename_base64 = None
 
     def _before_download(self):
         """
@@ -241,7 +242,9 @@ class CsdnResource(BaseResource):
                     with requests.get(resp['data'], headers=headers, stream=True) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
                             self.filename = parse.unquote(download_resp.headers['Content-Disposition'].split('"')[1])
-                            self.filepath = os.path.join(self.save_dir, self.filename)
+                            file = os.path.splitext(self.filename)
+                            self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                            self.filepath = os.path.join(self.save_dir, self.filename_base64)
                             # 写入文件，用于线程上传资源到OSS
                             with open(self.filepath, 'wb') as f:
                                 for chunk in download_resp.iter_content(chunk_size=1024):
@@ -307,7 +310,7 @@ class CsdnResource(BaseResource):
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
@@ -521,8 +524,10 @@ class WenkuResource(BaseResource):
 
                 status, result = check_download(self.save_dir)
                 if status == requests.codes.ok:
-                    self.filename = result['filename']
-                    self.filepath = result['filepath']
+                    self.filename = result
+                    file = os.path.splitext(self.filename)
+                    self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                    self.filepath = os.path.join(self.save_dir, self.filename_base64)
                     return requests.codes.ok, '下载成功'
                 else:
                     return status, result
@@ -571,7 +576,9 @@ class WenkuResource(BaseResource):
                                  resource_url=self.url,
                                  need_email=True)
                             return requests.codes.server_error, '下载失败'
-                        self.filepath = os.path.join(self.save_dir, self.filename)
+                        file = os.path.splitext(self.filename)
+                        self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                        self.filepath = os.path.join(self.save_dir, self.filename_base64)
                         with requests.get(download_url, stream=True) as download_resp:
                             if download_resp.status_code == requests.codes.OK:
                                 with open(self.filepath, 'wb') as f:
@@ -612,7 +619,7 @@ class WenkuResource(BaseResource):
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
@@ -746,7 +753,9 @@ class DocerResource(BaseResource):
 
                     download_url = resp['data']
                     self.filename = download_url.split('/')[-1]
-                    self.filepath = os.path.join(self.save_dir, self.filename)
+                    file = os.path.splitext(self.filename)
+                    self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                    self.filepath = os.path.join(self.save_dir, self.filename_base64)
                     with requests.get(download_url, stream=True) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
                             with open(self.filepath, 'wb') as f:
@@ -791,7 +800,7 @@ class DocerResource(BaseResource):
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
@@ -887,7 +896,9 @@ class MbzjResource(BaseResource):
 
                 download_url = 'http://down.qfpffmp.cn' + resp['data']
                 self.filename = resp['data'].split('/')[-1]
-                self.filepath = os.path.join(self.save_dir, self.filename)
+                file = os.path.splitext(self.filename)
+                self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                self.filepath = os.path.join(self.save_dir, self.filename_base64)
                 with requests.get(download_url, stream=True) as download_resp:
                     if download_resp.status_code == requests.codes.OK:
                         with open(self.filepath, 'wb') as f:
@@ -925,7 +936,7 @@ class MbzjResource(BaseResource):
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
@@ -1104,8 +1115,10 @@ class ZhiwangResource(BaseResource):
             finally:
                 status, result = check_download(self.save_dir)
                 if status == requests.codes.ok:
-                    self.filename = result['filename']
-                    self.filepath = result['filepath']
+                    self.filename = result
+                    file = os.path.splitext(self.filename)
+                    self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                    self.filepath = os.path.join(self.save_dir, self.filename_base64)
                     return requests.codes.ok, '下载成功'
                 else:
                     return status, result
@@ -1132,7 +1145,7 @@ class ZhiwangResource(BaseResource):
                    args=(self.url, self.filename, self.filepath, self.resource, self.user))
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
@@ -1214,7 +1227,9 @@ class QiantuResource(BaseResource):
                     soup = BeautifulSoup(r.text, 'lxml')
                     download_url = soup.select('a.clickRecord.autodown')[0]['href']
                     self.filename = download_url.split('?')[0].split('/')[-1]
-                    self.filepath = os.path.join(self.save_dir, self.filename)
+                    file = os.path.splitext(self.filename)
+                    self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                    self.filepath = os.path.join(self.save_dir, self.filename_base64)
                     with requests.get(download_url, stream=True, headers=headers) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
                             self.user.point -= point
@@ -1260,7 +1275,7 @@ class QiantuResource(BaseResource):
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
-        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename}'
+        download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
         return requests.codes.ok, dict(filepath=self.filepath,
                                        filename=self.filename,
                                        download_url=download_url)
