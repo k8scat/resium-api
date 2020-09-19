@@ -565,7 +565,7 @@ class WenkuResource(BaseResource):
                             return requests.codes.server_error, '下载失败'
                         for queryItem in parse.urlparse(parse.unquote(download_url)).query.replace(' ', '').split(';'):
                             if re.match(r'^filename=".*"$', queryItem):
-                                self.filename = queryItem.split('=')[1]
+                                self.filename = queryItem.split('"')[1]
                                 break
                             else:
                                 continue
