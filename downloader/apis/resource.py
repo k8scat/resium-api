@@ -914,7 +914,6 @@ class MbzjResource(BaseResource):
                      need_email=True)
                 return requests.codes.server_error, '下载失败'
 
-
     def get_filepath(self):
         status, result = self.__download()
         if status != requests.codes.ok:
