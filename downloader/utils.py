@@ -39,6 +39,7 @@ from requests.exceptions import InvalidHeader
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from wechatpy import WeChatPay
+from django.core.cache import cache
 
 from downloader.models import Resource, DownloadRecord, CsdnAccount, User
 
@@ -74,9 +75,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
 
     if at_mobiles is None:
         at_mobiles = []
-    headers = {
-        'Content-Type': 'application/json'
-    }
+
     content = f'## {message}\n' \
               f'- 错误信息：{str(error) if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
@@ -88,7 +87,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
     if logger:
         logger(content)
 
-    data = {
+    payload = {
         'msgtype': 'markdown',
         'markdown': {
             'title': message,
@@ -100,7 +99,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
         }
     }
     dingtalk_api = f'https://oapi.dingtalk.com/robot/send?access_token={settings.DINGTALK_ACCESS_TOKEN}&timestamp={timestamp}&sign={sign}'
-    with requests.post(dingtalk_api, data=json.dumps(data), headers=headers, verify=False) as r:
+    with requests.post(dingtalk_api, json=payload, verify=False) as r:
         logging.info(f'ding {r.status_code} {r.text}')
 
     if need_email:
@@ -1062,22 +1061,47 @@ def feishu_get_tenant_access_token():
             if res_data.get('code', -1) == 0:
                 return res_data.get('tenant_access_token', '')
             else:
+                ding(message='[飞书] access_token获取失败',
+                     error=data['msg'],
+                     logger=logging.error,
+                     need_email=True)
                 return None
         else:
+            ding(message=f'[飞书] 接口请求失败, code={r.status_code}',
+                 logger=logging.error,
+                 need_email=True)
             return None
 
 
-def feishu_send_message(token, open_id, text):
+def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=None, root_id=None):
+    if not chat_id and not open_id and not user_id and not email:
+        return
+
     url = "https://open.feishu.cn/open-apis/message/v4/send/"
+    token = cache.get('feishu_token')
+    if not token:
+        token = feishu_get_tenant_access_token()
+        cache.set('feishu_token', token, timeout=settings.DOWNLOAD_INTERVAL)
     headers = {
         "Authorization": "Bearer " + token
     }
     data = {
-        'open_id': open_id,
         'msg_type': 'text',
         'content': {
             'text': text
         }
     }
+    if chat_id:
+        data['chat_id'] = chat_id
+    if open_id:
+        data['open_id'] = open_id
+    if user_id:
+        data['user_id'] = user_id
+    if email:
+        data['email'] = email
+    if root_id:
+        data['root_id'] = root_id
     with requests.post(url, json=data, headers=headers) as r:
-        return r.status_code == requests.codes.ok and r.json().get('code', -1) == 0
+        resp_data = r.json()
+        if resp_data.get('code', -1) != 0:
+            logging.error(resp_data.get('msg', ''))

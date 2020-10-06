@@ -20,7 +20,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 ## Todo
 
-* [ ] 模板之家下载
+* [x] 模板之家下载
     http://www.cssmoban.com/
 * [x] 用户是否正在下载状态: 数据库 -> redis
     通过限制用户下载频率来达到用户
@@ -37,7 +37,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 删除 文件碎片
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 * [x] 集成知网
-* [x] 上传奖励
 * [ ] wenku_download_requests使用requests下载百度文库
 * [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
@@ -80,17 +79,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [ ] 微信自动提现
 * [x] 源自下载小程序
     https://git.cloudevops.cn/hsowan/resium-app
-* [x] 淘宝文库账号接入
-    暂时无法解决服务端返回的set-cookie
-    最终解决方案selenium
-    
-    post http://doc110.com/login.php data {account: "6599362515", password: "9027855"}
-    
-    post http://doc110.com/post.php data {docUrl: "https://wenku.baidu.com/view/62c5485ed1d233d4b14e852458fb770bf68a3b76.html?from=search"}
-    return {code: 200, downUrl: "url", times: "746", session: "8671203093", msg: "下载成功!", filename: "租房.doc", path: ""}
-    
-    get http://doc110.com/get.php return return {code: 200, gold: "746", withdraw: "2", withdraw_accept: true}
-* [ ] 百度文档格式转换
+* [x] 百度文档格式转换
     https://converter.baidu.com/?origin=wenkuConverterOther
 * [x] 限定分页数，不将所有的资源都暴露出来，比如只能展示30页
     采用滚动加载
@@ -133,7 +122,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     https://www.jianshu.com/p/c1dee7d3cbb9
     timezone.now() UTC
     timezone.datetime.now() UTC+8
-* [ ] csdn账号当天下载量到达时，尝试自动切换
+* [x] csdn账号当天下载量到达时，尝试自动切换
 * [x] 积分使用记录表
 * [x] uid 改成6位数字
 

@@ -450,163 +450,56 @@ class WenkuResource(BaseResource):
                     comment='下载百度文库文档', url=self.url,
                     used_point=point).save()
 
-        driver = get_driver(self.unique_folder, load_images=True)
-        try:
-            if self.resource['wenku_type'] == '共享文档':
-                self.account = random.choice(TaobaoWenkuAccount.objects.filter(is_enabled=True).all())
-                driver.get('http://doc110.com/#/login/')
-
-                account_input = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='el-form-item login-item'][1]//input[@class='el-input__inner']")
-                    )
-                )
-                account_input.send_keys(self.account.account)
-                password_input = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='el-form-item login-item'][2]//input[@class='el-input__inner']")
-                    )
-                )
-                password_input.send_keys(self.account.password)
-
-                # 验证码识别
-                # 获取截图
-                driver.get_screenshot_as_file(settings.WENKU_SCREENSHOT_IMAGE)
-                # 手动设置截取位置
-                left = 535
-                upper = 420
-                right = 680
-                lower = 490
-                # 通过Image处理图像
-                img = Image.open(settings.WENKU_SCREENSHOT_IMAGE)
-                # 剪切图片
-                img = img.crop((left, upper, right, lower))
-                # 保存剪切好的图片
-                img.save(settings.WENKU_CODE_IMAGE)
-                code = predict_code(settings.WENKU_CODE_IMAGE)
-                if code:
-                    code_input = WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, "//div[@class='el-form-item login-item'][3]//input[@class='el-input__inner']")
-                        )
-                    )
-                    code_input.send_keys(code)
-                else:
-                    return requests.codes.server_error, '下载失败'
-
-                login_button = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//button[@class='el-button submit_btn el-button--primary']")
-                    )
-                )
-                login_button.click()
-
-                close_dialog_button = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//button[@class='el-message-box__headerbtn']/i")
-                    )
-                )
-                close_dialog_button.click()
-
-                url_input = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='is-accept']/input")
-                    )
-                )
-                url_input.send_keys(self.url)
-
-                download_button = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@class='is-accept']/a[1]")
-                    )
-                )
-                download_button.click()
-
-                status, result = check_download(self.save_dir)
-                if status == requests.codes.ok:
-                    self.filename = result
-                    file = os.path.splitext(self.filename)
-                    self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
-                    self.filepath = os.path.join(self.save_dir, self.filename_base64)
-                    return requests.codes.ok, '下载成功'
-                else:
-                    return status, result
-            else:
-                try:
-                    self.account = BaiduAccount.objects.get(is_enabled=True)
-                except BaiduAccount.DoesNotExist:
-                    ding('没有可用的百度文库账号',
-                         uid=self.user.uid,
+        data = {
+            "url": self.url
+        }
+        headers = {
+            "token": settings.DOWNHUB_TOKEN
+        }
+        with requests.post(f'{settings.DOWNHUB_SERVER}/parse/wenku', json=data, headers=headers) as r:
+            if r.status_code == requests.codes.ok:
+                download_url = r.json().get('data', None)
+                if not download_url:
+                    ding('[百度文库] DownHub下载链接获取失败',
+                         error=r.text,
+                         logger=logging.error,
                          resource_url=self.url,
                          need_email=True)
                     return requests.codes.server_error, '下载失败'
-
-                if self.resource['wenku_type'] == 'VIP免费文档':
-                    self.account.vip_free_count += 1
-                elif self.resource['wenku_type'] == 'VIP专项文档':
-                    self.account.special_doc_count += 1
-                self.account.save()
-
-                data = {
-                    "url": self.url
-                }
-                headers = {
-                    "token": settings.DOWNHUB_TOKEN
-                }
-                with requests.post(f'{settings.DOWNHUB_SERVER}/parse/wenku', json=data, headers=headers) as r:
-                    if r.status_code == requests.codes.ok:
-                        download_url = r.json().get('data', None)
-                        if not download_url:
-                            ding('[百度文库] DownHub下载链接获取失败',
-                                 error=r.text,
-                                 logger=logging.error,
-                                 resource_url=self.url,
-                                 need_email=True)
-                            return requests.codes.server_error, '下载失败'
-                        for queryItem in parse.urlparse(parse.unquote(download_url)).query.replace(' ', '').split(';'):
-                            if re.match(r'^filename=".*"$', queryItem):
-                                self.filename = queryItem.split('"')[1]
-                                break
-                            else:
-                                continue
-                        if not self.filename:
-                            ding('[百度文库] 文件名解析失败',
-                                 error=download_url,
-                                 logger=logging.error,
-                                 resource_url=self.url,
-                                 need_email=True)
-                            return requests.codes.server_error, '下载失败'
-                        file = os.path.splitext(self.filename)
-                        self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
-                        self.filepath = os.path.join(self.save_dir, self.filename_base64)
-                        with requests.get(download_url, stream=True) as download_resp:
-                            if download_resp.status_code == requests.codes.OK:
-                                with open(self.filepath, 'wb') as f:
-                                    for chunk in download_resp.iter_content(chunk_size=1024):
-                                        if chunk:
-                                            f.write(chunk)
-
-                                return requests.codes.ok, '下载成功'
-
-                            ding('[百度文库] 下载失败',
-                                 error=download_resp.text,
-                                 uid=self.user.uid,
-                                 resource_url=self.url,
-                                 logger=logging.error,
-                                 need_email=True)
-                            return requests.codes.server_error, '下载失败'
+                for queryItem in parse.urlparse(parse.unquote(download_url)).query.replace(' ', '').split(';'):
+                    if re.match(r'^filename=".*"$', queryItem):
+                        self.filename = queryItem.split('"')[1]
+                        break
                     else:
-                        return requests.codes.server_error, "下载失败"
+                        continue
+                if not self.filename:
+                    ding('[百度文库] 文件名解析失败',
+                         error=download_url,
+                         logger=logging.error,
+                         resource_url=self.url,
+                         need_email=True)
+                    return requests.codes.server_error, '下载失败'
+                file = os.path.splitext(self.filename)
+                self.filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                self.filepath = os.path.join(self.save_dir, self.filename_base64)
+                with requests.get(download_url, stream=True) as download_resp:
+                    if download_resp.status_code == requests.codes.OK:
+                        with open(self.filepath, 'wb') as f:
+                            for chunk in download_resp.iter_content(chunk_size=1024):
+                                if chunk:
+                                    f.write(chunk)
 
-        except Exception as e:
-            ding('[百度文库] 下载失败',
-                 error=e,
-                 uid=self.user.uid,
-                 resource_url=self.url,
-                 need_email=True)
-            return requests.codes.server_error, '下载失败'
-        finally:
-            driver.close()
+                        return requests.codes.ok, '下载成功'
+
+                    ding('[百度文库] 下载失败',
+                         error=download_resp.text,
+                         uid=self.user.uid,
+                         resource_url=self.url,
+                         logger=logging.error,
+                         need_email=True)
+                    return requests.codes.server_error, '下载失败'
+            else:
+                return requests.codes.server_error, "下载失败"
 
     def get_filepath(self):
         status, result = self.__download()
@@ -615,8 +508,7 @@ class WenkuResource(BaseResource):
 
         # 保存资源
         t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
-                   kwargs={'account_id': self.account.id})
+                   args=(self.url, self.filename, self.filepath, self.resource, self.user))
         t.start()
         # 使用Nginx静态资源下载服务
         download_url = f'{settings.NGINX_DOWNLOAD_URL}/{self.unique_folder}/{self.filename_base64}'
@@ -631,8 +523,7 @@ class WenkuResource(BaseResource):
 
         download_url = save_resource(resource_url=self.url, resource_info=self.resource,
                                      filepath=self.filepath, filename=self.filename,
-                                     user=self.user, return_url=True,
-                                     account_id=self.account.id)
+                                     user=self.user, return_url=True)
         if use_email:
             return self.send_email(download_url)
 

@@ -48,3 +48,5 @@ CACHES = {
 RATELIMIT_BLOCK = False
 
 COOKIE_DOMAIN = 'localhost'
+
+NGINX_DOWNLOAD_URL = 'file:///Users/mac/workspace/pycharm/resium/download'
