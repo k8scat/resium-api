@@ -63,7 +63,7 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = activate_taobao_user(uid)
 
-                        elif re.match(r'^[a-z0-9-]* .*$', msg_content):  # 上传CSDN资源
+                        elif re.match(r'^[a-z0-9-_]* .*$', msg_content):  # 上传CSDN资源
                             utils.feishu_send_message('正在上传...', user_id=settings.FEISHU_USER_ID)
                             parts = msg_content.split(' ')
                             file_key = parts[0]
