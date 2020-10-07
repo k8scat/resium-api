@@ -39,6 +39,8 @@ def bot(request):
             elif feishu_request_type == 'event_callback':
                 # 获取事件内容和类型，并进行相应处理，此处只关注给机器人推送的消息事件
                 event = data.get('event')
+                msg_type = event.get('type', '')
+                logging.info(f'[飞书消息事件] msg_type={msg_type}')
                 if event.get('type', '') == 'message':
                     # 此处只处理 text 类型消息，其他类型消息忽略
                     msg_type = event.get('msg_type', '')
