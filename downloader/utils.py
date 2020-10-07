@@ -359,7 +359,7 @@ def save_resource(resource_url, filename, filepath,
         file_md5 = get_file_md5(f)
 
     # 存储在oss中的key
-    key = str(uuid.uuid1()) + '-' + filename
+    key = str(uuid.uuid1()) + os.path.splitext(filename)[1]
     upload_success = aliyun_oss_upload(filepath, key)
     if not upload_success:
         return None
