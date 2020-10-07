@@ -170,8 +170,18 @@ def upload_csdn(file_key, url):
             if content_disposition:
                 # attachment; filename="wx_camera_1601781948017.mp4"
                 logging.info(f'[feishu] content-disposition={r.headers["content-disposition"]}')
+
+                # 生成资源存放的唯一子目录
                 unique_folder = str(uuid.uuid1())
                 save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+                while True:
+                    if os.path.exists(save_dir):
+                        unique_folder = str(uuid.uuid1())
+                        save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+                    else:
+                        os.mkdir(save_dir)
+                        break
+
                 filename = content_disposition.split('"')[1]
                 file = os.path.splitext(filename)
                 filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
