@@ -72,10 +72,9 @@ def bot(request):
                         else:
                             content = '1. 查看账号: q ID\n' \
                                       '2. 授权账号: ID\n' \
-                                      '3. (取消)禁言: (n)b\n' \
-                                      '4. 查看CSDN账号: qc\n' \
-                                      '5. 淘宝用户授权: tb ID\n' \
-                                      '6. 上传CSDN资源: file_key csdn_url'
+                                      '3. 查看CSDN账号: qc\n' \
+                                      '4. 淘宝用户授权: tb ID\n' \
+                                      '5. 上传CSDN资源: file_key csdn_url'
 
                     elif msg_type == 'file':
                         file_key = event.get('file_key', None)
@@ -184,8 +183,8 @@ def upload_csdn(file_key, url):
 
                 filename = content_disposition.split('"')[1]
                 file = os.path.splitext(filename)
-                filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
-                filepath = os.path.join(save_dir, filename_base64)
+                filename_uuid = str(uuid.uuid1()) + file[1]
+                filepath = os.path.join(save_dir, filename_uuid)
             else:
                 return '上传失败, content-disposition不存在'
 
