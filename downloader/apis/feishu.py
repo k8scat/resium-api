@@ -41,9 +41,7 @@ def bot(request):
                 event = data.get('event')
                 if event.get('type', '') == 'message':
                     msg_type = event.get('msg_type', '')
-                    logging.info(f'[飞书消息事件] msg_type={msg_type}')
                     if msg_type == 'text':
-                        content = ''
                         msg_content = event.get('text_without_at_bot', '')
                         if re.match(r'^qc$', msg_content, flags=re.IGNORECASE):  # 查看CSDN账号
                             content = list_csdn_accounts()
@@ -67,7 +65,13 @@ def bot(request):
                                       '4. 查看CSDN账号: qc\n' \
                                       '5. 淘宝用户授权: tb ID'
 
-                        utils.feishu_send_message(content, user_id=settings.FEISHU_USER_ID)
+                    elif msg_type == 'file':
+                        file_key = event.get('file_key', None)
+                        content = f'file_key={file_key}'
+                    else:
+                        content = f'暂不支持该消息类型: {msg_type}'
+
+                    utils.feishu_send_message(content, user_id=settings.FEISHU_USER_ID)
         else:
             ding(message='feishu verification token not match, token = ' + token,
                  logger=logging.warning)
