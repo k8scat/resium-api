@@ -22,7 +22,7 @@ from downloader import utils
 from downloader.apis.resource import CsdnResource, WenkuResource
 from downloader.models import CsdnAccount, User, Resource
 from downloader.serializers import CsdnAccountSerializers, UserSerializers
-from downloader.utils import ding, save_resource, get_wenku_doc_id
+from downloader.utils import ding, save_resource, get_wenku_doc_id, feishu_get_tenant_access_token
 
 
 @api_view(['POST'])
@@ -160,7 +160,11 @@ def upload_csdn(file_key, url):
     params = {
         'file_key': file_key
     }
-    with requests.get(api, params=params, stream=True) as r:
+    token = feishu_get_tenant_access_token()
+    headers = {
+        "Authorization": "Bearer " + token
+    }
+    with requests.get(api, params=params, headers=headers, stream=True) as r:
         if r.status_code == requests.codes.OK:
             content_disposition = r.headers.get('content-disposition', None)
             if content_disposition:

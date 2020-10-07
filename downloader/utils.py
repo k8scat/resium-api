@@ -1051,27 +1051,40 @@ def feishu_verify_decrypt(encrypt):
 
 
 def feishu_get_tenant_access_token():
-    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/"
-    data = {
-        'app_id': settings.FEISHU_APP_ID,
-        'app_secret': settings.FEISHU_APP_SECRET
-    }
-    with requests.post(url, json=data) as r:
-        if r.status_code == requests.codes.ok:
-            res_data = r.json()
-            if res_data.get('code', -1) == 0:
-                return res_data.get('tenant_access_token', '')
+    token = cache.get('feishu_token')
+    if token:
+        return token
+    else:
+        url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/"
+        payload = {
+            'app_id': settings.FEISHU_APP_ID,
+            'app_secret': settings.FEISHU_APP_SECRET
+        }
+        with requests.post(url, json=payload) as r:
+            if r.status_code == requests.codes.ok:
+                data = r.json()
+                if data.get('code', -1) == 0:
+                    token = data.get('tenant_access_token', None)
+                    if token:
+                        cache.set('feishu_token', token, timeout=settings.DOWNLOAD_INTERVAL)
+                        return token
+                    else:
+                        ding(message='[飞书] access_token获取失败',
+                             error=data['msg'],
+                             logger=logging.error,
+                             need_email=True)
+                        return None
+                else:
+                    ding(message='[飞书] access_token获取失败',
+                         error=data['msg'],
+                         logger=logging.error,
+                         need_email=True)
+                    return None
             else:
-                ding(message='[飞书] access_token获取失败',
-                     error=data['msg'],
+                ding(message=f'[飞书] 接口请求失败, code={r.status_code}, content={str(r.content)}',
                      logger=logging.error,
                      need_email=True)
                 return None
-        else:
-            ding(message=f'[飞书] 接口请求失败, code={r.status_code}',
-                 logger=logging.error,
-                 need_email=True)
-            return None
 
 
 def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=None, root_id=None):
@@ -1079,10 +1092,7 @@ def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=No
         return
 
     url = "https://open.feishu.cn/open-apis/message/v4/send/"
-    token = cache.get('feishu_token')
-    if not token:
-        token = feishu_get_tenant_access_token()
-        cache.set('feishu_token', token, timeout=settings.DOWNLOAD_INTERVAL)
+    token = feishu_get_tenant_access_token()
     headers = {
         "Authorization": "Bearer " + token
     }
