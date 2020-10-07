@@ -1003,6 +1003,7 @@ def qq_send_private_msg(user_id, msg):
 
 
 def get_wenku_doc_id(url):
+    # https://wenku.baidu.com/view/e414fc173a3567ec102de2bd960590c69ec3d8f8.html?fr=search_income2
     doc_id = url.split('?')[0].split('baidu.com/view/')[1]
     if doc_id.count('.') > 0:
         doc_id = doc_id.split('.')[0]

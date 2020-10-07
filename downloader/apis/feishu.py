@@ -5,9 +5,12 @@
 @date: 2020/8/9
 
 """
+import base64
 import json
 import logging
+import os
 import re
+import uuid
 
 import requests
 from django.conf import settings
@@ -16,9 +19,10 @@ from django.http.response import HttpResponse
 from rest_framework.decorators import api_view
 
 from downloader import utils
-from downloader.models import CsdnAccount, User
+from downloader.apis.resource import CsdnResource, WenkuResource
+from downloader.models import CsdnAccount, User, Resource
 from downloader.serializers import CsdnAccountSerializers, UserSerializers
-from downloader.utils import ding
+from downloader.utils import ding, save_resource, get_wenku_doc_id
 
 
 @api_view(['POST'])
@@ -58,16 +62,24 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = activate_taobao_user(uid)
 
+                        elif re.match(r'^file_[a-z0-9-]* .*$', msg_content):  # 上传CSDN资源
+                            parts = msg_content.split(' ')
+                            file_key = parts[0]
+                            url = parts[1]
+                            content = upload_csdn(file_key, url)
+
                         else:
                             content = '1. 查看账号: q ID\n' \
                                       '2. 授权账号: ID\n' \
                                       '3. (取消)禁言: (n)b\n' \
                                       '4. 查看CSDN账号: qc\n' \
-                                      '5. 淘宝用户授权: tb ID'
+                                      '5. 淘宝用户授权: tb ID\n' \
+                                      '6. 上传CSDN资源: file_key csdn_url'
 
                     elif msg_type == 'file':
                         file_key = event.get('file_key', None)
-                        content = f'file_key={file_key}'
+                        content = file_key
+
                     else:
                         content = f'暂不支持该消息类型: {msg_type}'
 
@@ -110,6 +122,7 @@ def set_csdn_sms_validate_code(email, code):
     except User.DoesNotExist:
         return '账号不存在'
 
+
 def list_csdn_accounts():
     """
     获取csdn账号信息
@@ -126,6 +139,7 @@ def list_csdn_accounts():
             content += '\n\n'
     return content
 
+
 def activate_taobao_user(uid):
     try:
         user = User.objects.get(uid=uid)
@@ -139,21 +153,52 @@ def activate_taobao_user(uid):
     except User.DoesNotExist:
         return '用户不存在'
 
-def send_msg(user_id, content):
-    api = 'https://open.feishu.cn/open-apis/message/v4/send/'
-    token = get_access_token()
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
+
+def upload_csdn(file_key, url):
+    api = 'https://open.feishu.cn/open-apis/open-file/v1/get'
+    params = {
+        'file_key': file_key
     }
-    payload = {
-        'user_id': user_id,
-        'msg_type': 'text',
-        'content': {
-            'text': content
-        }
-    }
-    with requests.post(api, json=payload, headers=headers) as r:
-        data = r.json()
-        if data.get('code', '') != 0:
-            logging.error(data['msg'])
+    with requests.get(api, params=params, stream=True) as r:
+        if r.status_code == requests.codes.OK:
+            content_disposition = r.headers.get('content-disposition', None)
+            if content_disposition:
+                # attachment; filename="wx_camera_1601781948017.mp4"
+                logging.info(f'[feishu] content-disposition={r.headers["content-disposition"]}')
+                unique_folder = str(uuid.uuid1())
+                save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+                filename = content_disposition.split('"')[1]
+                file = os.path.splitext(filename)
+                filename_base64 = base64.b64encode(file[0].encode()).decode() + file[1]
+                filepath = os.path.join(save_dir, filename_base64)
+            else:
+                return '上传失败, content-disposition不存在'
+
+            with open(filepath, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+        else:
+            return f'文件获取接口请求失败, code={r.status_code}, content={str(r.content)}'
+
+    user = User.objects.get(uid='666666')
+    if Resource.objects.filter(url=url).count() == 0:
+        if re.match(settings.PATTERN_CSDN, url):
+            resource = CsdnResource(url, user)
+        elif re.match(settings.PATTERN_WENKU, url):
+            url, doc_id = get_wenku_doc_id(url)
+            resource = WenkuResource(url, user, doc_id)
+        else:
+            return f'无效的url, url={url}'
+
+        status, resource_info = resource.parse()
+        if status == requests.codes.ok:
+            result = save_resource(url, filename, filepath, resource_info, user)
+            if result:
+                return '资源上传阿里云OSS成功'
+            else:
+                return '资源上传阿里云OSS失败'
+        else:
+            return resource_info
+    else:
+        return '资源已存在'
