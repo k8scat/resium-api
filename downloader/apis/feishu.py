@@ -70,12 +70,22 @@ def bot(request):
                             url = parts[1]
                             content = upload_csdn(file_key, url)
 
+                        # 检查资源是否存在
+                        elif re.match(settings.PATTERN_CSDN, msg_content):
+                            url = msg_content
+                            if Resource.objects.filter(url=url).count() == 0:
+                                content = '资源不存在'
+                            else:
+                                content = '资源已存在'
+
                         elif re.match(r'^help$', msg_content, flags=re.IGNORECASE):
                             content = '1. 查看账号: q ID\n' \
                                       '2. 授权账号: ID\n' \
                                       '3. 查看CSDN账号: qc\n' \
                                       '4. 淘宝用户授权: tb ID\n' \
-                                      '5. 上传CSDN资源: file_key csdn_url'
+                                      '5. 上传CSDN/WENKU资源: file_key url' \
+                                      '6. 检查CSDN资源是否存在: csdn_url' \
+                                      '7. 帮助说明: help'
                         else:
                             content = None
 
