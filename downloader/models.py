@@ -49,7 +49,7 @@ class Resource(Base):
     # 资源地址可能相同，知网的同一个地址可以下载pdf或者caj
     url = models.CharField(max_length=200, null=True, default=None, verbose_name='资源地址')
     title = models.CharField(max_length=200, verbose_name='资源标题')
-    filename = models.CharField(max_length=240, null=True, default=None, verbose_name='资源文件名')
+    filename = models.TextField(null=True, default=None, verbose_name='资源文件名')
     desc = models.TextField(null=True, default=None, verbose_name='资源描述')
     size = models.IntegerField(verbose_name='资源文件大小')
     # 存储在oss中的key，默认为空
