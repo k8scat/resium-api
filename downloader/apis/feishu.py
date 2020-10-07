@@ -63,7 +63,7 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = activate_taobao_user(uid)
 
-                        elif re.match(r'^file_[a-z0-9-]* .*$', msg_content):  # 上传CSDN资源
+                        elif re.match(r'^[a-z0-9-]* .*$', msg_content):  # 上传CSDN资源
                             parts = msg_content.split(' ')
                             file_key = parts[0]
                             url = parts[1]
