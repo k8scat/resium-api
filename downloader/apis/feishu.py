@@ -208,7 +208,8 @@ def upload_csdn(file_key, url):
 
         status, resource_info = resource.parse()
         if status == requests.codes.ok:
-            result = save_resource(url, filename, filepath, resource_info, user)
+            result = save_resource(url, filename, filepath,
+                                   resource_info, user, return_url=True)
             if result:
                 return '资源上传阿里云OSS成功'
             else:
