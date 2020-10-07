@@ -69,12 +69,14 @@ def bot(request):
                             url = parts[1]
                             content = upload_csdn(file_key, url)
 
-                        else:
+                        elif re.match(r'^help$', msg_content, flags=re.IGNORECASE):
                             content = '1. 查看账号: q ID\n' \
                                       '2. 授权账号: ID\n' \
                                       '3. 查看CSDN账号: qc\n' \
                                       '4. 淘宝用户授权: tb ID\n' \
                                       '5. 上传CSDN资源: file_key csdn_url'
+                        else:
+                            content = None
 
                     elif msg_type == 'file':
                         file_key = event.get('file_key', None)
@@ -83,7 +85,8 @@ def bot(request):
                     else:
                         content = f'暂不支持该消息类型: {msg_type}'
 
-                    utils.feishu_send_message(content, user_id=settings.FEISHU_USER_ID)
+                    if content:
+                        utils.feishu_send_message(content, user_id=settings.FEISHU_USER_ID)
         else:
             ding(message='feishu verification token not match, token = ' + token,
                  logger=logging.warning)
