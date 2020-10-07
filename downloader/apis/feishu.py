@@ -39,11 +39,9 @@ def bot(request):
             elif feishu_request_type == 'event_callback':
                 # 获取事件内容和类型，并进行相应处理，此处只关注给机器人推送的消息事件
                 event = data.get('event')
-                msg_type = event.get('type', '')
-                logging.info(f'[飞书消息事件] msg_type={msg_type}')
                 if event.get('type', '') == 'message':
-                    # 此处只处理 text 类型消息，其他类型消息忽略
                     msg_type = event.get('msg_type', '')
+                    logging.info(f'[飞书消息事件] msg_type={msg_type}')
                     if msg_type == 'text':
                         content = ''
                         msg_content = event.get('text_without_at_bot', '')
@@ -54,7 +52,6 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = get_user(uid)
 
-
                         elif re.match(r'^\d{6}$', msg_content):  # 激活该账号的下载功能
                             uid = msg_content
                             content = set_user_can_download(uid)
@@ -63,7 +60,7 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = activate_taobao_user(uid)
 
-                        elif re.match(r'^help$', msg_content, flags=re.IGNORECASE):
+                        else:
                             content = '1. 查看账号: q ID\n' \
                                       '2. 授权账号: ID\n' \
                                       '3. (取消)禁言: (n)b\n' \
