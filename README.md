@@ -2,7 +2,7 @@
 
 [![构建状态](https://hsowan.coding.net/badges/resium/job/274286/build.svg)](https://hsowan.coding.net/p/resium/ci/job)
 
-基础镜像: https://git.ncucoder.com/hsowan/python37-django
+基础镜像: https://code.aliyun.com/hsowan/python37-django/tree/master
 
 OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
@@ -16,10 +16,11 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
 如果改变，则表示已登录
 
-用户使用小程序进行扫码，带上用户信息、二维码唯一标志、
+用户使用小程序进行扫码，带上用户信息、二维码唯一标志
 
 ## Todo
 
+* [ ] 网站优化
 * [x] 模板之家下载
     http://www.cssmoban.com/
 * [x] 用户是否正在下载状态: 数据库 -> redis
@@ -37,7 +38,8 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [ ] 删除 文件碎片
     * https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/object
 * [x] 集成知网
-* [ ] wenku_download_requests使用requests下载百度文库
+* [x] wenku_download_requests使用requests下载百度文库
+    * [DownHub](https://hsowan.coding.net/p/resium/d/DownHub/git)
 * [x] nginx + gunicorn
     * https://www.zmrenwu.com/courses/hellodjango-blog-tutorial/materials/74/
     静态文件映射到本地
@@ -52,9 +54,6 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     微信公众号 > 基本配置 > 服务器配置 > 服务器地址
 * [x] CSDN VIP文章
     https://blog.csdn.net/yangtao5202/article/details/82228857
-* [ ] 开放API
-    * [x] 短网址
-    * [x] 资源下载
 * [ ] Use sha512 over md5 to verify file integrity
 * [ ] 下载和保存上传资源是分开的
 * [ ] 错误信息：{'code': 400, 'message': '资源不存在', 'data': ''}
@@ -126,18 +125,10 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] 积分使用记录表
 * [x] uid 改成6位数字
 
-## CoolQ
-
-https://github.com/richardchien/coolq-http-api
-
-为 酷Q 提供通过 HTTP 或 WebSocket 接收事件和调用 API 的能力 https://cqhttp.cc/docs/
-
 ## 广告接入
 
 * [阿里云云大使](https://promotion.aliyun.com/ntms/yunparter/personal-center.html#/)
 * [腾讯云推广](https://console.cloud.tencent.com/spread/result)
-
-## 部署流程
 
 ## 资源网站
 
@@ -149,8 +140,8 @@ https://github.com/richardchien/coolq-http-api
 * [免积分](http://www.itziy.com/)
 * [QCSDN](http://qcsdn.com/)
 
-* http://www.dcsdn.com/
-* http://www.catalina.com.cn/
+* [Catalina 1](http://www.dcsdn.com/)
+* [Catalina 2](http://www.catalina.com.cn/)
 
 * [脚本之家电子书下载](https://www.jb51.net/books/)
 
@@ -179,3 +170,8 @@ https://wenku.baidu.com/portal/browse/help#help/24
 ## Django template 复用
 
 https://www.cnblogs.com/zealousness/p/8757144.html
+
+## 飞书接入
+
+* [机器人和消息会话事件](https://open.feishu.cn/document/ukTMukTMukTM/uMTNxYjLzUTM24yM1EjN)
+* [发送文本消息](https://open.feishu.cn/document/ukTMukTMukTM/uUjNz4SN2MjL1YzM)
