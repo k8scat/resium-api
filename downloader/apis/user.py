@@ -11,7 +11,6 @@ import logging
 import random
 import re
 import uuid
-from urllib.parse import quote
 
 import requests
 from django.conf import settings
@@ -19,7 +18,6 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from rest_framework.decorators import api_view
@@ -187,7 +185,7 @@ def wx(request):
                 content = '请发送账号ID进行绑定'
                 reply = TextReply(content=content, message=msg)
 
-            elif msg_content == '签到':
+            elif re.match(r'.*签到.*', msg_content):
                 content = '请前往源自下载小程序进行签到'
                 reply = TextReply(content=content, message=msg)
 
@@ -311,6 +309,8 @@ def mp_login(request):
                     user = User.objects.create(uid=uid, mp_openid=mp_openid,
                                                avatar_url=avatar_url, nickname=nickname,
                                                login_time=login_time)
+                    ding(f'[新用户] uid={uid}',
+                         logger=logging.info)
 
                 token = generate_jwt(user.uid, expire_seconds=0)
                 return JsonResponse(dict(code=requests.codes.ok, token=token, user=UserSerializers(user).data))

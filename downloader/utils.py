@@ -1091,6 +1091,8 @@ def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=No
     if not chat_id and not open_id and not user_id and not email:
         return
 
+    logging.info(f'[feishu] send message: {text}')
+
     url = "https://open.feishu.cn/open-apis/message/v4/send/"
     token = feishu_get_tenant_access_token()
     headers = {
@@ -1115,4 +1117,7 @@ def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=No
     with requests.post(url, json=data, headers=headers) as r:
         resp_data = r.json()
         if resp_data.get('code', -1) != 0:
-            logging.error(resp_data.get('msg', ''))
+            ding('[feishu] 消息发送失败',
+                 error=resp_data.get('msg', ''),
+                 logger=logging.error,
+                 need_email=True)
