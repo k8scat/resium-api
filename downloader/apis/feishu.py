@@ -63,12 +63,18 @@ def bot(request):
                             uid = msg_content.split(' ')[1]
                             content = activate_taobao_user(uid)
 
-                        elif re.match(r'^[a-z0-9-_]* .*$', msg_content):  # 上传CSDN资源
+                        elif re.match(r'^[a-z0-9-_]* .*$', msg_content) or \
+                                re.match(r'^http://cdn\.qiniu\.ncucoder\.com/.* .*', msg_content):  # 上传CSDN资源
                             utils.feishu_send_message('正在上传...', user_id=settings.FEISHU_USER_ID)
                             parts = msg_content.split(' ')
-                            file_key = parts[0]
+                            part1 = parts[0]
                             url = parts[1]
-                            content = upload_csdn(file_key, url)
+                            if re.match(r'^http://cdn\.qiniu\.ncucoder\.com/.*$', part1):
+                                content = upload_csdn(url, download_url=part1)
+                            elif re.match(r'^[a-z0-9-_]*$', part1):
+                                content = upload_csdn(url, feishu_file_key=part1)
+                            else:
+                                content = f'part1 not matched, part1={part1}'
 
                         # 检查资源是否存在
                         elif re.match(settings.PATTERN_CSDN, msg_content):
@@ -168,46 +174,65 @@ def activate_taobao_user(uid):
         return '用户不存在'
 
 
-def upload_csdn(file_key, url):
-    api = 'https://open.feishu.cn/open-apis/open-file/v1/get'
-    params = {
-        'file_key': file_key
-    }
-    token = feishu_get_tenant_access_token()
-    headers = {
-        "Authorization": "Bearer " + token
-    }
-    with requests.get(api, params=params, headers=headers, stream=True) as r:
-        if r.status_code == requests.codes.OK:
-            content_disposition = r.headers.get('content-disposition', None)
-            if content_disposition:
-                # attachment; filename="wx_camera_1601781948017.mp4"
-                logging.info(f'[feishu] content-disposition={r.headers["content-disposition"]}')
+def upload_csdn(url, feishu_file_key=None, download_url=None):
+    if not feishu_file_key and not download_url:
+        return 'upload_csdn needs param feishu_file_key or download_url'
 
-                # 生成资源存放的唯一子目录
-                unique_folder = str(uuid.uuid1())
-                save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-                while True:
-                    if os.path.exists(save_dir):
-                        unique_folder = str(uuid.uuid1())
-                        save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-                    else:
-                        os.mkdir(save_dir)
-                        break
+    # 生成资源存放的唯一子目录
+    unique_folder = str(uuid.uuid1())
+    save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+    while True:
+        if os.path.exists(save_dir):
+            unique_folder = str(uuid.uuid1())
+            save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
+        else:
+            os.mkdir(save_dir)
+            break
 
-                filename = content_disposition.split('"')[1]
+    if feishu_file_key:
+        api = 'https://open.feishu.cn/open-apis/open-file/v1/get'
+        params = {
+            'file_key': feishu_file_key
+        }
+        token = feishu_get_tenant_access_token()
+        headers = {
+            "Authorization": "Bearer " + token
+        }
+        with requests.get(api, params=params, headers=headers, stream=True) as r:
+            if r.status_code == requests.codes.OK:
+                content_disposition = r.headers.get('content-disposition', None)
+                if content_disposition:
+                    # attachment; filename="wx_camera_1601781948017.mp4"
+                    logging.info(f'[feishu] content-disposition={r.headers["content-disposition"]}')
+
+                    filename = content_disposition.split('"')[1]
+                    file = os.path.splitext(filename)
+                    filename_uuid = str(uuid.uuid1()) + file[1]
+                    filepath = os.path.join(save_dir, filename_uuid)
+                else:
+                    return '上传失败, content-disposition不存在'
+
+                with open(filepath, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+            else:
+                return f'文件获取接口请求失败, code={r.status_code}, content={str(r.content)}'
+
+    elif download_url:
+        with requests.get(download_url, stream=True) as r:
+            if r.status_code == requests.codes.OK:
+                filename = download_url.split('/')[-1]
                 file = os.path.splitext(filename)
                 filename_uuid = str(uuid.uuid1()) + file[1]
                 filepath = os.path.join(save_dir, filename_uuid)
-            else:
-                return '上传失败, content-disposition不存在'
 
-            with open(filepath, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-        else:
-            return f'文件获取接口请求失败, code={r.status_code}, content={str(r.content)}'
+                with open(filepath, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+            else:
+                return f'文件获取接口请求失败, code={r.status_code}, content={str(r.content)}'
 
     user = User.objects.get(uid='666666')
     if Resource.objects.filter(url=url).count() == 0:
