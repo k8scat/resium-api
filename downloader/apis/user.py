@@ -308,7 +308,7 @@ def mp_login(request):
                     uid = generate_uid()
                     user = User.objects.create(uid=uid, mp_openid=mp_openid,
                                                avatar_url=avatar_url, nickname=nickname,
-                                               login_time=login_time)
+                                               login_time=login_time, can_download=True)
                     ding(f'[新用户] uid={uid}',
                          logger=logging.info)
 
