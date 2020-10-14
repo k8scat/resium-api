@@ -46,7 +46,7 @@ def bot(request):
                 if event.get('type', '') == 'message':
                     msg_type = event.get('msg_type', '')
                     if msg_type == 'text':
-                        msg_content = event.get('text_without_at_bot', '')
+                        msg_content = event.get('text_without_at_bot', '').strip()
                         logging.info(f'[feishu] msg_content={msg_content}')
                         if re.match(r'^qc$', msg_content, flags=re.IGNORECASE):  # 查看CSDN账号
                             content = list_csdn_accounts()
