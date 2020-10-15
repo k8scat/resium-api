@@ -33,8 +33,6 @@ if __name__ == '__main__':
                         'url': article_url
                     }
                     with requests.post('https://api.resium.cn/check_article_existed/', json=check_payload) as check_res:
-                        print(check_res.status_code)
-                        print(check_res.text)
                         if check_res.status_code == requests.codes.ok:
                             res = check_res.json()
                             if res['code'] == requests.codes.ok:
