@@ -81,6 +81,7 @@ urlpatterns = [
     re_path(r'^list_article_comments/?$', article.list_article_comments),
     path('create_article_comment/', article.create_article_comment),
     re_path(r'^list_recommend_articles/?$', article.list_recommend_articles),
+    path('check_article_existed/', article.check_article_existed),
 
     # oauth
     re_path(r'^oauth/dev/?$', oauth.dev),

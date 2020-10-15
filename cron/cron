@@ -5,3 +5,4 @@
 0 0 * * * python3 /root/resium/cron/reset_csdn_today_download_count.py
 0 0 * * * python3 /root/resium/cron/reset_has_check_in_today.py
 0 */2 * * * python3 /root/resium/cron/docer_download.py
+0 */1 * * * python3 /roo/resium/cron/csdn_vip_blog_parse.py

@@ -176,3 +176,18 @@ def list_article_comments(request):
     except Article.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found,
                                  msg='文章不存在'))
+
+
+@auth
+@api_view(['POST'])
+def check_article_existed(request):
+    token = request.data.get('token', '')
+    if token != settings.ADMIN_TOKEN:
+        return JsonResponse(dict(code=requests.codes.forbidden))
+
+    url = request.data.get('url', '')
+    if not url or not re.match(r'^http(s)?://blog\.csdn\.net/.+/article/details/.+$', url):
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    existed = Article.objects.filter(url=url).count() > 0
+    return JsonResponse(dict(code=requests.codes.ok, existed=existed))
