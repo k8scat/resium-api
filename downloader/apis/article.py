@@ -178,7 +178,6 @@ def list_article_comments(request):
                                  msg='文章不存在'))
 
 
-@auth
 @api_view(['POST'])
 def check_article_existed(request):
     token = request.data.get('token', '')
