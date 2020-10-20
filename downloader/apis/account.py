@@ -17,7 +17,8 @@ from django.http import HttpResponse, JsonResponse
 from downloader.decorators import auth
 from downloader.models import DocerAccount, CsdnAccount, BaiduAccount, QiantuAccount, User
 from downloader.serializers import CsdnAccountSerializers
-from downloader.utils import ding, get_random_ua, get_csdn_valid_count, send_email, get_csdn_id, qq_send_group_msg
+from downloader.utils import ding, get_random_ua, get_csdn_valid_count, send_email, get_csdn_id, \
+    feishu_send_message
 
 
 @api_view(['POST'])
@@ -41,9 +42,7 @@ def check_csdn_cookies(request):
                     content=msg,
                     to_addr=csdn_account.user.email
                 )
-                qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                                  msg=msg,
-                                  at_member=csdn_account.qq)
+                feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
                 ding('[CSDN] Cookies已失效',
                      download_account_id=csdn_account.id)
             else:
@@ -55,9 +54,7 @@ def check_csdn_cookies(request):
                         content=msg,
                         to_addr=csdn_account.user.email
                     )
-                    qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                                      msg=msg,
-                                      at_member=csdn_account.qq)
+                    feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
                 else:
                     if csdn_account.need_sms_validate:
                         msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）需要进行短信验证，为了保障会员账号的可用性，请及时进行短信验证并登录网站（https://resium.cn/user）解除短信验证，如有疑问请联系管理员！【此消息来自定时任务，如已知悉请忽略】'
@@ -66,9 +63,7 @@ def check_csdn_cookies(request):
                             content=msg,
                             to_addr=csdn_account.user.email
                         )
-                        qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                                          msg=msg,
-                                          at_member=csdn_account.qq)
+                        feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
                 ding(f'[CSDN] 剩余下载个数：{valid_count}',
                      download_account_id=csdn_account.id)
                 csdn_account.valid_count = valid_count

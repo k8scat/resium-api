@@ -796,9 +796,7 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
                     content=msg,
                     to_addr=csdn_account.user.email
                 )
-                qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                                  msg=msg,
-                                  at_member=csdn_account.qq)
+                feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
                 ding('[CSDN] Cookies已失效',
                      download_account_id=csdn_account.id)
             elif valid_count == 0:
@@ -809,9 +807,7 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
                     content=msg,
                     to_addr=csdn_account.user.email
                 )
-                qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                                  msg=msg,
-                                  at_member=csdn_account.qq)
+                feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
         else:
             msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）需要进行短信验证，为了保障会员账号的可用性，请及时进行短信验证并登录网站（https://resium.cn/user）解除短信验证，如有疑问请联系管理员！【此消息来自定时任务，如已知悉请忽略】'
             send_email(
@@ -819,9 +815,7 @@ def switch_csdn_account(csdn_account, need_sms_validate=False):
                 content=msg,
                 to_addr=csdn_account.user.email
             )
-            qq_send_group_msg(group_id=settings.PATTERN_GROUP_ID,
-                              msg=msg,
-                              at_member=csdn_account.qq)
+            feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
 
         csdn_account.save()
         ding('[CSDN] 自动切换账号成功',
@@ -968,38 +962,6 @@ def get_we_chat_pay():
         api_key=settings.WX_PAY_API_KEY,
         mch_id=settings.WX_PAY_MCH_ID
     )
-
-
-def qq_send_group_msg(group_id, msg, at_member=None):
-    data = {
-        'token': settings.BOT_TOKEN,
-        'group_id': group_id,
-        'msg': msg
-    }
-    if at_member:
-        data['at_member'] = at_member
-    with requests.post(settings.BOT_BASE_API + '/send_group_msg', json=data) as r:
-        if r.status_code == requests.codes.ok:
-            res_data = r.json()
-            if res_data['code'] != requests.codes.ok:
-                ding(res_data['msg'])
-        else:
-            ding('QQ发送群消息接口请求失败')
-
-
-def qq_send_private_msg(user_id, msg):
-    data = {
-        'token': settings.BOT_TOKEN,
-        'user_id': user_id,
-        'msg': msg
-    }
-    with requests.post(settings.BOT_BASE_API + '/send_private_msg', json=data) as r:
-        if r.status_code == requests.codes.ok:
-            res_data = r.json()
-            if res_data['code'] != requests.codes.ok:
-                ding(res_data['msg'])
-        else:
-            ding('QQ发送私聊消息接口请求失败')
 
 
 def get_wenku_doc_id(url):
