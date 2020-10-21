@@ -77,10 +77,11 @@ def bot(request):
                                 content = f'part1 not matched, part1={part1}'
 
                         # 检查资源是否存在
-                        elif re.match(settings.PATTERN_CSDN, msg_content):
-                            url = msg_content
+                        elif re.match(r'^(http(s)?://download\.csdn\.net/(download|detail)/).+/\d+.*$', msg_content):
+                            url = msg_content.split("?")[0]
                             if Resource.objects.filter(url=url).count() == 0:
                                 content = '资源不存在'
+                                utils.feishu_send_message(url, user_id=settings.FEISHU_USER_ID)
                             else:
                                 content = '资源已存在'
 

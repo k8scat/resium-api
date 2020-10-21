@@ -6,20 +6,9 @@
 
 OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 
-## 扫码登录流程
-
-前端生成一张二维码，就是一个url 含有唯一标志
-
-请求后端接口保存二维码的唯一标志、过期时间以及状态
-
-前端带上唯一标志轮询后端接口，判断该二维码的状态是否改变
-
-如果改变，则表示已登录
-
-用户使用小程序进行扫码，带上用户信息、二维码唯一标志
-
 ## Todo
 
+* [ ] Dev环境
 * [ ] 网站优化
 * [x] 模板之家下载
     http://www.cssmoban.com/
@@ -175,3 +164,10 @@ https://www.cnblogs.com/zealousness/p/8757144.html
 
 * [机器人和消息会话事件](https://open.feishu.cn/document/ukTMukTMukTM/uMTNxYjLzUTM24yM1EjN)
 * [发送文本消息](https://open.feishu.cn/document/ukTMukTMukTM/uUjNz4SN2MjL1YzM)
+
+## 小程序扫码登录流程说明
+
+前端生成一张二维码（就是一个url 含有唯一标志），请求后端接口保存二维码的唯一标志、过期时间以及状态，
+前端带上唯一标志轮询后端接口，判断该二维码的状态是否改变，如果改变，则表示已登录
+
+用户使用小程序进行扫码，带上用户信息、二维码唯一标志，更新数据库二维码的状态
