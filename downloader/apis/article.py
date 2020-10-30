@@ -60,7 +60,9 @@ def parse_csdn_article(request):
                     title = soup.select('h1.title-article')[0].string
                     # 文章作者
                     author = soup.select('a.follow-nickName')[0].string
-                    logging.info(author)
+                    # 作者获取失败: https://blog.csdn.net/jiqiren_dasheng/article/details/103758891
+                    if author is None:
+                        author = 'hsowan'
                     # 文章内容
                     content = str(soup.find('div', attrs={'id': 'content_views'}))
                     css_links = soup.select('div#article_content link')
