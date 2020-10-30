@@ -5,6 +5,7 @@
 @date: 2020/3/20
 
 """
+import logging
 import re
 
 import requests
@@ -51,33 +52,39 @@ def parse_csdn_article(request):
         }
         with requests.get(article_url, headers=headers) as r:
             if r.status_code == requests.codes.OK:
-                soup = BeautifulSoup(r.text, 'lxml')
-                # VIP文章
-                is_vip = len(soup.select('span.vip_article')) > 0
-                # 文章标题
-                title = soup.select('h1.title-article')[0].string
-                # 文章作者
-                author = soup.select('a.follow-nickName')[0].string
-                # 文章内容
-                content = str(soup.find('div', attrs={'id': 'content_views'}))
-                css_links = soup.select('div#article_content link')
-                for css_link in css_links:
-                    content = str(css_link) + content
-                # 文章简介
-                desc = soup.find('meta', attrs={'name': 'description'})['content']
-                tags = settings.TAG_SEP.join(
-                    [tag.string.strip() for tag in soup.select('a.tag-link') if tag.get('data-report-click', None)])
-                article = Article.objects.create(url=article_url, title=title, content=content,
-                                                 author=author, desc=desc, is_vip=is_vip,
-                                                 tags=tags, user=user)
+                try:
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    # VIP文章
+                    is_vip = len(soup.select('span.vip_article')) > 0
+                    # 文章标题
+                    title = soup.select('h1.title-article')[0].string
+                    # 文章作者
+                    author = soup.select('a.follow-nickName')[0].string
+                    # 文章内容
+                    content = str(soup.find('div', attrs={'id': 'content_views'}))
+                    css_links = soup.select('div#article_content link')
+                    for css_link in css_links:
+                        content = str(css_link) + content
+                    # 文章简介
+                    desc = soup.find('meta', attrs={'name': 'description'})['content']
+                    tags = settings.TAG_SEP.join(
+                        [tag.string.strip() for tag in soup.select('a.tag-link') if tag.get('data-report-click', None)])
+                    article = Article.objects.create(url=article_url, title=title, content=content,
+                                                     author=author, desc=desc, is_vip=is_vip,
+                                                     tags=tags, user=user)
 
-                user.point -= point
-                user.used_point += point
-                user.save()
-                PointRecord(user=user, used_point=point,
-                            url=article_url, comment='解析CSDN文章',
-                            point=user.point).save()
-                return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
+                    user.point -= point
+                    user.used_point += point
+                    user.save()
+                    PointRecord(user=user, used_point=point,
+                                url=article_url, comment='解析CSDN文章',
+                                point=user.point).save()
+                    return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
+                except Exception as e:
+                    ding('文章解析失败', error=e,
+                         resource_url=article_url, logger=logging.error,
+                         need_email=True)
+                    return JsonResponse(dict(code=requests.codes.internal_server_error))
 
             ding(f'文章获取失败: {article_url}',
                  need_email=True,
