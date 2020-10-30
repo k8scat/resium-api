@@ -60,6 +60,7 @@ def parse_csdn_article(request):
                     title = soup.select('h1.title-article')[0].string
                     # 文章作者
                     author = soup.select('a.follow-nickName')[0].string
+                    logging.info(author)
                     # 文章内容
                     content = str(soup.find('div', attrs={'id': 'content_views'}))
                     css_links = soup.select('div#article_content link')
@@ -80,8 +81,9 @@ def parse_csdn_article(request):
                                 url=article_url, comment='解析CSDN文章',
                                 point=user.point).save()
                     return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
+
                 except Exception as e:
-                    ding(f'文章解析失败, content={r.text}', error=e,
+                    ding(f'文章解析失败', error=e,
                          resource_url=article_url, logger=logging.error,
                          need_email=True)
                     return JsonResponse(dict(code=requests.codes.internal_server_error))
