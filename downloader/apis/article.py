@@ -40,7 +40,7 @@ def parse_csdn_article(request):
 
     article_url = article_url.split('?')[0]
     try:
-        article = Article.objects.get(url=article_url)
+        article = Article.objects.get(id=7)
         return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
 
     except Article.DoesNotExist:
