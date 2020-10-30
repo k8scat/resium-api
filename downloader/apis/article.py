@@ -81,7 +81,7 @@ def parse_csdn_article(request):
                                 point=user.point).save()
                     return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
                 except Exception as e:
-                    ding('文章解析失败', error=e,
+                    ding(f'文章解析失败, content={r.text}', error=e,
                          resource_url=article_url, logger=logging.error,
                          need_email=True)
                     return JsonResponse(dict(code=requests.codes.internal_server_error))
