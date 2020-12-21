@@ -25,6 +25,7 @@ urlpatterns = [
     path('request_email_code/', user.request_email_code),
     path('list_point_records/', user.list_point_records),
     re_path(r'^delete_point_record/?$', user.delete_point_record),
+    path('video_reward/', user.video_reward),
 
     # service
     path('list_services/', service.list_services),

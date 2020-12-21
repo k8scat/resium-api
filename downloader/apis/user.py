@@ -465,6 +465,22 @@ def login(request):
 
 
 @auth
+@api_view(['POST'])
+def video_reward(request):
+    uid = request.session.get('uid', None)
+    try:
+        user = User.objects.get(uid=uid)
+        points = [1, 2]
+        reward_point = random.choice(points)
+        user.point += reward_point
+        user.save()
+        ding(f'用户 {uid} 通过观看视频获得 {reward_point} 积分')
+        return JsonResponse(dict(code=requests.codes.ok, msg=f'成功领取{reward_point}积分!'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+
+@auth
 @api_view()
 def check_in(request):
     uid = request.session.get('uid', None)
@@ -476,11 +492,11 @@ def check_in(request):
     # if not user.wx_openid:
     #     return JsonResponse(dict(code=requests.codes.bad_request, msg='请先在源自开发者微信公众号中绑定账号'))
 
-    if user.has_check_in_today:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='今日已签到'))
+    # if user.has_check_in_today:
+    #     return JsonResponse(dict(code=requests.codes.bad_request, msg='今日已签到'))
 
     # 随机获取积分
-    points = [3]
+    points = [1]
     point = random.choice(points)
     if point == 0:
         msg = '很可惜与积分擦肩而过!'
