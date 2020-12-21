@@ -473,21 +473,21 @@ def check_in(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
-    if not user.wx_openid:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='请先在源自开发者微信公众号中绑定账号'))
+    # if not user.wx_openid:
+    #     return JsonResponse(dict(code=requests.codes.bad_request, msg='请先在源自开发者微信公众号中绑定账号'))
 
     if user.has_check_in_today:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='今日已签到'))
 
     # 随机获取积分
-    points = [0, 1, 2]
+    points = [3]
     point = random.choice(points)
     if point == 0:
-        msg = '很可惜与积分擦肩而过！'
+        msg = '很可惜与积分擦肩而过!'
     else:
         # 更新用户积分
         user.point += point
-        msg = f'签到成功，恭喜获得{point}积分！'
+        msg = f'签到成功，获得{point}积分！'
         PointRecord(user=user, point=user.point,
                     add_point=point, comment='签到').save()
 
