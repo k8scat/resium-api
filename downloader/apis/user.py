@@ -475,6 +475,8 @@ def video_reward(request):
         reward_point = random.choice(points)
         user.point += reward_point
         user.save()
+        PointRecord(user=user, point=user.point,
+                    add_point=reward_point, comment='看视频').save()
         ding(f'用户 {uid} 通过观看视频获得 {reward_point} 积分')
         return JsonResponse(dict(code=requests.codes.ok, msg=f'成功领取{reward_point}积分!'))
     except User.DoesNotExist:
