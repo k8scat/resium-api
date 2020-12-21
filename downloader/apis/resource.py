@@ -5,13 +5,6 @@
 @date: 2020/2/15
 
 """
-from time import sleep
-
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-
-from downloader.utils import *
-from downloader.models import *
 import json
 import logging
 import os
@@ -21,7 +14,9 @@ import string
 import uuid
 from json import JSONDecodeError
 from threading import Thread
+from time import sleep
 from urllib import parse
+
 import requests
 from PIL import Image
 from bs4 import BeautifulSoup
@@ -29,14 +24,18 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse, FileResponse
-from ratelimit.decorators import ratelimit
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from rest_framework.decorators import api_view
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+
 from downloader.decorators import auth
+from downloader.models import *
 from downloader.serializers import ResourceSerializers, ResourceCommentSerializers, UploadRecordSerializers
+from downloader.utils import *
 
 
 class BaseResource:
@@ -135,7 +134,8 @@ class CsdnResource(BaseResource):
                     soup = BeautifulSoup(r.text, 'lxml')
                     # 版权受限，无法下载
                     # https://download.csdn.net/download/c_baby123/10791185
-                    can_download = len(soup.select('div.resource_box a.copty-btn')) == 0
+                    can_download = len(soup.select('div.resource_box a.copty-btn')) == 0 and \
+                                   len(soup.select('a.c_dl_btn.source_pay_btn')) == 0
                     if can_download:
                         point = settings.CSDN_POINT
                     else:

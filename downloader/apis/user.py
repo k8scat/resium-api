@@ -162,9 +162,7 @@ def wx(request):
         # 关注事件
         if isinstance(msg, SubscribeEvent):
             ding('公众号关注 +1')
-            content = '你好，欢迎关注源自开发者！' \
-                      '\n\n每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享' \
-                      '\n\n在线资源下载平台：https://resium.cn'
+            content = '您好，感谢关注源自开发者！'
             reply = TextReply(content=content, message=msg)
 
         # 取消关注事件
@@ -252,6 +250,9 @@ def wx(request):
                         content = '新账号不存在'
 
                     reply = TextReply(content=content, message=msg)
+            else:
+                content = '未知指令'
+                reply = TextReply(content=content, message=msg)
 
         # 转换成 XML
         ret_xml = reply.render()
