@@ -467,9 +467,9 @@ def login(request):
         return JsonResponse(dict(code=404, msg='用户不存在'))
 
 
-@auth
 @api_view(['POST'])
 @ratelimit(key='ip', rate='1/30s', block=True)
+@auth
 def video_reward(request):
     uid = request.session.get('uid', None)
     try:
