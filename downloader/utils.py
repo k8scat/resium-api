@@ -11,6 +11,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import random
 import re
 import string
@@ -22,24 +23,21 @@ from urllib import parse
 
 import alipay
 import jwt
+import oss2
 import requests
 from Crypto.Cipher import AES
 from bs4 import BeautifulSoup
 from django.conf import settings
-
-import os
-
+from django.core.cache import cache
 from django.core.mail import send_mail
 from oss2 import SizedFileAdapter, determine_part_size
 from oss2.exceptions import NoSuchKey
 from oss2.models import PartInfo
-import oss2
 from qiniu import Auth, put_file, etag
 from requests.exceptions import InvalidHeader
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from wechatpy import WeChatPay
-from django.core.cache import cache
 
 from downloader.models import Resource, DownloadRecord, CsdnAccount, User
 
@@ -1087,6 +1085,6 @@ def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=No
 
 def random_weight(data_map):
     data_list = []
-    for k, num in data_map:
+    for k, num in data_map.items():
         data_list.extend([k] * num)
     return random.choice(data_list)
