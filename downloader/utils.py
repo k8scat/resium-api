@@ -1083,3 +1083,10 @@ def feishu_send_message(text, chat_id=None, open_id=None, user_id=None, email=No
                  error=resp_data.get('msg', ''),
                  logger=logging.error,
                  need_email=True)
+
+
+def random_weight(data_map):
+    data_list = []
+    for k, num in data_map:
+        data_list.extend([k] * num)
+    return random.choice(data_list)

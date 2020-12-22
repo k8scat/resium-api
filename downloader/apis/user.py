@@ -32,7 +32,7 @@ from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
     CheckInRecord, QrCode, PointRecord
 from downloader.serializers import UserSerializers, PointRecordSerializers
-from downloader.utils import ding, send_email, generate_uid, generate_jwt, get_random_int
+from downloader.utils import ding, send_email, generate_uid, generate_jwt, get_random_int, random_weight
 from resium import codes
 
 
@@ -472,8 +472,8 @@ def video_reward(request):
     uid = request.session.get('uid', None)
     try:
         user = User.objects.get(uid=uid)
-        points = [1, 2]
-        reward_point = random.choice(points)
+        points = {1: 70, 2: 30}
+        reward_point = random_weight(points)
         user.point += reward_point
         user.save()
         t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
