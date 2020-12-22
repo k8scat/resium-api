@@ -472,7 +472,7 @@ def video_reward(request):
     uid = request.session.get('uid', None)
     try:
         user = User.objects.get(uid=uid)
-        points = {1: 70, 2: 30}
+        points = {1: 50, 2: 45, 3: 5}
         reward_point = random_weight(points)
         user.point += reward_point
         user.save()
