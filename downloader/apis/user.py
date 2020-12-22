@@ -21,7 +21,6 @@ from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -468,7 +467,6 @@ def login(request):
 
 
 @api_view(['POST'])
-@ratelimit(key='ip', rate='1/30s', block=True)
 @auth
 def video_reward(request):
     uid = request.session.get('uid', None)
