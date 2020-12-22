@@ -480,6 +480,8 @@ def video_reward(request):
         user.save()
         t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         ding(f'用户 {uid} 通过观看视频获得 {reward_point} 积分 at {t}')
+        PointRecord(user=user, point=user.point,
+                    add_point=reward_point, comment='看视频').save()
         return JsonResponse(dict(code=requests.codes.ok, msg=f'成功领取{reward_point}积分!'))
     except User.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
