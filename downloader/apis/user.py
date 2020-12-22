@@ -10,6 +10,7 @@ import hashlib
 import logging
 import random
 import re
+import time
 import uuid
 
 import requests
@@ -20,6 +21,7 @@ from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
@@ -467,6 +469,7 @@ def login(request):
 
 @auth
 @api_view(['POST'])
+@ratelimit(key='ip', rate='1/30s', block=True)
 def video_reward(request):
     uid = request.session.get('uid', None)
     try:
@@ -475,7 +478,8 @@ def video_reward(request):
         reward_point = random.choice(points)
         user.point += reward_point
         user.save()
-        ding(f'用户 {uid} 通过观看视频获得 {reward_point} 积分')
+        t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        ding(f'用户 {uid} 通过观看视频获得 {reward_point} 积分 at {t}')
         return JsonResponse(dict(code=requests.codes.ok, msg=f'成功领取{reward_point}积分!'))
     except User.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
