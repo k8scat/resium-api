@@ -5,23 +5,10 @@
 @date: 2020/2/15
 
 """
-import json
-import logging
-import os
-import random
-import re
-import string
-import uuid
-from json import JSONDecodeError
 from threading import Thread
 from time import sleep
-from urllib import parse
 
-import requests
 from PIL import Image
-from bs4 import BeautifulSoup
-from django.conf import settings
-from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse, FileResponse
 from django.template.loader import render_to_string
@@ -785,7 +772,7 @@ class MbzjResource(BaseResource):
                             comment='下载模板之家模板', url=self.url,
                             point=self.user.point).save()
 
-                download_url = 'http://down.qfpffmp.cn' + resp['data']
+                download_url = resp['data']
                 self.filename = resp['data'].split('/')[-1]
                 file = os.path.splitext(self.filename)
                 self.filename_uuid = str(uuid.uuid1()) + file[1]
