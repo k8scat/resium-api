@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/3.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
-import datetime
 import os
 
 
@@ -201,19 +200,19 @@ WX_PAY_MP_APP_ID = 'wx909d8ff5894ec49b'
 WX_PAY_MP_APP_SECRET = 'fd9533054324c786d7eb7f5dcaf4779e'
 
 # 资源积分
-WENKU_VIP_FREE_DOC_POINT = 1
+WENKU_VIP_FREE_DOC_POINT = 5
 WENKU_SHARE_DOC_POINT = 10
 WENKU_SPECIAL_DOC_POINT = 20
 CSDN_POINT = 10
-DOCER_POINT = 1
+DOCER_POINT = 5
 OSS_RESOURCE_POINT = 5
 ZHIWANG_POINT = 10
 ARTICLE_POINT = 0
-QIANTU_POINT = 1
-DOC_CONVERT_POINT = 1
+QIANTU_POINT = 5
+DOC_CONVERT_POINT = 5
 PUDN_POINT = 10
 ITEYE_POINT = CSDN_POINT
-MBZJ_POINT = 1
+MBZJ_POINT = 5
 
 # http://www.fateadm.com/user_home.php
 # hsowan.me@gmail.com
