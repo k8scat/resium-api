@@ -3,6 +3,18 @@
 BASE_IMAGE="registry.cn-hangzhou.aliyuncs.com/hsowan/python37-django:latest"
 RESIUM_API="resium-api:latest"
 
+start_mysql(){
+	mysql_existed=`docker ps | grep "resium-mysql"`
+	if [ -z "${mysql_existed}" ];then
+		cd mysql
+		echo "docker-compose up -d"
+		docker-compose up -d
+		cd -
+	else
+		echo "resium-mysql existed"
+	fi
+}
+
 start_redis(){
   redis_existed=`docker ps | grep "resium-redis"`
 	if [ -z "${redis_existed}" ];then
@@ -33,5 +45,6 @@ update_resium(){
 	docker-compose up -d
 }
 
+start_mysql
 start_redis
 update_resium
