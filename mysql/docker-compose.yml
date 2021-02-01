@@ -11,6 +11,8 @@ services:
       - MYSQL_ROOT_PASSWORD=Holdon@7868
     networks:
       - global_net
+    ports:
+      - 3306:3306
     restart: always
     container_name: resium-mysql
   

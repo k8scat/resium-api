@@ -3,8 +3,8 @@ services:
   resium:
     build: .
     image: resium-api:latest
-    # ports:
-    #   - 8000:8000
+    ports:
+      - 8000:8000
     networks:
       - resium_net
       - global_net
