@@ -40,7 +40,7 @@ def qq(request):
     """
     http://localhost:8000/oauth/qq?code=F89BF43543BE4C339789F7EF3980C4E4&state=success
 
-    返回示例: https://api.resium.cn/oauth/qq?code=96454463D7D89DB61ACBCE2FCD7E4041&state=success
+    返回示例: https://api.resium.ncucoder.com/oauth/qq?code=96454463D7D89DB61ACBCE2FCD7E4041&state=success
 
     :param request:
     :return:

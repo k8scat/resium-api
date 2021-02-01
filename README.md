@@ -96,7 +96,7 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
     * [ ] sina https://open.weibo.com/developers/identity
     * [x] baidu http://developer.baidu.com/console#app/19467092
     * [ ] dingtalk https://ding-doc.dingtalk.com/doc#/serverapi2/kymkv6
-        https://oapi.dingtalk.com/connect/qrconnect?appid=dingoawbeug9zmphewuplb&response_type=code&scope=snsapi_login&state=success&redirect_uri=https://api.resium.cn/oauth/dingtalk/
+        https://oapi.dingtalk.com/connect/qrconnect?appid=dingoawbeug9zmphewuplb&response_type=code&scope=snsapi_login&state=success&redirect_uri=https://api.resium.ncucoder.com/oauth/dingtalk/
     * [x] Coding
         https://hsowan.coding.net/user/account/setting/applications/1376
         https://help.coding.net/docs/project/open/oauth.html

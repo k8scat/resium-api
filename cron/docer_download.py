@@ -50,7 +50,7 @@ if __name__ == '__main__':
                                 'token': 'csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ',
                                 'url': docer_url
                             }
-                            with requests.post('https://api.resium.cn/check_docer_existed/', data=payload) as check_res:
+                            with requests.post('https://api.resium.ncucoder.com/check_docer_existed/', data=payload) as check_res:
                                 if r.status_code == requests.codes.ok:
                                     res = check_res.json()
                                     if res['code'] == requests.codes.ok:
@@ -66,7 +66,7 @@ if __name__ == '__main__':
                                                 'url': docer_url,
                                                 't': 'url'
                                             }
-                                            requests.post('https://api.resium.cn/download/',
+                                            requests.post('https://api.resium.ncucoder.com/download/',
                                                           headers=download_headers,
                                                           data=payload)
                                             print(f'下载请求发送成功：{docer_url}')

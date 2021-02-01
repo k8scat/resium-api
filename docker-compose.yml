@@ -2,21 +2,22 @@ version: '3.7'
 services:
   resium:
     build: .
-    image: resium
+    image: resium-api:latest
     ports:
       - 8000:8000
     networks:
       - resium_net
+      - global_net
     volumes:
-      - /srv/resium/download:/resium/download
-      - /srv/resium/logs:/resium/logs
+      - /home/hsowan/data/resium/download:/resium/download
+      - /home/hsowan/data/resium/logs:/resium/logs
     restart: always
-    container_name: resium
+    container_name: resium-api
   selenium:
-    image: dockerhub.azk8s.cn/selenium/standalone-chrome
+    image: selenium/standalone-chrome
     volumes:
       - /dev/shm:/dev/shm
-      - /srv/resium/download:/download
+      - /home/hsowan/data/resium/download:/download
     networks:
       - resium_net
 #    ports:
@@ -27,3 +28,5 @@ services:
 
 networks:
   resium_net:
+  global_net:
+    external: true

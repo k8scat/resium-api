@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  redis:
+    image: registry.cn-hangzhou.aliyuncs.com/hsowan/redis-auth:latest
+    volumes:
+      - /hsowan/data/resium/redis/data:/data
+    networks:
+      - global_net
+    restart: always
+    container_name: resium-redis
+  
+networks:
+  global_net:
+    external: true

@@ -32,7 +32,7 @@ if __name__ == '__main__':
                         'token': 'csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ',
                         'url': article_url
                     }
-                    with requests.post('https://api.resium.cn/check_article_existed/', json=check_payload) as check_res:
+                    with requests.post('https://api.resium.ncucoder.com/check_article_existed/', json=check_payload) as check_res:
                         if check_res.status_code == requests.codes.ok:
                             res = check_res.json()
                             if res['code'] == requests.codes.ok:
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                                     parse_payload = {
                                         'url': article_url,
                                     }
-                                    requests.post('https://api.resium.cn/parse_csdn_article/',
+                                    requests.post('https://api.resium.ncucoder.com/parse_csdn_article/',
                                                   headers=parse_headers,
                                                   data=parse_payload)
                                     print(f'文章解析请求发送成功：{article_url}')
