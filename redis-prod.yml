@@ -6,6 +6,8 @@ services:
       - /hsowan/data/resium/redis/data:/data
     networks:
       - global_net
+    ports:
+      - 6379:6379
     restart: always
     container_name: resium-redis
   
