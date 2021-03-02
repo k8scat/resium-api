@@ -6,6 +6,7 @@
 
 """
 import base64
+from downloader.apis.account import list_all_csdn_accounts, use_specified_csdn_account
 import json
 import logging
 import os
@@ -50,6 +51,16 @@ def bot(request):
                         logging.info(f'[feishu] msg_content={msg_content}')
                         if re.match(r'^qc$', msg_content, flags=re.IGNORECASE):  # 查看CSDN账号
                             content = list_csdn_accounts()
+                            
+                        elif re.match(r'^csdn$', msg_content, flags=re.IGNORECASE):  # 查看CSDN账号
+                            content = list_all_csdn_accounts()
+                            
+                        elif re.match(r'^csdn \d+$', msg_content, flags=re.IGNORECASE):  # 使用指定的CSDN账号
+                            csdn_id = msg_content.split(' ')[1]
+                            if use_specified_csdn_account(csdn_id):
+                                content = '使用指定账号成功'
+                            else:
+                                content = '使用指定账号失败'
 
                         elif re.match(r'^q \d{6}$', msg_content, flags=re.IGNORECASE):  # 查看用户信息
                             uid = msg_content.split(' ')[1]

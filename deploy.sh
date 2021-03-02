@@ -50,3 +50,4 @@ update_resium(){
 start_mysql
 start_redis
 update_resium
+crontab cron/cron

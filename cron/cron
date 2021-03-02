@@ -1,8 +1,8 @@
-0 */6 * * * python3 /root/resium/cron/check_csdn_cookies.py
-0 */4 * * * python3 /root/resium/cron/check_baidu_cookies.py
-0 */5 * * * python3 /root/resium/cron/check_docer_cookies.py
-0 */3 * * * python3 /root/resium/cron/check_qiantu_cookies.py
-0 0 * * * python3 /root/resium/cron/reset_csdn_today_download_count.py
-0 0 * * * python3 /root/resium/cron/reset_has_check_in_today.py
-0 */2 * * * python3 /root/resium/cron/docer_download.py
-0 */1 * * * python3 /roo/resium/cron/csdn_vip_blog_parse.py
+0 */6 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/check_csdn_cookies.py >> /tmp/check_csdn_cookies.log 2>&1
+0 */4 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/check_baidu_cookies.py >> /tmp/check_baidu_cookies.log 2>&1
+0 */5 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/check_docer_cookies.py >> /tmp/check_docer_cookies.log 2>&1
+0 */3 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/check_qiantu_cookies.py >> /tmp/check_qiantu_cookies.log 2>&1
+0 0 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/reset_csdn_today_download_count.py >> /tmp/reset_csdn_today_download_count.log 2>&1
+0 0 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/reset_has_check_in_today.py >> /tmp/reset_has_check_in_today.log 2>&1
+# 0 */2 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/docer_download.py >> /tmp/docer_download.log 2>&1
+# 0 */1 * * * python3 /home/hsowan/.jenkins_home/workspace/resium/cron/csdn_vip_blog_parse.py >> /tmp/csdn_vip_blog_parse.log 2>&1
