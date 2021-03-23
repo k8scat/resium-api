@@ -15,7 +15,8 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import time
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 
 
 # Quick-start development settings - unsuitable for production
@@ -156,7 +157,8 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'upload')
 JWT_SECRET = 'yJzb21lIjoicGF5bG9hZCJ'
 
 ALIPAY_APP_ID = '2021001164668010'
-ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(BASE_DIR, 'alipay_app_private_key.pem')
+ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(
+    BASE_DIR, 'alipay_app_private_key.pem')
 ALIPAY_PUBLIC_KEY_FILE = os.path.join(BASE_DIR, 'alipay_public_key.pem')
 ALIPAY_WEB_BASE_URL = 'https://openapi.alipay.com/gateway.do?'
 
@@ -176,13 +178,13 @@ TAG_SEP = '!sep!'
 ADMIN_TOKEN = 'csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ'
 
 SWAGGER_SETTINGS = {
-   'SECURITY_DEFINITIONS': {
-      'Bearer': {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header'
-      }
-   }
+        }
+    }
 }
 
 # 微信公众号
@@ -200,19 +202,19 @@ WX_PAY_MP_APP_ID = 'wx909d8ff5894ec49b'
 WX_PAY_MP_APP_SECRET = 'fd9533054324c786d7eb7f5dcaf4779e'
 
 # 资源积分
-WENKU_VIP_FREE_DOC_POINT = 5
-WENKU_SHARE_DOC_POINT = 10
+WENKU_VIP_FREE_DOC_POINT = 10
+WENKU_SHARE_DOC_POINT = 20
 WENKU_SPECIAL_DOC_POINT = 20
 CSDN_POINT = 10
-DOCER_POINT = 5
-OSS_RESOURCE_POINT = 5
+DOCER_POINT = 10
+OSS_RESOURCE_POINT = 10
 ZHIWANG_POINT = 10
 ARTICLE_POINT = 0
-QIANTU_POINT = 5
-DOC_CONVERT_POINT = 5
+QIANTU_POINT = 10
+DOC_CONVERT_POINT = 10
 PUDN_POINT = 10
 ITEYE_POINT = CSDN_POINT
-MBZJ_POINT = 5
+MBZJ_POINT = 10
 
 # http://www.fateadm.com/user_home.php
 # hsowan.me@gmail.com
@@ -297,18 +299,6 @@ PATTERN_PUDN = r'^http(s)?://www\.pudn\.com/Download/item/id/\d+\.html$'
 PATTERN_ITEYE = r'^http(s)?://www\.iteye\.com/resource/.+-\d+$'
 PATTERN_MBZJ = r'^(http(s)?://www\.cssmoban\.com/(cssthemes|wpthemes)/\d+\.shtml).*$'
 
-COOLQ_API = 'http://49.235.161.70:5700'
-COOLQ_AUTH_HEADERS = {
-    'Authorization': 'Bearer eyJzdWIiOiJoc293YW4ubWVryFUdFEEzz77SBjC3GxleM9uSP'
-}
-
-wenku_accounts = [
-    {
-        'account': '6599362515',
-        'password': '9027855'
-    }
-]
-
 BAIDU_DWZ_TOKEN = '599899227931471a4e48c50e92495880'
 
 # https://connect.qq.com/manage.html#/appinfo/web/101864025
@@ -335,8 +325,10 @@ WX_PAY_APP_ID = WX_APP_ID  # 微信公众号 appid，使用未认证的appid
 WX_PAY_SUB_APP_ID = WX_PAY_MP_APP_ID  # 当前调起支付的小程序APPID
 WX_PAY_MCH_ID = '1593040541'
 WX_PAY_API_KEY = 'N4tcdilXJOLEQkwb9h1KIxYn6BTDvRm7'  # 商户 key
-WX_PAY_MCH_CERT = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_cert.pem')
-WX_PAY_MCH_KEY = os.path.join(os.path.join(BASE_DIR, 'wx_pay_cert'), 'apiclient_key.pem')
+WX_PAY_MCH_CERT = os.path.join(os.path.join(
+    BASE_DIR, 'wx_pay_cert'), 'apiclient_cert.pem')
+WX_PAY_MCH_KEY = os.path.join(os.path.join(
+    BASE_DIR, 'wx_pay_cert'), 'apiclient_key.pem')
 
 CSDN_DOWNLOADING_KEY = 'csdn_downloading'
 CSDN_DOWNLOADING_MAX_TIME = 300
