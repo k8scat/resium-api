@@ -1,14 +1,14 @@
 #!/bin/bash
+set -ex
 
 BASE_IMAGE="registry.cn-hangzhou.aliyuncs.com/hsowan/python37-django:latest"
 RESIUM_API="resium-api:latest"
 
-start_mysql(){
-	mysql_existed=`docker ps | grep "resium-mysql"`
+function start_mysql() {
+	mysql_existed=$(docker ps | grep "resium-mysql")
 	if [ -z "${mysql_existed}" ];then
 		cd mysql
 		docker-compose down
-		echo "docker-compose up -d"
 		docker-compose up -d
 		cd -
 	else
@@ -16,18 +16,17 @@ start_mysql(){
 	fi
 }
 
-start_redis(){
-  redis_existed=`docker ps | grep "resium-redis"`
-	if [ -z "${redis_existed}" ];then
-		docker-compose -f redis-prod.yml down
-		echo "docker-compose -f redis-prod.yml up -d"
-		docker-compose -f redis-prod.yml up -d
+function start_redis() {
+  redis_existed=$(docker ps | grep "resium-redis")
+	if [[ -z "${redis_existed}" ]];then
+		docker-compose -f scripts/redis/prod.yml down
+		docker-compose -f scripts/redis/prod.yml up -d
 	else
 		echo "resium-redis existed"
 	fi
 }
 
-update_resium(){
+function update_resium() {
 	# 停止服务
 	docker-compose down
 	# 删除旧的镜像

@@ -1,4 +1,4 @@
-version: '3.7'
+version: "3.7"
 services:
   resium:
     build: .
@@ -9,19 +9,19 @@ services:
       - resium_net
       - global_net
     volumes:
-      - /home/hsowan/data/resium/download:/resium/download
-      - /home/hsowan/data/resium/logs:/resium/logs
+      - /src/resium/download:/resium/download
+      - /src/resium/logs:/resium/logs
     restart: always
     container_name: resium-api
   selenium:
     image: selenium/standalone-chrome
     volumes:
       - /dev/shm:/dev/shm
-      - /home/hsowan/data/resium/download:/download
+      - /src/resium/download:/download
     networks:
       - resium_net
-#    ports:
-#      - 6666:4444
+    #    ports:
+    #      - 6666:4444
     restart: always
     user: root
     container_name: resium-selenium
