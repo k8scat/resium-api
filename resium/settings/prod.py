@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 @author: hsowan <hsowan.me@gmail.com>
 @date: 2020/1/7
@@ -19,15 +18,14 @@ DATABASES = {
         'NAME': 'resium',
         'USER': 'root',
         'PASSWORD': 'Holdon@7868',
-        'HOST': '172.28.5.254',
+        'HOST': 'resium-db',
         'PORT': '3306',
     }
 }
 
-SELENIUM_SERVER = 'http://selenium:4444/wd/hub'
+SELENIUM_SERVER = 'http://resium-selenium:4444/wd/hub'
 
-FRONTEND_URL = 'https://resium.ncucoder.com'
-
+FRONTEND_URL = 'https://resium.cn'
 API_BASE_URL = 'https://api.resium.ncucoder.com'
 
 WX_PAY_NOTIFY_URL = API_BASE_URL + '/mp_pay_notify/'
@@ -39,10 +37,9 @@ SAMPLE_TAG_COUNT = 50
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://172.28.5.254:6379/1",
+        "LOCATION": "redis://resium-redis:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": "O@RN5#g0.n^o<lU%$CAaw!MDY_P;2txz|]X}4sSdEc(p+3/bZ-",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100, "retry_on_timeout": True}
         }
     }
@@ -59,6 +56,6 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
-COOKIE_DOMAIN = 'resium.ncucoder.com'
+COOKIE_DOMAIN = 'resium.cn'
 
 NGINX_DOWNLOAD_URL = 'https://file.resium.ncucoder.com'

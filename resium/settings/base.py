@@ -300,7 +300,7 @@ BAIDU_DWZ_TOKEN = '599899227931471a4e48c50e92495880'
 # https://connect.qq.com/manage.html#/appinfo/web/101864025
 QQ_CLIENT_ID = '101864025'
 QQ_CLIENT_SECRET = 'be9503e910cd150287453f0a0bcce9bc'
-QQ_REDIRECT_URI = 'https://api.resium.cn/oauth/qq'
+QQ_REDIRECT_URI = 'https://api.resium.ncucoder.com/oauth/qq'
 
 # https://github.com/settings/applications/1269223
 GITHUB_CLIENT_ID = 'd91f5182093a379e63b7'
@@ -309,7 +309,7 @@ GITHUB_CLIENT_SECRET = '4ada14d10f0af0c77e7ea50e34f73fe29a26ce2a'
 # https://gitee.com/api/v5/oauth_doc#/
 GITEE_CLIENT_ID = '77b39c9e80ef1a308c1f684c954b20f6b0820f84a0624490e9741c44ba8e30f4'
 GITEE_CLIENT_SECRET = 'e4f814cff8d0a9684a9daac4b1c0c5e8d7f8775f9706cda1b5ecd3ec03006903'
-GITEE_REDIRECT_URI = 'https://api.resium.cn/oauth/gitee/'
+GITEE_REDIRECT_URI = 'https://api.resium.ncucoder.com/oauth/gitee/'
 
 # OAuth重定向时的cookie键
 JWT_COOKIE_KEY = 'token'
@@ -344,7 +344,7 @@ FEISHU_APP_ENCRYPT_KEY = 'n5z0Rp2yeLMOdwwWpkgqXfjtiIuUneMf'
 FEISHU_USER_ID = '819d28c8'
 FEISHU_TOKEN_INTERVAL = 3600
 
-DOWNHUB_SERVER = 'http://downhub:8080'
+DOWNHUB_SERVER = 'http://resium-downhub:8080'
 DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'
 
 ADMIN_CSDN_ACCOUNTS = ['65634914', '79337844']
