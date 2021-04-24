@@ -1,12 +1,5 @@
 .vscode
 .idea
-download/*
-!download/.gitkeep
 __pycache__
 .venv
-upload/*
-!upload/.gitkeep
-*.png
-logs/*
-!logs/.gitkeep
 .env

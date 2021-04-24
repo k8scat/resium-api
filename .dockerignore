@@ -3,8 +3,6 @@ migrate
 baidu_manual_login.py
 manual_upload_resource.py
 process.py
-redis-dev.yml
-requirements.txt
 selenium-dev.yml
 start-dev.sh
 wenku_download.py
@@ -20,3 +18,4 @@ csdn_auto_login.py
 .gitignore
 .dockerignore
 cron
+.editorconfig

@@ -18,7 +18,6 @@ import time
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
@@ -287,9 +286,6 @@ LOGGING = {
     },
 }
 
-# 机器人和后端通信的唯一凭证，直接放在post的data中，key是token
-BOT_TOKEN = 'w1hLAtyOV3QYq0xaWcrklXzG9KpFsnuD'
-
 PATTERN_CSDN = r'^(http(s)?://download\.csdn\.net/(download|detail)/).+/\d+$'
 PATTERN_WENKU = r'^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$'
 PATTERN_DOCER = r'^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$'
@@ -337,10 +333,6 @@ QINIU_ACCESS_KEY = 'Adx9fTjienPcF8duV2nQQxZUUt33P4aHPAMbO8a2'
 QINIU_SECRET_KEY = 'orLcntGa69dqdrgo8HCsnjR_YjGgpSchVsIV3v7g'
 QINIU_OPEN_BUCKET = 'ncucoder'
 QINIU_OPEN_DOMAIN = 'cdn.qiniu.ncucoder.com'
-
-# 基于Flask的CQHTTP后端
-BOT_BASE_API = 'http://139.199.71.19:5000'
-PATTERN_GROUP_ID = 1106917093
 
 ADMIN_UID = ['666666']
 
