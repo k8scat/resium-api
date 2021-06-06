@@ -50,7 +50,7 @@ jobs:
       - name: Collect static
         run: |
           mkdir -p logs
-	        python manage.py collectstatic
+          python manage.py collectstatic
 
       - name: Get version
         id: get_version
