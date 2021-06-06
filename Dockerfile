@@ -6,5 +6,6 @@ EXPOSE 8000
 COPY . .
 RUN mkdir -p logs upload download && \
     apk add --no-cache mariadb-dev gcc musl-dev libffi-dev jpeg-dev libxml2-dev libxslt-dev && \
-    pip install -r requirements.txt
-ENTRYPOINT [ "gunicorn", "resium.wsgi", "-w", "4", "-k", "gthread", "-b", "0.0.0.0:8000" ]
+    pip install -r requirements.txt && \
+    chmod +x ./entrypoint.sh
+ENTRYPOINT [ "./entrypoint.sh" ]

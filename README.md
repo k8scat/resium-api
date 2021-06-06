@@ -1,11 +1,5 @@
 # Resium
 
-[![构建状态](https://hsowan.coding.net/badges/resium/job/274286/build.svg)](https://hsowan.coding.net/p/resium/ci/job)
-
-基础镜像: https://code.aliyun.com/hsowan/python37-django/tree/master
-
-OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
-
 ## Todo
 
 * [ ] Dev环境
@@ -113,6 +107,10 @@ OSS: https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview
 * [x] csdn账号当天下载量到达时，尝试自动切换
 * [x] 积分使用记录表
 * [x] uid 改成6位数字
+
+## Tools
+
+- [Aliyun OSS](https://oss.console.aliyun.com/bucket/oss-cn-hangzhou/ncucoder/overview)
 
 ## 广告接入
 
