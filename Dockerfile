@@ -8,5 +8,4 @@ RUN apk add --no-cache mariadb-dev gcc musl-dev libffi-dev jpeg-dev libxml2-dev 
     pip install -U pip && \
     pip install -r requirements.txt && \
     chmod +x ./entrypoint.sh
-
 ENTRYPOINT [ "./entrypoint.sh" ]
