@@ -150,8 +150,13 @@ REQUEST_TOKEN_PREFIX = 'Bearer '
 
 # 下载文件的存放目录
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download')
+if not os.path.isdir(DOWNLOAD_DIR):
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 # 上传资源的存放目录
 UPLOAD_DIR = os.path.join(BASE_DIR, 'upload')
+if not os.path.isdir(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 JWT_SECRET = 'yJzb21lIjoicGF5bG9hZCJ'
 
@@ -235,6 +240,9 @@ DOWNLOAD_INTERVAL = 60
 EMAIL_CODE_EXPIRES = 600
 
 # https://note.qidong.name/2018/11/django-logging/
+LOG_FOLDER = os.path.join(BASE_DIR, 'logs')
+if not os.path.isdir(LOG_FOLDER):
+    os.makedirs(LOG_FOLDER, exist_ok=True)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

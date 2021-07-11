@@ -548,7 +548,11 @@ def request_email_code(request):
     code = get_random_int()
     cache.set(code, email, timeout=settings.EMAIL_CODE_EXPIRES)
     subject = '[源自下载] 验证码'
-    html_message = render_to_string('downloader/email_code.html', {'code': code})
+    data = {
+        'code': code,
+        'username': user.nickname
+    }
+    html_message = render_to_string('downloader/email_code.html', data)
     plain_message = strip_tags(html_message)
     try:
         send_mail(subject=subject,
