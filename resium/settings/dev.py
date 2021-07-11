@@ -15,8 +15,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'resium',
-        'USER': 'root',
-        'PASSWORD': 'root',
+        'USER': 'resium',
+        'PASSWORD': 'resium',
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }
@@ -39,7 +39,6 @@ CACHES = {
         "LOCATION": "redis://localhost:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": "O@RN5#g0.n^o<lU%$CAaw!MDY_P;2txz|]X}4sSdEc(p+3/bZ-",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100, "retry_on_timeout": True}
         }
     }
