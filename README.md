@@ -2,6 +2,8 @@
 
 ## Todo
 
+- [ ] Database timezone
+  - [ ] qr_code expire
 - [ ] Dev环境
 - [ ] 网站优化
 - [x] [模板之家下载](http://www.cssmoban.com/)
