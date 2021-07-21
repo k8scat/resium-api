@@ -26,7 +26,6 @@ collectstatic:
 	mkdir -p logs
 	$(python) manage.py collectstatic
 
-# 
 createsuperuser:
 	python manage.py createsuperuser
 

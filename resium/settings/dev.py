@@ -6,6 +6,8 @@
 
 """
 from .base import *
+import sys
+import logging
 
 DEBUG = True
 
@@ -19,6 +21,7 @@ DATABASES = {
         'PASSWORD': 'resium',
         'HOST': '127.0.0.1',
         'PORT': '3306',
+        'TIME_ZONE': TIME_ZONE
     }
 }
 
@@ -48,4 +51,12 @@ RATELIMIT_BLOCK = False
 
 COOKIE_DOMAIN = 'localhost'
 
-NGINX_DOWNLOAD_URL = 'file:///Users/mac/workspace/pycharm/resium/download'
+# 下载文件的存放目录
+DOWNLOAD_DIR = '/Users/wanhuasong/workspace/resium/resium-scripts/.volumes/selenium/download'
+if not os.path.isdir(DOWNLOAD_DIR):
+    logging.error(f'Invalid setting DOWNLOAD_DIR: {DOWNLOAD_DIR}')
+    sys.exit(1)
+NGINX_DOWNLOAD_URL = f'file://{DOWNLOAD_DIR}'
+
+DOWNHUB_SERVER = 'http://127.0.0.1:8080'
+DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'

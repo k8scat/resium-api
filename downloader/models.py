@@ -11,24 +11,34 @@ class Base(models.Model):
 
 class User(Base):
     uid = models.CharField(max_length=100, unique=True, verbose_name='用户的唯一标识')
-    password = models.CharField(max_length=100, default=None, null=True, verbose_name='H5登录密码')
-    nickname = models.CharField(max_length=100, default=None, verbose_name='昵称')
+    password = models.CharField(
+        max_length=100, default=None, null=True, verbose_name='H5登录密码')
+    nickname = models.CharField(
+        max_length=100, default=None, verbose_name='昵称')
     avatar_url = models.CharField(max_length=240, verbose_name='头像地址')
     point = models.IntegerField(default=0, verbose_name='下载积分')
     used_point = models.IntegerField(default=0, verbose_name='已使用积分')
-    login_time = models.DateTimeField(null=True, default=None, verbose_name='登录时间')
-    can_download = models.BooleanField(default=False, verbose_name='是否可以下载其他站点的资源')
+    login_time = models.DateTimeField(
+        null=True, default=None, verbose_name='登录时间')
+    can_download = models.BooleanField(
+        default=False, verbose_name='是否可以下载其他站点的资源')
     can_upload = models.BooleanField(default=True, verbose_name='是否可以上传资源')
-    qq_openid = models.CharField(max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
-    has_check_in_today = models.BooleanField(default=False, verbose_name='今日是否签到')
-    wx_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
+    qq_openid = models.CharField(
+        max_length=100, unique=True, default=None, null=True, verbose_name='QQ唯一标识')
+    has_check_in_today = models.BooleanField(
+        default=False, verbose_name='今日是否签到')
+    wx_openid = models.CharField(
+        max_length=100, default=None, null=True, verbose_name='微信公众号用户唯一标识')
     gitee_id = models.IntegerField(default=None, null=True)
     is_admin = models.BooleanField(default=False, verbose_name='管理员账号')
-    mp_openid = models.CharField(max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
+    mp_openid = models.CharField(
+        max_length=100, default=None, null=True, verbose_name='小程序用户唯一标识')
     email = models.EmailField(verbose_name='邮箱', default=None, null=True)
-    code = models.CharField(max_length=200, unique=True, default=None, null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
+    code = models.CharField(max_length=200, unique=True, default=None,
+                            null=True, verbose_name='用来验证用户可靠性，新账号和旧账号替换')
     is_pattern = models.BooleanField(default=False, verbose_name='合作用户')
-    gender = models.SmallIntegerField(null=True, default=None, verbose_name='性别')
+    gender = models.SmallIntegerField(
+        null=True, default=None, verbose_name='性别')
     from_taobao = models.BooleanField(default=False, verbose_name='是否来自淘宝')
 
     class Meta:
@@ -47,13 +57,15 @@ class Service(Base):
 class Resource(Base):
     # 资源地址，如果是上传资源，则留空
     # 资源地址可能相同，知网的同一个地址可以下载pdf或者caj
-    url = models.CharField(max_length=200, null=True, default=None, verbose_name='资源地址')
+    url = models.CharField(max_length=200, null=True,
+                           default=None, verbose_name='资源地址')
     title = models.CharField(max_length=200, verbose_name='资源标题')
     filename = models.TextField(null=True, default=None, verbose_name='资源文件名')
     desc = models.TextField(null=True, default=None, verbose_name='资源描述')
     size = models.IntegerField(verbose_name='资源文件大小')
     # 存储在oss中的key，默认为空
-    key = models.CharField(max_length=200, null=True, default=None, verbose_name='资源存储文件')
+    key = models.CharField(max_length=200, null=True,
+                           default=None, verbose_name='资源存储文件')
     # 以 !sep! 分离
     tags = models.TextField(null=True, default=None, verbose_name='资源标签')
     # 下载次数
@@ -64,10 +76,13 @@ class Resource(Base):
     is_audited = models.SmallIntegerField(default=1, verbose_name='是否通过审核')
     file_md5 = models.CharField(max_length=100, verbose_name='文件的md5值')
 
-    wenku_type = models.CharField(max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
-    is_docer_vip_doc = models.BooleanField(default=False, verbose_name='是否是稻壳VIP文档')
+    wenku_type = models.CharField(
+        max_length=100, null=True, default=None, verbose_name='百度文库文档类型')
+    is_docer_vip_doc = models.BooleanField(
+        default=False, verbose_name='是否是稻壳VIP文档')
 
-    local_path = models.CharField(max_length=200, default=None, null=True, verbose_name='资源本地保存路径')
+    local_path = models.CharField(
+        max_length=200, default=None, null=True, verbose_name='资源本地保存路径')
 
     class Meta:
         db_table = 'resource'
@@ -97,10 +112,12 @@ class UploadRecord(Base):
 class Order(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject = models.CharField(max_length=50, verbose_name='订单名称')
-    out_trade_no = models.CharField(max_length=50, unique=True, verbose_name='订单号')
+    out_trade_no = models.CharField(
+        max_length=50, unique=True, verbose_name='订单号')
     total_amount = models.FloatField(verbose_name='总金额')
     has_paid = models.BooleanField(default=False, verbose_name='是否支付')
-    pay_url = models.TextField(default=None, null=True, verbose_name='支付地址，小程序微信支付时不存在')
+    pay_url = models.TextField(
+        default=None, null=True, verbose_name='支付地址，小程序微信支付时不存在')
     point = models.IntegerField(verbose_name='下载积分')
     is_deleted = models.BooleanField(default=False, verbose_name='是否被删除')
 
@@ -113,14 +130,18 @@ class CsdnAccount(Base):
     cookies = models.TextField(null=True, default=None)
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     valid_count = models.IntegerField(default=0, verbose_name='可用下载数')
-    today_download_count = models.IntegerField(default=0, verbose_name='今日已下载数')
+    today_download_count = models.IntegerField(
+        default=0, verbose_name='今日已下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
-    is_cookies_valid = models.BooleanField(default=True, verbose_name='Cookies是否有效')
-    need_sms_validate = models.BooleanField(default=False, verbose_name='是否需要短信验证')
+    is_cookies_valid = models.BooleanField(
+        default=True, verbose_name='Cookies是否有效')
+    need_sms_validate = models.BooleanField(
+        default=False, verbose_name='是否需要短信验证')
     is_disabled = models.BooleanField(default=False, verbose_name='是否被禁用')
     csdn_id = models.IntegerField(verbose_name='CSDN ID')
     qq = models.CharField(max_length=20, verbose_name='账号拥有者的QQ号')
-    unit_price = models.FloatField(default=None, null=True, verbose_name='下载单价')
+    unit_price = models.FloatField(
+        default=None, null=True, verbose_name='下载单价')
 
     class Meta:
         db_table = 'csdn_account'
@@ -132,7 +153,8 @@ class BaiduAccount(Base):
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
     vip_free_count = models.IntegerField(default=0, verbose_name='VIP免费文档使用数')
     share_doc_count = models.IntegerField(default=0, verbose_name='共享文档使用数')
-    special_doc_count = models.IntegerField(default=0, verbose_name='VIP专享文档使用数')
+    special_doc_count = models.IntegerField(
+        default=0, verbose_name='VIP专享文档使用数')
 
     class Meta:
         db_table = 'baidu_account'
@@ -144,7 +166,8 @@ class DocerAccount(Base):
     used_count = models.IntegerField(default=0, verbose_name='使用下载数')
     is_enabled = models.BooleanField(default=False, verbose_name='是否使用该账号')
     # todo: 定时任务：每月更新下载数
-    month_used_count = models.IntegerField(default=0, verbose_name='当月已使用VIP下载数')
+    month_used_count = models.IntegerField(
+        default=0, verbose_name='当月已使用VIP下载数')
 
     class Meta:
         db_table = 'docer_account'
@@ -179,8 +202,10 @@ class Advert(Base):
 
 
 class Article(Base):
-    user = models.ForeignKey(User, null=True, default=None, on_delete=models.DO_NOTHING)
-    url = models.CharField(max_length=200, null=True, default=None, verbose_name='文章链接', unique=True)
+    user = models.ForeignKey(
+        User, null=True, default=None, on_delete=models.DO_NOTHING)
+    url = models.CharField(max_length=200, null=True,
+                           default=None, verbose_name='文章链接', unique=True)
     title = models.CharField(max_length=200, verbose_name='文章标题')
     content = models.TextField(verbose_name='文章内容')
     author = models.CharField(max_length=100, verbose_name='文章作者')
@@ -235,7 +260,8 @@ class CheckInRecord(Base):
 
 class DocConvertRecord(Base):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    download_url = models.CharField(max_length=240, default=None, null=True, verbose_name='转换成功后的下载链接')
+    download_url = models.CharField(
+        max_length=240, default=None, null=True, verbose_name='转换成功后的下载链接')
     point = models.IntegerField(default=0)
 
     class Meta:
@@ -244,9 +270,12 @@ class DocConvertRecord(Base):
 
 class QrCode(Base):
     cid = models.CharField(max_length=100, unique=True, verbose_name='二维码唯一标志')
-    has_scanned = models.BooleanField(default=False, verbose_name='判断是否使用小程序扫码')
-    code_type = models.CharField(max_length=20, verbose_name='二维码类型，bing或者login')
-    uid = models.CharField(max_length=50, default=None, null=True, verbose_name='扫码登录时保存的uid')
+    has_scanned = models.BooleanField(
+        default=False, verbose_name='判断是否使用小程序扫码')
+    code_type = models.CharField(
+        max_length=20, verbose_name='二维码类型，bing或者login')
+    uid = models.CharField(max_length=50, default=None,
+                           null=True, verbose_name='扫码登录时保存的uid')
 
     class Meta:
         db_table = 'qr_code'
@@ -258,8 +287,10 @@ class PointRecord(Base):
     used_point = models.IntegerField(default=0, verbose_name='使用积分')
     add_point = models.IntegerField(default=0, verbose_name='增加积分')
     comment = models.CharField(max_length=100, verbose_name='积分使用备注')
-    url = models.CharField(max_length=240, default=None, null=True, verbose_name='链接')
-    resource = models.ForeignKey(Resource, default=None, null=True, on_delete=models.DO_NOTHING)
+    url = models.CharField(max_length=240, default=None,
+                           null=True, verbose_name='链接')
+    resource = models.ForeignKey(
+        Resource, default=None, null=True, on_delete=models.DO_NOTHING)
     is_deleted = models.BooleanField(default=False)
 
     class Meta:

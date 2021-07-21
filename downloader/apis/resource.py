@@ -52,14 +52,16 @@ class BaseResource:
         while True:
             if os.path.exists(self.save_dir):
                 self.unique_folder = str(uuid.uuid1())
-                self.save_dir = os.path.join(settings.DOWNLOAD_DIR, self.unique_folder)
+                self.save_dir = os.path.join(
+                    settings.DOWNLOAD_DIR, self.unique_folder)
             else:
                 os.mkdir(self.save_dir)
                 break
 
     def send_email(self, url):
         subject = '[源自下载] 资源下载成功'
-        html_message = render_to_string('downloader/download_url.html', {'url': url})
+        html_message = render_to_string(
+            'downloader/download_url.html', {'url': url})
         plain_message = strip_tags(html_message)
         try:
             send_mail(subject=subject,
@@ -122,7 +124,7 @@ class CsdnResource(BaseResource):
                     # 版权受限，无法下载
                     # https://download.csdn.net/download/c_baby123/10791185
                     can_download = len(soup.select('div.resource_box a.copty-btn')) == 0 and \
-                                   len(soup.select('a.c_dl_btn.source_pay_btn')) == 0
+                        len(soup.select('a.c_dl_btn.source_pay_btn')) == 0
                     if can_download:
                         point = settings.CSDN_POINT
                     else:
@@ -228,10 +230,12 @@ class CsdnResource(BaseResource):
 
                     with requests.get(resp['data'], headers=headers, stream=True) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
-                            self.filename = parse.unquote(download_resp.headers['Content-Disposition'].split('"')[1])
+                            self.filename = parse.unquote(
+                                download_resp.headers['Content-Disposition'].split('"')[1])
                             file = os.path.splitext(self.filename)
                             self.filename_uuid = str(uuid.uuid1()) + file[1]
-                            self.filepath = os.path.join(self.save_dir, self.filename_uuid)
+                            self.filepath = os.path.join(
+                                self.save_dir, self.filename_uuid)
                             # 写入文件，用于线程上传资源到OSS
                             with open(self.filepath, 'wb') as f:
                                 for chunk in download_resp.iter_content(chunk_size=1024):
@@ -262,7 +266,8 @@ class CsdnResource(BaseResource):
                              logger=logging.error,
                              need_email=True)
                         # 自动切换CSDN
-                        switch_result = switch_csdn_account(self.account, need_sms_validate=True)
+                        switch_result = switch_csdn_account(
+                            self.account, need_sms_validate=True)
                         cache.delete(settings.CSDN_DOWNLOADING_KEY)
                         return requests.codes.server_error, '下载出了点小问题，请尝试重新下载' if switch_result else '下载失败，请联系管理员'
 
@@ -293,7 +298,8 @@ class CsdnResource(BaseResource):
 
         # 上传资源到OSS并保存记录到数据库
         t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   args=(self.url, self.filename, self.filepath,
+                         self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
@@ -532,12 +538,14 @@ class DocerResource(BaseResource):
         with requests.get(self.url, headers=headers) as r:
             if r.status_code == requests.codes.OK:
                 soup = BeautifulSoup(r.text, 'lxml')
-                tags = [tag.text for tag in soup.select('li.preview__labels-item.g-link a')]
+                tags = [tag.text for tag in soup.select(
+                    'li.preview__labels-item.g-link a')]
                 if '展开更多' in tags:
                     tags = tags[:-1]
 
                 # 获取所有的预览图片
-                preview_images = DocerPreviewImage.objects.filter(resource_url=self.url).all()
+                preview_images = DocerPreviewImage.objects.filter(
+                    resource_url=self.url).all()
                 if len(preview_images) > 0:
                     preview_images = [
                         {
@@ -552,7 +560,8 @@ class DocerResource(BaseResource):
                         driver.get(self.url)
                         all_images = WebDriverWait(driver, 5).until(
                             EC.presence_of_all_elements_located(
-                                (By.XPATH, '//ul[@class="preview__img-list"]//img')
+                                (By.XPATH,
+                                 '//ul[@class="preview__img-list"]//img')
                             )
                         )
                         preview_images = []
@@ -567,7 +576,8 @@ class DocerResource(BaseResource):
                             preview_image_models.append(DocerPreviewImage(resource_url=self.url,
                                                                           url=image_url,
                                                                           alt=image_alt))
-                        DocerPreviewImage.objects.bulk_create(preview_image_models)
+                        DocerPreviewImage.objects.bulk_create(
+                            preview_image_models)
                     finally:
                         driver.close()
 
@@ -575,7 +585,8 @@ class DocerResource(BaseResource):
                     'title': soup.find('h1', class_='preview-info_title').string,
                     'tags': tags,
                     'file_type': soup.select('span.m-crumbs-path a')[0].text,
-                    'desc': '',  # soup.find('meta', attrs={'name': 'Description'})['content']
+                    # soup.find('meta', attrs={'name': 'Description'})['content']
+                    'desc': '',
                     'point': settings.DOCER_POINT,
                     'is_docer_vip_doc': r.text.count('类型：VIP模板') > 0,
                     'preview_images': preview_images
@@ -633,7 +644,8 @@ class DocerResource(BaseResource):
                     self.filename = download_url.split('/')[-1]
                     file = os.path.splitext(self.filename)
                     self.filename_uuid = str(uuid.uuid1()) + file[1]
-                    self.filepath = os.path.join(self.save_dir, self.filename_uuid)
+                    self.filepath = os.path.join(
+                        self.save_dir, self.filename_uuid)
                     with requests.get(download_url, stream=True) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
                             with open(self.filepath, 'wb') as f:
@@ -674,7 +686,8 @@ class DocerResource(BaseResource):
 
         # 保存资源
         t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   args=(self.url, self.filename, self.filepath,
+                         self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
@@ -810,7 +823,8 @@ class MbzjResource(BaseResource):
 
         # 保存资源
         t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   args=(self.url, self.filename, self.filepath,
+                         self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
@@ -862,8 +876,10 @@ class ZhiwangResource(BaseResource):
                         tags.append(tag.string.strip()[:-1])
 
                     title = soup.select('div.wxTitle h2')[0].text
-                    desc = soup.find('span', attrs={'id': 'ChDivSummary'}).string
-                    has_pdf = True if soup.find('a', attrs={'id': 'pdfDown'}) else False
+                    desc = soup.find(
+                        'span', attrs={'id': 'ChDivSummary'}).string
+                    has_pdf = True if soup.find(
+                        'a', attrs={'id': 'pdfDown'}) else False
                     self.resource = {
                         'title': title,
                         'desc': desc,
@@ -895,7 +911,8 @@ class ZhiwangResource(BaseResource):
             return 5000, '积分不足，请进行捐赠支持。'
 
         # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
-        vpn_url = re.sub(r'http(s)?://kns(8)?\.cnki\.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn', self.url)
+        vpn_url = re.sub(r'http(s)?://kns(8)?\.cnki\.net',
+                         'http://kns-cnki-net.wvpn.ncu.edu.cn', self.url)
 
         driver = get_driver(self.unique_folder, load_images=True)
         try:
@@ -912,7 +929,8 @@ class ZhiwangResource(BaseResource):
             password_input.send_keys(settings.NCU_VPN_PASSWORD)
             submit_button = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.XPATH, "//div[@class='col-md-6 col-md-offset-6 login-btn']/input")
+                    (By.XPATH,
+                     "//div[@class='col-md-6 col-md-offset-6 login-btn']/input")
                 )
             )
             submit_button.click()
@@ -959,7 +977,8 @@ class ZhiwangResource(BaseResource):
                 # print(lower)
 
                 # 获取截图
-                driver.get_screenshot_as_file(settings.ZHIWANG_SCREENSHOT_IMAGE)
+                driver.get_screenshot_as_file(
+                    settings.ZHIWANG_SCREENSHOT_IMAGE)
 
                 # 手动设置截取位置
                 left = 430
@@ -983,7 +1002,8 @@ class ZhiwangResource(BaseResource):
                     code_input.send_keys(code)
                     submit_code_button = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located(
-                            (By.XPATH, "//dl[@class='c_verify-code']/dd/button")
+                            (By.XPATH,
+                             "//dl[@class='c_verify-code']/dd/button")
                         )
                     )
                     submit_code_button.click()
@@ -996,7 +1016,8 @@ class ZhiwangResource(BaseResource):
                     self.filename = result
                     file = os.path.splitext(self.filename)
                     self.filename_uuid = str(uuid.uuid1()) + file[1]
-                    self.filepath = os.path.join(self.save_dir, self.filename_uuid)
+                    self.filepath = os.path.join(
+                        self.save_dir, self.filename_uuid)
                     return requests.codes.ok, '下载成功'
                 else:
                     return status, result
@@ -1059,7 +1080,8 @@ class QiantuResource(BaseResource):
                     size = info[2].string.replace('文件大小：', '')
                     # Tag有find方法，但没有select方法
                     file_type = info[4].find('span').contents[0]
-                    tags = [tag.string for tag in soup.select('div.mainRight-tagBox a')]
+                    tags = [tag.string for tag in soup.select(
+                        'div.mainRight-tagBox a')]
                     self.resource = {
                         'title': title,
                         'size': size,
@@ -1098,16 +1120,19 @@ class QiantuResource(BaseResource):
             'referer': self.url,
             'user-agent': get_random_ua()
         }
-        download_url = self.url.replace('https://www.58pic.com/newpic/', 'https://dl.58pic.com/')
+        download_url = self.url.replace(
+            'https://www.58pic.com/newpic/', 'https://dl.58pic.com/')
         with requests.get(download_url, headers=headers) as r:
             if r.status_code == requests.codes.OK:
                 try:
                     soup = BeautifulSoup(r.text, 'lxml')
-                    download_url = soup.select('a.clickRecord.autodown')[0]['href']
+                    download_url = soup.select(
+                        'a.clickRecord.autodown')[0]['href']
                     self.filename = download_url.split('?')[0].split('/')[-1]
                     file = os.path.splitext(self.filename)
                     self.filename_uuid = str(uuid.uuid1()) + file[1]
-                    self.filepath = os.path.join(self.save_dir, self.filename_uuid)
+                    self.filepath = os.path.join(
+                        self.save_dir, self.filename_uuid)
                     with requests.get(download_url, stream=True, headers=headers) as download_resp:
                         if download_resp.status_code == requests.codes.OK:
                             self.user.point -= point
@@ -1149,7 +1174,8 @@ class QiantuResource(BaseResource):
 
         # 保存资源
         t = Thread(target=save_resource,
-                   args=(self.url, self.filename, self.filepath, self.resource, self.user),
+                   args=(self.url, self.filename, self.filepath,
+                         self.resource, self.user),
                    kwargs={'account_id': self.account.id})
         t.start()
         # 使用Nginx静态资源下载服务
@@ -1261,7 +1287,8 @@ def list_uploaded_resources(request):
 
     uid = request.session.get('uid')
     user = User.objects.get(uid=uid)
-    upload_records = UploadRecord.objects.filter(user=user).order_by('-create_time').all()
+    upload_records = UploadRecord.objects.filter(
+        user=user).order_by('-create_time').all()
     return JsonResponse(dict(code=requests.codes.ok, resources=UploadRecordSerializers(upload_records, many=True).data))
 
 
@@ -1283,7 +1310,8 @@ def get_resource(request):
             resource_ = ResourceSerializers(resource).data
             # todo: 可以尝试通过django-rest-framework实现，而不是手动去获取预览图的数据
             resource_.setdefault('preview_images', preview_images)
-            resource_.setdefault('point', settings.OSS_RESOURCE_POINT + resource.download_count - 1)
+            resource_.setdefault(
+                'point', settings.OSS_RESOURCE_POINT + resource.download_count - 1)
             return JsonResponse(dict(code=requests.codes.ok, resource=resource_))
         except Resource.DoesNotExist:
             return JsonResponse(dict(code=404, msg='资源不存在'))
@@ -1300,7 +1328,8 @@ def list_resource_comments(request):
 
     try:
         resource = Resource.objects.get(id=resource_id)
-        comments = ResourceComment.objects.filter(resource=resource).order_by('-create_time').all()
+        comments = ResourceComment.objects.filter(
+            resource=resource).order_by('-create_time').all()
         return JsonResponse(dict(code=requests.codes.ok,
                                  comments=ResourceCommentSerializers(comments, many=True).data))
     except Resource.DoesNotExist:
@@ -1324,7 +1353,8 @@ def create_resource_comment(request):
 
     try:
         resource = Resource.objects.get(id=resource_id, is_audited=1)
-        resource_comment = ResourceComment.objects.create(user=user, resource=resource, content=content)
+        resource_comment = ResourceComment.objects.create(
+            user=user, resource=resource, content=content)
         return JsonResponse(dict(code=requests.codes.ok,
                                  msg='评论成功',
                                  comment=ResourceCommentSerializers(resource_comment).data))
@@ -1401,15 +1431,13 @@ def download(request):
     url
     t
     point
-
     """
 
     uid = request.session.get('uid')
-    if cache.get(uid) and not settings.DEBUG:
-        return JsonResponse(dict(code=requests.codes.forbidden, msg='请求频率过快，请稍后再试！'))
-
     try:
         user = User.objects.get(uid=uid)
+        if cache.get(uid) and not settings.DEBUG:
+            return JsonResponse(dict(code=requests.codes.forbidden, msg='请求频率过快，请稍后再试！'))
         if not user.is_admin and not user.can_download:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='未授权'))
 
@@ -1420,8 +1448,8 @@ def download(request):
 
     resource_url = request.data.get('url', None)
     # 下载返回类型（不包括直接在OSS找到的资源），file/url/email，默认file
-    t = request.data.get('t', 'file')
-    if t == 'email' and not user.email:
+    downloadType = request.data.get('t', 'file')
+    if downloadType == 'email' and not user.email:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='账号未设置邮箱'))
 
     if not resource_url:
@@ -1482,9 +1510,10 @@ def download(request):
         oss_resource.download_count += 1
         oss_resource.save()
 
-        if t == 'email':
+        if downloadType == 'email':
             subject = '[源自下载] 资源下载成功'
-            html_message = render_to_string('downloader/download_url.html', {'url': url})
+            html_message = render_to_string(
+                'downloader/download_url.html', {'url': url})
             plain_message = strip_tags(html_message)
             try:
                 send_mail(subject=subject,
@@ -1512,12 +1541,14 @@ def download(request):
     if re.match(settings.PATTERN_CSDN, resource_url):
         if cache.get(settings.CSDN_DOWNLOADING_KEY):
             return JsonResponse(dict(code=requests.codes.forbidden, msg='当前下载人数过多，请稍后再尝试下载！'))
-        cache.set(settings.CSDN_DOWNLOADING_KEY, True, settings.CSDN_DOWNLOADING_MAX_TIME)
+        cache.set(settings.CSDN_DOWNLOADING_KEY, True,
+                  settings.CSDN_DOWNLOADING_MAX_TIME)
 
         resource = CsdnResource(resource_url, user)
 
     elif re.match(settings.PATTERN_ITEYE, resource_url):
-        resource_url = 'https://download.csdn.net/download/' + resource_url.split('resource/')[1].replace('-', '/')
+        resource_url = 'https://download.csdn.net/download/' + \
+            resource_url.split('resource/')[1].replace('-', '/')
         resource = CsdnResource(resource_url, user)
 
     # 百度文库文档下载
@@ -1550,7 +1581,7 @@ def download(request):
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
-    if t == 'file':
+    if downloadType == 'file':
         status, result = resource.get_filepath()
         if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
@@ -1562,7 +1593,7 @@ def download(request):
                                                                                 safe=string.printable) + '"'
         return response
 
-    elif t == 'url':
+    elif downloadType == 'url':
         status, result = resource.get_filepath()
         if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
@@ -1570,7 +1601,7 @@ def download(request):
 
         return JsonResponse(dict(code=status, url=result['download_url']))
 
-    elif t == 'email':
+    elif downloadType == 'email':
         status, result = resource.get_url(use_email=True)
         if status != requests.codes.ok:  # 下载失败
             cache.delete(user.uid)
@@ -1647,7 +1678,8 @@ def oss_download(request):
             return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置邮箱'))
 
         subject = '[源自下载] 资源下载成功'
-        html_message = render_to_string('downloader/download_url.html', {'url': url})
+        html_message = render_to_string(
+            'downloader/download_url.html', {'url': url})
         plain_message = strip_tags(html_message)
         try:
             send_mail(subject=subject,
@@ -1700,7 +1732,8 @@ def parse_resource(request):
         resource = CsdnResource(resource_url, user)
 
     elif re.match(settings.PATTERN_ITEYE, resource_url):
-        resource_url = 'https://download.csdn.net/download/' + resource_url.split('resource/')[1].replace('-', '/')
+        resource_url = 'https://download.csdn.net/download/' + \
+            resource_url.split('resource/')[1].replace('-', '/')
         resource = CsdnResource(resource_url, user)
 
     # 百度文库文档
@@ -1809,10 +1842,12 @@ def doc_convert(request):
         upload_input.send_keys(filepath)
         try:
             WebDriverWait(driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//p[@class='converterNameV']"))
+                EC.presence_of_element_located(
+                    (By.XPATH, "//p[@class='converterNameV']"))
             )
             download_url = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//a[@class='dwon-document']"))
+                EC.presence_of_element_located(
+                    (By.XPATH, "//a[@class='dwon-document']"))
             ).get_attribute('href')
             # 保存文档转换记录
             DocConvertRecord(user=user, download_url=download_url,
