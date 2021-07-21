@@ -20,6 +20,7 @@ DATABASES = {
         'PASSWORD': 'Holdon@7868',
         'HOST': 'resium-db',
         'PORT': '3306',
+        'TIME_ZONE': TIME_ZONE
     }
 }
 
@@ -58,4 +59,11 @@ sentry_sdk.init(
 
 COOKIE_DOMAIN = 'resium.cn'
 
+# 下载文件的存放目录
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download')
+if not os.path.isdir(DOWNLOAD_DIR):
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 NGINX_DOWNLOAD_URL = 'https://file.resium.ncucoder.com'
+
+DOWNHUB_SERVER = 'http://resium-downhub:8080'
+DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'

@@ -140,7 +140,8 @@ def wx(request):
 
         xml_data = request.body
 
-        crypto = WeChatCrypto(settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
+        crypto = WeChatCrypto(
+            settings.WX_TOKEN, settings.WX_ENCODING_AES_KEY, settings.WX_APP_ID)
         try:
             decrypted_xml = crypto.decrypt_message(
                 xml_data,
@@ -236,12 +237,18 @@ def wx(request):
                             new_user.used_point += old_user.used_point
                             new_user.can_download = old_user.can_download or new_user.can_download
                             new_user.save()
-                            Order.objects.filter(user=old_user).update(user=new_user)
-                            DownloadRecord.objects.filter(user=old_user).update(user=new_user)
-                            Resource.objects.filter(user=old_user).update(user=new_user)
-                            ResourceComment.objects.filter(user=old_user).update(user=new_user)
-                            Article.objects.filter(user=old_user).update(user=new_user)
-                            CheckInRecord.objects.filter(user=old_user).update(user=new_user)
+                            Order.objects.filter(
+                                user=old_user).update(user=new_user)
+                            DownloadRecord.objects.filter(
+                                user=old_user).update(user=new_user)
+                            Resource.objects.filter(
+                                user=old_user).update(user=new_user)
+                            ResourceComment.objects.filter(
+                                user=old_user).update(user=new_user)
+                            Article.objects.filter(
+                                user=old_user).update(user=new_user)
+                            CheckInRecord.objects.filter(
+                                user=old_user).update(user=new_user)
 
                             old_user.delete()
                             content = '账号迁移成功'
@@ -268,7 +275,8 @@ def wx(request):
 def reset_has_check_in_today(request):
     token = request.data.get('token', None)
     if token == settings.ADMIN_TOKEN:
-        User.objects.filter(has_check_in_today=True).update(has_check_in_today=False)
+        User.objects.filter(has_check_in_today=True).update(
+            has_check_in_today=False)
 
     return HttpResponse('')
 
@@ -446,6 +454,7 @@ def login(request):
     uid = request.data.get('uid', None)
     password = request.data.get('password', None)
     gender = request.data.get('gender', None)  # 通过小程序登录获取用户性别
+    logging.info(f'uid: {uid}')
     if not uid or not password:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
@@ -630,7 +639,8 @@ def list_point_records(request):
     start = per_page * (page - 1)
     end = start + per_page
 
-    point_records = PointRecord.objects.filter(user=user, is_deleted=False).order_by('-create_time').all()[start:end]
+    point_records = PointRecord.objects.filter(
+        user=user, is_deleted=False).order_by('-create_time').all()[start:end]
     return JsonResponse(dict(code=requests.codes.ok,
                              point_records=PointRecordSerializers(point_records, many=True).data))
 
@@ -649,4 +659,3 @@ def delete_point_record(request):
         return JsonResponse(dict(code=requests.codes.ok, msg='删除成功'))
     except PointRecord.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg='积分记录不存在'))
-

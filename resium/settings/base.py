@@ -148,11 +148,6 @@ BAIDU_COOKIES_FILE = os.path.join(BASE_DIR, 'baidu_cookies.json')
 REQUEST_TOKEN_HEADER = 'Authorization'
 REQUEST_TOKEN_PREFIX = 'Bearer '
 
-# 下载文件的存放目录
-DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download')
-if not os.path.isdir(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
 # 上传资源的存放目录
 UPLOAD_DIR = os.path.join(BASE_DIR, 'upload')
 if not os.path.isdir(UPLOAD_DIR):
@@ -351,8 +346,5 @@ FEISHU_APP_VERIFICATION_TOKEN = 'lGNcI2MU2r645g7uH0xJjdyd2jc3npJb'
 FEISHU_APP_ENCRYPT_KEY = 'n5z0Rp2yeLMOdwwWpkgqXfjtiIuUneMf'
 FEISHU_USER_ID = '819d28c8'
 FEISHU_TOKEN_INTERVAL = 3600
-
-DOWNHUB_SERVER = 'http://resium-downhub:8080'
-DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'
 
 ADMIN_CSDN_ACCOUNTS = ['65634914', '79337844']
