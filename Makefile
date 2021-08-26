@@ -36,3 +36,11 @@ migrate-dev:
 migrate-prod:
 	python manage.py makemigrations downloader --settings=resium.settings.prod
 	python manage.py migrate --settings=resium.settings.prod
+
+login-acr:
+	docker login --username=1583096683@qq.com registry.cn-hangzhou.aliyuncs.com
+
+# docker build -t registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1 -f base.Dockerfile .
+build-base-image:
+	docker buildx build --platform linux/amd64 -t registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1 -f base.Dockerfile .
+	docker push registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1

@@ -7,6 +7,8 @@
 - [ ] docker
 - [ ] mysql8
 
+> MySQL/ Redis/ Selenium 使用 resium-scripts/dev.yaml 进行启动
+
 ### MacOS
 
 - [ ] brew install mysql
