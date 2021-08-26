@@ -129,13 +129,15 @@ class CsdnResource(BaseResource):
                         point = settings.CSDN_POINT
                     else:
                         point = None
+
+                    info = soup.select('div.mt-16.t-c-second.line-h-1 span')
                     self.resource = {
-                        'title': soup.find('span', class_='resource_title').string,
-                        'desc': soup.select('div.resource_description p')[0].text,
-                        'tags': [tag.text for tag in soup.select('label.resource_tags a')],
-                        'file_type': soup.select('strong.info_box span')[3].text,
+                        'title': soup.find('h1', class_='el-tooltip d-ib title fs-xxl line-2').string.strip(),
+                        'desc': soup.select('p.detail-desc')[0].text,
+                        'tags': [tag.text for tag in soup.select('div.tags a')],
+                        'file_type': info[1].text,
                         'point': point,
-                        'size': soup.select('strong.info_box span')[2].text
+                        'size': info[2].text
                     }
                     return requests.codes.ok, self.resource
                 except Exception as e:
