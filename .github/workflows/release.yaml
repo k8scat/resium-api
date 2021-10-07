@@ -87,5 +87,5 @@ jobs:
             login-acr \
             build-image \
             push-image \
-            acr_password=${{ secret.ACR_PASSWORD }} \
+            acr_password=${{ secrets.ACR_PASSWORD }} \
             image_version=${{ steps.get_version.outputs.VERSION }}
