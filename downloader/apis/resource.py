@@ -141,7 +141,9 @@ class CsdnResource(BaseResource):
                         'tags': [tag.text for tag in soup.select('div.tags a')],
                         'file_type': info[2].text,
                         'point': point,
-                        'size': info[3].text
+                        'size': info[3].text,
+                        'need_pay': need_pay,
+                        'copyright_limited': copyright_limited
                     }
                     return requests.codes.ok, self.resource
                 except Exception as e:
