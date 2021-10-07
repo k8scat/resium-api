@@ -1,5 +1,5 @@
-python = python3
-pip = pip3
+python = python
+pip = pip
 
 base_image_version = 0.0.2
 base_image_name = resium-api-base
@@ -46,8 +46,7 @@ install-requirements:
 	$(pip) install -r requirements.txt
 
 collectstatic:
-	mkdir -p logs
-	$(python) manage.py collectstatic
+	$(python) manage.py collectstatic --settings=resium.settings.prod
 
 createsuperuser:
 	python manage.py createsuperuser
