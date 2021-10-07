@@ -1,11 +1,34 @@
 python = python3
 pip = pip3
 
+base_image_version = 0.0.2
+base_image_name = resium-api-base
+base_image_dockerfile = base.Dockerfile
+
+acr_space = resium
+acr_username = 1583096683@qq.com
+acr_server = registry.cn-hangzhou.aliyuncs.com
+acr_password =
+
+image_version = latest
+image_name = resium-api
+image_dockerfile = Dockerfile
+
+image_tag = $(acr_server)/$(acr_space)/$(image_name):$(image_version)
+image_tag_latest = $(acr_server)/$(acr_space)/$(image_name):latest
+
+base_image_tag = $(acr_server)/$(acr_space)/$(base_image_name):$(base_image_version)
+
 dev:
 	$(python) manage.py runserver 0:8000
 
 build-image:
-	docker build -t resium-api:latest .
+	sed -e 's/latest/$(base_image_version)/g' $(image_dockerfile) > Dockerfile.tmp
+	docker build \
+		--no-cache \
+		-f Dockerfile.tmp \
+		-t $(image_tag) .
+	docker tag $(image_tag) $(image_tag_latest)
 
 install-virtualenv:
 	$(pip) install --user virtualenv
@@ -38,9 +61,27 @@ migrate-prod:
 	python manage.py migrate --settings=resium.settings.prod
 
 login-acr:
-	docker login --username=1583096683@qq.com registry.cn-hangzhou.aliyuncs.com
+	docker login -u $(acr_username) -p $(acr_password) $(acr_server)
 
-# docker build -t registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1 -f base.Dockerfile .
+logout-acr:
+	docker logout $(acr_server)
+
 build-base-image:
-	docker buildx build --platform linux/amd64 -t registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1 -f base.Dockerfile .
-	docker push registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1
+	docker build \
+		--no-cache \
+		-t $(base_image_tag) \
+		-f $(base_image_dockerfile) .
+
+build-base-image-arm:
+	docker buildx build \
+		--no-cache \
+		--platform linux/amd64 \
+		-t $(base_image_tag) \
+		-f $(base_image_dockerfile) .
+
+push-base-image:
+	docker push $(base_image_tag)
+
+push-image:
+	docker push $(image_tag)
+	docker push $(image_tag_latest)

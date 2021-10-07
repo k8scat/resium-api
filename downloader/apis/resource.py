@@ -123,8 +123,12 @@ class CsdnResource(BaseResource):
                     soup = BeautifulSoup(r.text, 'lxml')
                     # 版权受限，无法下载
                     # https://download.csdn.net/download/c_baby123/10791185
-                    can_download = len(soup.select('div.resource_box a.copty-btn')) == 0 and \
-                        len(soup.select('a.c_dl_btn.source_pay_btn')) == 0
+                    copyright_limited = len(soup.select(
+                        'div.resource_box a.copty-btn')) != 0
+                    # 付费资源
+                    need_pay = soup.select(
+                        'div#downloadBtn span.va-middle')[0].text.find('¥') != -1
+                    can_download = not copyright_limited and not need_pay
                     if can_download:
                         point = settings.CSDN_POINT
                     else:
@@ -135,9 +139,9 @@ class CsdnResource(BaseResource):
                         'title': soup.find('h1', class_='el-tooltip d-ib title fs-xxl line-2').string.strip(),
                         'desc': soup.select('p.detail-desc')[0].text,
                         'tags': [tag.text for tag in soup.select('div.tags a')],
-                        'file_type': info[1].text,
+                        'file_type': info[2].text,
                         'point': point,
-                        'size': info[2].text
+                        'size': info[3].text
                     }
                     return requests.codes.ok, self.resource
                 except Exception as e:
@@ -220,6 +224,7 @@ class CsdnResource(BaseResource):
                     # 更新账号今日下载数
                     self.account.today_download_count += 1
                     self.account.used_count += 1
+                    self.account.valid_count -= 1
                     self.account.save()
 
                     # 更新用户的剩余积分和已用积分

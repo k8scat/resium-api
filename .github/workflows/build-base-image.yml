@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - base-image-*
+
+jobs:
+  build_base_image:
+    name: Build base-image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/base-image-/}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          make \
+            login-acr \
+            build-base-image \
+            push-base-image \
+            acr_password=${{ secret.ACR_PASSWORD }} \
+            base_image_version=${{ steps.get_version.outputs.VERSION }}

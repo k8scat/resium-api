@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:0.0.1
+FROM registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:latest
 LABEL maintainer="hsowan <hsowan.me@gmail.com>"
 ENV TZ Asia/Shanghai
 WORKDIR /data/resium-api

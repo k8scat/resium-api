@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-
     steps:
       - name: Get version
         id: get_version
@@ -58,7 +57,7 @@ jobs:
       - name: Package
         working-directory: .
         run: |
-          tar -zcvf static-${{ steps.get_version.outputs.VERSION }}.tar.gz static
+          tar zcvf static-${{ steps.get_version.outputs.VERSION }}.tar.gz static
 
       - name: Upload assets
         id: upload-release-asset
@@ -70,3 +69,23 @@ jobs:
           asset_path: static-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_name: static-${{ steps.get_version.outputs.VERSION }}.tar.gz
           asset_content_type: application/gzip
+
+  build_image:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          make \
+            login-acr \
+            build-image \
+            push-image \
+            acr_password=${{ secret.ACR_PASSWORD }} \
+            image_version=${{ steps.get_version.outputs.VERSION }}
