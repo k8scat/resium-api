@@ -456,7 +456,6 @@ def set_password(request):
     return JsonResponse(dict(code=requests.codes.ok, msg=msg))
 
 
-@auth
 @api_view(['POST'])
 def request_reset_password(request: Request):
     uid_or_email = request.data.get('uid_or_email')
