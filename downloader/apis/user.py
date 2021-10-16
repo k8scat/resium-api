@@ -11,17 +11,24 @@ import logging
 import random
 import re
 import time
+from urllib.parse import quote, unquote
 import uuid
+import json
 
 import requests
+
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from django.db.models import Q
+
 from rest_framework.decorators import api_view
+from rest_framework.request import Request
+
 from wechatpy import parse_message
 from wechatpy.crypto import WeChatCrypto
 from wechatpy.events import UnsubscribeEvent, SubscribeEvent
@@ -31,9 +38,9 @@ from wechatpy.replies import TextReply, EmptyReply
 from downloader.decorators import auth
 from downloader.models import User, Order, DownloadRecord, Resource, ResourceComment, Article, \
     CheckInRecord, QrCode, PointRecord
+from downloader.rsa import RSAUtil
 from downloader.serializers import UserSerializers, PointRecordSerializers
-from downloader.utils import ding, send_email, generate_uid, generate_jwt, get_random_int
-from resium import codes
+from downloader.utils import ding, send_email, generate_uid, generate_jwt, get_random_int, get_random_str
 
 
 @auth
@@ -413,7 +420,7 @@ def check_scan(request):
     try:
         qr_code = QrCode.objects.get(cid=cid, code_type=code_type)
         if not qr_code.has_scanned:
-            return JsonResponse(dict(code=codes.WAITING_SCAN, msg='等待扫码'))
+            return JsonResponse(dict(code=4000, msg='等待扫码'))
 
         if code_type == 'login':
             if not qr_code.uid:
@@ -449,17 +456,117 @@ def set_password(request):
     return JsonResponse(dict(code=requests.codes.ok, msg=msg))
 
 
+@auth
 @api_view(['POST'])
-def login(request):
-    uid = request.data.get('uid', None)
+def request_reset_password(request: Request):
+    uid_or_email = request.data.get('uid_or_email')
+    if not uid_or_email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='用户ID或邮箱不能为空'))
+
+    try:
+        user: User = User.objects.get(
+            Q(uid=uid_or_email) | Q(email=uid_or_email))
+
+        rsa_util = RSAUtil(pubkey_file=settings.RSA_PUBKEY_FILE)
+        payload = {
+            'uid': user.uid,
+            'password': get_random_str(16),
+            'expires': int(time.time()) + 600
+        }
+        token = rsa_util.encrypt_by_public_key(json.dumps(payload))
+        token_encoded = quote(token)
+        reset_password_url = f'{settings.API_BASE_URL}/reset_password?token={token_encoded}'
+
+        subject = '[源自下载] 重置密码'
+        data = {
+            'reset_password_url': reset_password_url
+        }
+        html_message = render_to_string('downloader/reset_password.html', data)
+        plain_message = strip_tags(html_message)
+        try:
+            send_mail(subject=subject,
+                      message=plain_message,
+                      from_email=settings.DEFAULT_FROM_EMAIL,
+                      recipient_list=[user.email],
+                      html_message=html_message,
+                      fail_silently=False)
+            return JsonResponse(dict(code=requests.codes.ok, msg='密码重置链接已发送至邮箱，请查收邮件！'))
+        except Exception as e:
+            ding('重置密码邮件发送失败',
+                 error=e,
+                 uid=user.uid,
+                 logger=logging.error,
+                 need_email=True)
+            return JsonResponse(dict(code=requests.codes.server_error, msg='重置密码邮件发送失败'))
+    except User.DoesNotExist:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='账号不存在'))
+
+
+@api_view()
+def reset_password(request: Request):
+    token = request.GET.get('token')
+    if not token:
+        return HttpResponseNotFound()
+
+    token_decoded = unquote(token)
+    rsa_util = RSAUtil(privkey_file=settings.RSA_PRIVKEY_FILE)
+    raw_data = rsa_util.decrypt_by_private_key(token_decoded)
+    try:
+        data: dict = json.loads(raw_data)
+        uid = data.get('uid')
+        password = data.get('password')
+        if not uid or not password:
+            return HttpResponse('无效的请求')
+        expires = data.get('expires', 0)
+        if time.time() > expires:
+            return HttpResponse('链接已过期')
+
+        try:
+            user: User = User.objects.get(uid=uid)
+            user.password = make_password(password)
+            user.save()
+
+            subject = '[源自下载] 密码重置成功'
+            data = {
+                'username': user.nickname,
+                'password': password
+            }
+            html_message = render_to_string(
+                'downloader/new_password.html', data)
+            plain_message = strip_tags(html_message)
+            try:
+                send_mail(subject=subject,
+                          message=plain_message,
+                          from_email=settings.DEFAULT_FROM_EMAIL,
+                          recipient_list=[user.email],
+                          html_message=html_message,
+                          fail_silently=False)
+                return HttpResponse('密码已重置，新密码将通过邮件发送到你的邮箱，请注意查收！')
+            except Exception as e:
+                ding('新密码邮件发送失败',
+                     error=e,
+                     uid=user.uid,
+                     logger=logging.error,
+                     need_email=True)
+                return HttpResponse('系统未知错误，请联系管理员！')
+        except User.DoesNotExist:
+            return HttpResponse('无效的请求')
+
+    except Exception as e:
+        logging.error(f'json.loads failed: {e}, raw_data={raw_data}')
+        return HttpResponse('无效的请求')
+
+
+@api_view(['POST'])
+def login(request: Request):
+    uid_or_email = request.data.get('uid_or_email', None)
     password = request.data.get('password', None)
     gender = request.data.get('gender', None)  # 通过小程序登录获取用户性别
-    logging.info(f'uid: {uid}')
-    if not uid or not password:
+    if not uid_or_email or not password:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
     try:
-        user = User.objects.get(uid=uid)
+        user = User.objects.get(Q(uid=uid_or_email) | Q(email=uid_or_email))
         if not user.password:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='未设置密码'))
 
@@ -473,6 +580,8 @@ def login(request):
 
     except User.DoesNotExist:
         return JsonResponse(dict(code=404, msg='用户不存在'))
+    except Exception as e:
+        return JsonResponse(dict(code=requests.codes.internal_server_error, msg='系统错误'))
 
 
 @api_view(['POST'])
@@ -533,7 +642,7 @@ def check_in(request):
 
 @auth
 @api_view(['POST'])
-def request_email_code(request):
+def request_email_code(request: Request):
     """
     请求设置邮箱，会向邮箱发送确认链接
 
@@ -582,7 +691,7 @@ def request_email_code(request):
 
 @auth
 @api_view(['POST'])
-def set_email_with_code(request):
+def set_email_with_code(request: Request):
     """
     通过验证码设置邮箱
 
@@ -600,22 +709,22 @@ def set_email_with_code(request):
     if not re.match(r'.+@.+\..+', post_email):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱格式有误'))
 
-    code = request.data.get('code', None)
+    code = request.data.get('code')
     if not code:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
+
+    email = cache.get(code)
+    if not email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='无效的验证码'))
+    if email != post_email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱不一致，请重新获取验证码！'))
+    if not email:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
     else:
-        email = cache.get(code)
-        if not email:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='无效的验证码'))
-        if email != post_email:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱不一致，请重新获取验证码！'))
-        if not email:
-            return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
-        else:
-            user.email = email
-            user.save()
-            cache.delete(code)
-            return JsonResponse(dict(code=requests.codes.ok, msg='邮箱设置成功'))
+        user.email = email
+        user.save()
+        cache.delete(code)
+        return JsonResponse(dict(code=requests.codes.ok, msg='邮箱设置成功'))
 
 
 @auth

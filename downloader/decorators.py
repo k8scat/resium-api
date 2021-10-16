@@ -27,17 +27,20 @@ from django.http import JsonResponse
 from downloader.models import User
 from downloader.utils import ding
 
+from django.core.handlers.wsgi import WSGIRequest
+
 
 def auth(fn):
     @wraps(fn)
-    def _wrapper(request):
-        token = request.headers.get(settings.REQUEST_TOKEN_HEADER, None)
-        if token is None:
+    def _wrapper(request: WSGIRequest):
+        token = request.headers.get(settings.REQUEST_TOKEN_HEADER)
+        if not token:
             return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
         try:
             token = token[len(settings.REQUEST_TOKEN_PREFIX):]
             # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS512'])
+            payload = jwt.decode(
+                token, settings.JWT_SECRET, algorithms=['HS512'])
         except Exception as e:
             logging.info(e)
             return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))

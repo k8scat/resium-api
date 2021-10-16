@@ -26,6 +26,8 @@ urlpatterns = [
     path('list_point_records/', user.list_point_records),
     re_path(r'^delete_point_record/?$', user.delete_point_record),
     path('video_reward/', user.video_reward),
+    path('request_reset_password/', user.request_reset_password),
+    path('reset_password/', user.reset_password),
 
     # service
     path('list_services/', service.list_services),
@@ -44,14 +46,16 @@ urlpatterns = [
     re_path(r'^check_csdn_cookies/?$', account.check_csdn_cookies),
     re_path(r'^check_docer_cookies/?$', account.check_docer_cookies),
     re_path(r'^check_qiantu_cookies/?$', account.check_qiantu_cookies),
-    re_path(r'^reset_csdn_today_download_count/?$', account.reset_csdn_today_download_count),
+    re_path(r'^reset_csdn_today_download_count/?$',
+            account.reset_csdn_today_download_count),
     path('add_or_update_csdn_account/', account.add_or_update_csdn_account),
     path('list_csdn_accounts/', account.list_csdn_accounts),
     re_path(r'^remove_csdn_sms_validate/?$', account.remove_csdn_sms_validate),
 
     # download_record
     path('list_download_records/', download_record.list_download_records),
-    re_path(r'^delete_download_record/?$', download_record.delete_download_record),
+    re_path(r'^delete_download_record/?$',
+            download_record.delete_download_record),
 
     # resource
     path('oss_download/', resource.oss_download),
@@ -99,4 +103,3 @@ urlpatterns = [
     # 飞书机器人
     path('feishu_bot/', feishu.bot)
 ]
-

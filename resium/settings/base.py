@@ -348,3 +348,6 @@ FEISHU_USER_ID = '819d28c8'
 FEISHU_TOKEN_INTERVAL = 3600
 
 ADMIN_CSDN_ACCOUNTS = ['65634914', '79337844']
+
+RSA_PRIVKEY_FILE = os.path.join(BASE_DIR, 'private-key.pem')
+RSA_PUBKEY_FILE = os.path.join(BASE_DIR, 'public-key.pem')

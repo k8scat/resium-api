@@ -68,7 +68,8 @@ def ding(message, at_mobiles=None, is_at_all=False,
     secret_enc = settings.DINGTALK_SECRET.encode('utf-8')
     string_to_sign = f'{timestamp}\n{settings.DINGTALK_SECRET}'
     string_to_sign_enc = string_to_sign.encode('utf-8')
-    hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+    hmac_code = hmac.new(secret_enc, string_to_sign_enc,
+                         digestmod=hashlib.sha256).digest()
     sign = parse.quote_plus(base64.b64encode(hmac_code))
 
     if at_mobiles is None:
@@ -110,9 +111,11 @@ def ding(message, at_mobiles=None, is_at_all=False,
 
 def get_aliyun_oss_bucket():
     # 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
-    auth = oss2.Auth(settings.ALIYUN_ACCESS_KEY_ID, settings.ALIYUN_ACCESS_KEY_SECRET)
+    auth = oss2.Auth(settings.ALIYUN_ACCESS_KEY_ID,
+                     settings.ALIYUN_ACCESS_KEY_SECRET)
     # Endpoint以杭州为例，其它Region请按实际情况填写。
-    bucket = oss2.Bucket(auth, settings.ALIYUN_OSS_END_POINT, settings.ALIYUN_OSS_BUCKET_NAME)
+    bucket = oss2.Bucket(auth, settings.ALIYUN_OSS_END_POINT,
+                         settings.ALIYUN_OSS_BUCKET_NAME)
 
     return bucket
 
@@ -367,10 +370,13 @@ def save_resource(resource_url, filename, filepath,
         size = os.path.getsize(filepath)
         # django的CharField可以直接保存list，会自动转成str
         resource = Resource.objects.create(title=resource_info['title'], filename=filename, size=size,
-                                           url=resource_url, key=key, tags=settings.TAG_SEP.join(resource_info['tags']),
+                                           url=resource_url, key=key, tags=settings.TAG_SEP.join(
+                                               resource_info['tags']),
                                            file_md5=file_md5, desc=resource_info['desc'], user=user,
-                                           wenku_type=resource_info.get('wenku_type', None),
-                                           is_docer_vip_doc=resource_info.get('is_docer_vip_doc', False),
+                                           wenku_type=resource_info.get(
+                                               'wenku_type', None),
+                                           is_docer_vip_doc=resource_info.get(
+                                               'is_docer_vip_doc', False),
                                            local_path=filepath)
         DownloadRecord(user=user,
                        resource=resource,
@@ -536,7 +542,8 @@ def predict_code(image_path):
             logging.info(result)
             if result['RetCode'] == '0':
                 code = json.loads(result['RspData'])['result']
-                key = get_unique_str() + '.' + os.path.basename(image_path).split('.')[-1]
+                key = get_unique_str() + '.' + \
+                    os.path.basename(image_path).split('.')[-1]
                 if qiniu_upload(settings.QINIU_OPEN_BUCKET, image_path, key):
                     image_url = qiniu_get_url(key)
                     ding(f'验证码识别成功: {code}', image=image_url)
@@ -568,7 +575,8 @@ def get_random_ua():
         # Microsoft Edge
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15',
         # Safari
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:74.0) Gecko/20100101 Firefox/74.0'  # Firefox
+        # Firefox
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:74.0) Gecko/20100101 Firefox/74.0'
     ]
     return random.choice(ua_list)
 
@@ -585,7 +593,8 @@ def upload_csdn_resource(resource):
         # 将资源与其他文件进行压缩，获得到不同的MD5
         filepath = zip_file(resource.local_path)
         file_md5 = get_file_md5(open(filepath, 'rb'))
-        title = resource.title + f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
+        title = resource.title + \
+            f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
         tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
         if len(tags) > 5:
             tags = ','.join(tags[:5])
@@ -1026,7 +1035,8 @@ def feishu_get_tenant_access_token():
                 if data.get('code', -1) == 0:
                     token = data.get('tenant_access_token', None)
                     if token:
-                        cache.set('feishu_token', token, timeout=settings.DOWNLOAD_INTERVAL)
+                        cache.set('feishu_token', token,
+                                  timeout=settings.DOWNLOAD_INTERVAL)
                         return token
                     else:
                         ding(message='[飞书] access_token获取失败',
@@ -1088,3 +1098,9 @@ def random_weight(data_map):
     for k, num in data_map.items():
         data_list.extend([k] * num)
     return random.choice(data_list)
+
+
+def get_random_str(n: int, s: str = None) -> str:
+    if not s:
+        s = string.digits + string.ascii_letters
+    return ''.join(random.sample(s, n))
