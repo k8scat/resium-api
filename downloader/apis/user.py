@@ -661,6 +661,8 @@ def request_email_code(request: Request):
 
     if user.email == email:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='新邮箱不能和当前邮箱相同'))
+    if User.objects.filter(email=email).count() > 0:
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='邮箱已被绑定其他账号！'))
 
     code = get_random_int()
     cache.set(code, email, timeout=settings.EMAIL_CODE_EXPIRES)
