@@ -719,11 +719,13 @@ def set_email_with_code(request: Request):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='邮箱不一致，请重新获取验证码！'))
     if not email:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='验证码有误'))
-    else:
-        user.email = email
-        user.save()
-        cache.delete(code)
-        return JsonResponse(dict(code=requests.codes.ok, msg='邮箱设置成功'))
+    if User.objects.filter(email=email).count() > 0:
+        return JsonResponse(dict(code=requests.codes.forbidden, msg='邮箱已被绑定其他账号！'))
+
+    user.email = email
+    user.save()
+    cache.delete(code)
+    return JsonResponse(dict(code=requests.codes.ok, msg='邮箱设置成功'))
 
 
 @auth
