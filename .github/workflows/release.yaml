@@ -30,6 +30,7 @@ jobs:
         run: |
           curl \
             -X POST \
+            -H 'Content-Type: application/json' \
             -d '{"version": "${{ steps.get_version.outputs.VERSION }}", "token": "${{ secrets.VERSION_TOKEN }}"}' \
             https://api.resium.ncucoder.com/update_version/
 

@@ -5,34 +5,13 @@
 @date: 2021/10/22
 
 """
-from urllib.parse import quote, unquote
-import uuid
-import json
-
-import requests
-
 from django.conf import settings
-from django.contrib.auth.hashers import make_password, check_password
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.http import JsonResponse, HttpResponseNotFound
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.db.models import Q
+from django.http import JsonResponse
 
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
-from wechatpy import parse_message
-from wechatpy.crypto import WeChatCrypto
-from wechatpy.events import UnsubscribeEvent, SubscribeEvent
-from wechatpy.messages import TextMessage
-from wechatpy.replies import TextReply, EmptyReply
-
-from downloader.decorators import auth
 from downloader.models import Version
-from downloader.rsa import RSAUtil
-from downloader.serializers import UserSerializers, PointRecordSerializers
 from downloader.utils import ding
 
 
