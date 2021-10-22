@@ -26,12 +26,12 @@ jobs:
           release_name: ${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
-      # - name: Create version
-      #   run: |
-      #     curl \
-      #       -X POST \
-      #       -d '{"version": "${{ steps.get_version.outputs.VERSION }}", "token": "${{ secrets.VERSION_TOKEN }}"}' \
-      #       https://api.resium.ncucoder.com/update_version/
+      - name: Create version
+        run: |
+          curl \
+            -X POST \
+            -d '{"version": "${{ steps.get_version.outputs.VERSION }}", "token": "${{ secrets.VERSION_TOKEN }}"}' \
+            https://api.resium.ncucoder.com/update_version/
 
   collectstatic:
     name: Collect static
