@@ -18,7 +18,7 @@ DATABASES = {
         'NAME': 'resium',
         'USER': 'root',
         'PASSWORD': 'Holdon@7868',
-        'HOST': 'resium-db',
+        'HOST': 'resium-db',  # 116.63.142.111
         'PORT': '3306',
         'TIME_ZONE': TIME_ZONE
     }
@@ -67,3 +67,6 @@ NGINX_DOWNLOAD_URL = 'https://file.resium.ncucoder.com'
 
 DOWNHUB_SERVER = 'http://resium-downhub:8080'
 DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'
+
+# 用于授权更新版本信息，调用 /update_version 接口
+VERSION_TOKEN = 'jZpsduVlmCPHv0Y1U5Sb3hEJkgzcKTXifFItarO2Ro'

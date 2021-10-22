@@ -21,11 +21,9 @@ from functools import wraps
 import jwt
 import requests
 from django.conf import settings
-from django.core.cache import cache
 from django.http import JsonResponse
 
 from downloader.models import User
-from downloader.utils import ding
 
 from django.core.handlers.wsgi import WSGIRequest
 

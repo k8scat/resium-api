@@ -60,3 +60,6 @@ NGINX_DOWNLOAD_URL = f'file://{DOWNLOAD_DIR}'
 
 DOWNHUB_SERVER = 'http://127.0.0.1:8080'
 DOWNHUB_TOKEN = 'NhGBSTHWuFtjlLUD6Q37KIc2svmgoXrOA4fYzE8b'
+
+# 用于授权更新版本信息，调用 /update_version 接口
+VERSION_TOKEN = 'Oh7YEamixSzLlu6fK3tdDIcVFRyQ8rGb'
