@@ -7,7 +7,7 @@
 """
 from django.urls import path, re_path
 from downloader.apis import user, service, order, resource, advert, \
-    account, download_record, article, oauth, ad, notice, feishu
+    account, download_record, article, oauth, ad, notice, feishu, version
 
 urlpatterns = [
     # user
@@ -101,5 +101,9 @@ urlpatterns = [
     path('update_notice/', notice.update_notice),
 
     # 飞书机器人
-    path('feishu_bot/', feishu.bot)
+    path('feishu_bot/', feishu.bot),
+
+    # 版本
+    path('update_version/', version.update_version),
+    path('get_version/', version.get_version)
 ]

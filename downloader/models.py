@@ -337,3 +337,10 @@ class Notice(Base):
 
     class Meta:
         db_table = 'notice'
+
+
+class Version(Base):
+    version = models.CharField(max_length=50, verbose_name='版本号')
+
+    class Meta:
+        db_table = 'version'
