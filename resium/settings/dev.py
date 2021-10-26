@@ -52,7 +52,9 @@ RATELIMIT_BLOCK = False
 COOKIE_DOMAIN = 'localhost'
 
 # 下载文件的存放目录
-DOWNLOAD_DIR = '/Users/wanhuasong/workspace/resium/resium-scripts/.volumes/selenium/download'
+
+DOWNLOAD_DIR = os.path.join(os.path.dirname(
+    BASE_DIR), 'resium-scripts/.volumes/selenium/download')
 if not os.path.isdir(DOWNLOAD_DIR):
     logging.error(f'Invalid setting DOWNLOAD_DIR: {DOWNLOAD_DIR}')
     sys.exit(1)
