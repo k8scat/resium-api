@@ -5,6 +5,7 @@
 @date: 2020/1/7
 
 """
+import traceback
 import base64
 import datetime
 import hashlib
@@ -582,6 +583,9 @@ def get_random_ua():
 
 
 def upload_csdn_resource(resource):
+    """
+    Deprecated
+    """
     if not re.match(settings.PATTERN_CSDN, resource.url):
         logging.info(f'开始上传资源到CSDN: {resource.url}')
         headers = {
@@ -895,18 +899,25 @@ def get_csdn_valid_count(cookies):
 
     headers = {
         'cookie': cookies,
-        'user-agent': get_random_ua()
+        'user-agent': get_random_ua(),
+        'referer': 'https://download.csdn.net/?utm_source=vipqyy_qytb_xzhy'
     }
-    try:
-        with requests.get('https://download.csdn.net/my/vip', headers=headers) as r:
-            soup = BeautifulSoup(r.text, 'lxml')
-            el = soup.select('div.vip_info p:nth-of-type(1) span')
-            try:
-                return int(el[0].text)
-            except Exception:
+    with requests.get('https://download.csdn.net/api/source/index/v1/loginInfo', headers=headers) as r:
+        if r.status_code != requests.codes.ok:
+            logging.warn(r.text)
+            return None
+
+        try:
+            resp = r.json()
+            if resp['code'] != 200 or resp['data']['vipInfo']['isVip'] != 1:
+                logging.warn(f'Invalid resp: {r.text}')
                 return None
-    except InvalidHeader:
-        return None
+            downloadNum = int(resp['data']['vipInfo']['downloadNum'])
+            return downloadNum
+        except Exception as e:
+            ding(traceback.format_exc(), error=e,
+                 logger=logging.error, need_email=True)
+            return None
 
 
 def get_csdn_id(cookies):

@@ -14,6 +14,8 @@ from rest_framework.decorators import api_view
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 
+from rest_framework.request import Request
+
 from downloader.decorators import auth
 from downloader.models import DocerAccount, CsdnAccount, BaiduAccount, QiantuAccount, User
 from downloader.serializers import CsdnAccountSerializers
@@ -39,11 +41,10 @@ def use_specified_csdn_account(csdn_id=''):
 def list_all_csdn_accounts():
     csdn_accounts = CsdnAccount.objects.all()
     return json.dumps(CsdnAccountSerializers(csdn_accounts, many=True).data)
-    
 
 
 @api_view(['POST'])
-def check_csdn_cookies(request):
+def check_csdn_cookies(request: Request):
     """
     检查CSDN cookies
     """
@@ -75,7 +76,8 @@ def check_csdn_cookies(request):
                         content=msg,
                         to_addr=csdn_account.user.email
                     )
-                    feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
+                    feishu_send_message(
+                        text=msg, user_id=settings.FEISHU_USER_ID)
                 else:
                     if csdn_account.need_sms_validate:
                         msg = f'CSDN会员账号（ID为{csdn_account.csdn_id}）需要进行短信验证，为了保障会员账号的可用性，请及时进行短信验证并登录网站（https://resium.cn/user）解除短信验证，如有疑问请联系管理员！【此消息来自定时任务，如已知悉请忽略】'
@@ -84,7 +86,8 @@ def check_csdn_cookies(request):
                             content=msg,
                             to_addr=csdn_account.user.email
                         )
-                        feishu_send_message(text=msg, user_id=settings.FEISHU_USER_ID)
+                        feishu_send_message(
+                            text=msg, user_id=settings.FEISHU_USER_ID)
                 ding(f'[CSDN] 剩余下载个数：{valid_count}',
                      download_account_id=csdn_account.id)
                 csdn_account.valid_count = valid_count
@@ -218,7 +221,8 @@ def add_or_update_csdn_account(request):
 
     if csdn_account_id:
         try:
-            csdn_account = CsdnAccount.objects.get(id=csdn_account_id, csdn_id=csdn_id, user=user)
+            csdn_account = CsdnAccount.objects.get(
+                id=csdn_account_id, csdn_id=csdn_id, user=user)
             csdn_account.cookies = cookies
             csdn_account.valid_count = valid_count
             csdn_account.is_cookies_valid = True
@@ -232,7 +236,8 @@ def add_or_update_csdn_account(request):
         if CsdnAccount.objects.filter(csdn_id=csdn_id).count() > 0:
             return JsonResponse(dict(code=requests.codes.bad_request, msg='CSDN账号已存在，请勿重复添加！'))
 
-        CsdnAccount(user=user, cookies=cookies, valid_count=valid_count, csdn_id=csdn_id).save()
+        CsdnAccount(user=user, cookies=cookies,
+                    valid_count=valid_count, csdn_id=csdn_id).save()
         return JsonResponse(dict(code=requests.codes.ok, msg='成功添加CSDN会员账号'))
 
 
