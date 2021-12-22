@@ -23,12 +23,25 @@ def list_download_records(request):
     需要认证
     """
     uid = request.session.get('uid')
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.unauthorized, msg='未登录'))
+    user = User.objects.get(uid=uid)
 
-    download_records = DownloadRecord.objects.order_by('-create_time').filter(user=user, is_deleted=False).all()
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 20)
+    try:
+        page = int(page)
+        if page < 1:
+            page = 1
+        per_page = int(per_page)
+        if per_page > 20:
+            per_page = 20
+    except ValueError:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
+
+    start = per_page * (page - 1)
+    end = start + per_page
+
+    download_records = DownloadRecord.objects.filter(
+        user=user, is_deleted=False).order_by('-create_time').all()[start:end]
     return JsonResponse(dict(code=requests.codes.ok, msg='获取下载记录成功',
                              download_records=DownloadRecordSerializers(download_records, many=True).data))
 

@@ -45,7 +45,7 @@ from downloader.models import Resource, DownloadRecord, CsdnAccount, User
 
 def ding(message, at_mobiles=None, is_at_all=False,
          error=None, uid='', download_account_id=None,
-         resource_url='', logger=None,
+         resource_url='', logger=logging.info,
          need_email=False, image=''):
     """
     使用钉钉Webhook Robot监控线上系统
@@ -75,14 +75,14 @@ def ding(message, at_mobiles=None, is_at_all=False,
 
     if at_mobiles is None:
         at_mobiles = []
-
     content = f'## {message}\n' \
               f'- 错误信息：{str(error) if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
               f'- 用户：{uid if uid else "无"}\n' \
               f'- 会员账号：{download_account_id if download_account_id else "无"}\n' \
               f'- 环境：{"开发环境" if settings.DEBUG else "生产环境"}\n' \
-              f'{"![](" + image + ")" if image else ""}'
+              f'{"![](" + image + ")" if image else ""}' \
+              f'{traceback.format_exc()}'
 
     if logger:
         logger(content)
@@ -372,7 +372,7 @@ def save_resource(resource_url, filename, filepath,
         # django的CharField可以直接保存list，会自动转成str
         resource = Resource.objects.create(title=resource_info['title'], filename=filename, size=size,
                                            url=resource_url, key=key, tags=settings.TAG_SEP.join(
-                                               resource_info['tags']),
+                resource_info['tags']),
                                            file_md5=file_md5, desc=resource_info['desc'], user=user,
                                            wenku_type=resource_info.get(
                                                'wenku_type', None),
@@ -544,7 +544,7 @@ def predict_code(image_path):
             if result['RetCode'] == '0':
                 code = json.loads(result['RspData'])['result']
                 key = get_unique_str() + '.' + \
-                    os.path.basename(image_path).split('.')[-1]
+                      os.path.basename(image_path).split('.')[-1]
                 if qiniu_upload(settings.QINIU_OPEN_BUCKET, image_path, key):
                     image_url = qiniu_get_url(key)
                     ding(f'验证码识别成功: {code}', image=image_url)
@@ -598,7 +598,7 @@ def upload_csdn_resource(resource):
         filepath = zip_file(resource.local_path)
         file_md5 = get_file_md5(open(filepath, 'rb'))
         title = resource.title + \
-            f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
+                f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
         tags = resource.tags.replace(settings.TAG_SEP, ',').split(',')
         if len(tags) > 5:
             tags = ','.join(tags[:5])
