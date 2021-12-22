@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
 
-from downloader.apis.resource.resource import BaseResource
+from downloader.apis.resource import BaseResource
 from downloader.models import QiantuAccount, PointRecord
 from downloader.utils import ding, get_random_ua, save_resource
 

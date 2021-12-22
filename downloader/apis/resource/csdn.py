@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
-from downloader.apis.resource.resource import BaseResource
+from downloader.apis.resource import BaseResource
 from downloader.models import CsdnAccount, PointRecord
 from downloader.utils import get_random_ua, ding, switch_csdn_account, save_resource
 

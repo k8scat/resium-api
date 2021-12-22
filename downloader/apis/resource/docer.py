@@ -11,7 +11,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from downloader.apis.resource.resource import BaseResource
+from downloader.apis.resource import BaseResource
 from downloader.models import DocerPreviewImage, DocerAccount, PointRecord
 from downloader.utils import save_resource, ding, get_random_ua, get_driver
 

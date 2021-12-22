@@ -20,7 +20,8 @@ from django.http.response import HttpResponse
 from rest_framework.decorators import api_view
 
 from downloader import utils
-from downloader.apis.resource import CsdnResource, WenkuResource
+from downloader.apis.resource.csdn import CsdnResource
+from downloader.apis.resource.wenku import WenkuResource
 from downloader.models import CsdnAccount, User, Resource
 from downloader.serializers import CsdnAccountSerializers, UserSerializers
 from downloader.utils import ding, save_resource, get_wenku_doc_id, feishu_get_tenant_access_token
