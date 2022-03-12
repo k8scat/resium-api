@@ -36,10 +36,13 @@ API_BASE_URL = 'http://localhost:8000'
 # 随机标签个数
 SAMPLE_TAG_COUNT = 3
 
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 1
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://localhost:6379/1",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100, "retry_on_timeout": True}
@@ -54,7 +57,7 @@ COOKIE_DOMAIN = 'localhost'
 # 下载文件的存放目录
 
 DOWNLOAD_DIR = os.path.join(os.path.dirname(
-    BASE_DIR), 'resium-scripts/.volumes/selenium/download')
+    BASE_DIR), 'resium-scripts/volumes/selenium/download')
 if not os.path.isdir(DOWNLOAD_DIR):
     logging.error(f'Invalid setting DOWNLOAD_DIR: {DOWNLOAD_DIR}')
     sys.exit(1)

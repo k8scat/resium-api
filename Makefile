@@ -84,3 +84,6 @@ push-base-image:
 push-image:
 	docker push $(image_tag)
 	docker push $(image_tag_latest)
+
+add-admin-user:
+	$(python) scripts/add_admin_user.py

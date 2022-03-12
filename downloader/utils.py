@@ -727,17 +727,17 @@ def get_long_url(url):
             return None
 
 
-def generate_jwt(sub, expire_seconds=3600 * 24):
+def generate_jwt(uid, expire_seconds=3600 * 24):
     """
     生成token
 
-    :param sub:
+    :param uid:
     :param expire_seconds: 默认1天过期
     :return:
     """
 
     payload = {
-        'sub': sub
+        'sub': uid
     }
     if expire_seconds > 0:
         exp = datetime.datetime.utcnow() + datetime.timedelta(seconds=expire_seconds)

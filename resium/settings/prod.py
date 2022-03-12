@@ -35,10 +35,13 @@ ALIPAY_APP_NOTIFY_URL = API_BASE_URL + '/alipay_notify/'
 # 随机标签个数
 SAMPLE_TAG_COUNT = 50
 
+REDIS_HOST = 'resium-redis'
+REDIS_PORT = 6379
+REDIS_DB = 1
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://resium-redis:6379/1",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100, "retry_on_timeout": True}

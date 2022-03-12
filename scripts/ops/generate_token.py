@@ -5,12 +5,15 @@
 @date: 2020/3/26
 
 """
-from resium.settings.base import JWT_SECRET
-import jwt
+import os
+import django
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
+django.setup()
+
+from downloader.utils import generate_jwt
 
 if __name__ == '__main__':
-    payload = {
-        'sub': '666666'
-    }
-    token = jwt.encode(payload, JWT_SECRET, algorithm='HS512').decode()
+    uid = '000000'
+    token = generate_jwt(uid)
     print(token)

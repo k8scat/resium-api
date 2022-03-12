@@ -1,11 +1,13 @@
-# Develop
+# 开发文档
 
-## Environment
+## 开发环境
 
-- [x] python3.7
-  - [x] virtualenv
-- [ ] docker
-- [ ] mysql8
+- python3.7
+  - virtualenv
+- Docker
+- MySQL 8
+- Redis
+- Selenium in Docker
 
 > MySQL/ Redis/ Selenium 使用 resium-scripts/dev.yaml 进行启动
 

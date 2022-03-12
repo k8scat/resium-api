@@ -7,10 +7,13 @@
 """
 import logging
 import re
+import traceback
 
+import django_redis.cache
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -35,15 +38,17 @@ def parse_csdn_article(request):
     except User.DoesNotExist:
         return JsonResponse(dict(code=401, msg='未认证'))
 
-    article_url = request.data.get('url', None)
+    article_url: str = request.data.get('url', None)
     if not article_url or not re.match(r'^http(s)?://blog\.csdn\.net/.+/article/details/.+$', article_url):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    article_url = article_url.split('?')[0]
+    if article_url.index('?') != -1:
+        article_url = article_url.split('?')[0]
     try:
         article = Article.objects.get(url=article_url)
+        key = csdn_cache_key(article_url)
+        cache.set(key, "1", timeout=None, nx=True)
         return JsonResponse(dict(code=200, article=ArticleSerializers(article).data))
-
     except Article.DoesNotExist:
         csdn_account = CsdnAccount.objects.get(is_enabled=True)
         headers = {
@@ -82,6 +87,9 @@ def parse_csdn_article(request):
                     PointRecord(user=user, used_point=point,
                                 url=article_url, comment='解析CSDN文章',
                                 point=user.point).save()
+
+                    key = csdn_cache_key(article_url)
+                    cache.set(key, "1", timeout=None, nx=True)
                     return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
 
                 except Exception as e:
@@ -199,5 +207,18 @@ def check_article_existed(request):
     if not url or not re.match(r'^http(s)?://blog\.csdn\.net/.+/article/details/.+$', url):
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
 
-    existed = Article.objects.filter(url=url).count() > 0
+    key = csdn_cache_key(url)
+    existed = cache.has_key(key)
+    if not existed:
+        existed = Article.objects.filter(url=url).count() > 0
+        if existed:
+            key = csdn_cache_key(url)
+            cache.set(key, "1", timeout=None, nx=True)
     return JsonResponse(dict(code=requests.codes.ok, existed=existed))
+
+
+def csdn_cache_key(url: str) -> str:
+    if url.count('?') > 0:
+        url = url.split('?')[0]
+    article_id = url.split('/')[-1]
+    return 'csdn_article_' + article_id
