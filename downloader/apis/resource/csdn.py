@@ -44,17 +44,29 @@ class CsdnResource(BaseResource):
 
                     info = soup.select(
                         'div.mt-8.t-c-second.line-h-1.flex.flex-hc span')
+                    file_type = ''
+                    size = ''
+                    if len(info) == 5:
+                        file_type = info[2].string
+                        size = info[3].text
+                    elif len(info) == 7:
+                        file_type = info[4].string
+                        size = info[5].text
+                    else:
+                        ding('解析CSDN资源页面出错', resource_url=self.url,
+                             logger=logging.error)
+
                     tags = soup.select('div.tags a')
                     title = soup.find(
-                        'h1', class_='el-tooltip d-ib title fs-xxl line-2').string.strip()
+                        'h1', class_='el-tooltip d-ib title fs-xxl line-2').text.strip()
                     desc = soup.select('p.detail-desc')[0].text
                     self.resource = {
                         'title': title,
                         'desc': desc,
                         'tags': [tag.text for tag in tags],
-                        'file_type': info[2].text,
+                        'file_type': file_type,
                         'point': point,
-                        'size': info[3].text,
+                        'size': size,
                         'need_pay': need_pay,
                         'copyright_limited': copyright_limited
                     }
