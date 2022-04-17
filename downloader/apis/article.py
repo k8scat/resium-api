@@ -42,7 +42,7 @@ def parse_csdn_article(request):
     if not article_url or not re.match(r'^http(s)?://blog\.csdn\.net/.+/article/details/.+$', article_url):
         return JsonResponse(dict(code=400, msg='错误的请求'))
 
-    if article_url.index('?') != -1:
+    if article_url.find('?') != -1:
         article_url = article_url.split('?')[0]
     try:
         article = Article.objects.get(url=article_url)
