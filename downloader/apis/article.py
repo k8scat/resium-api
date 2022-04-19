@@ -143,6 +143,9 @@ def get_article_count(request):
                                                                                   Q(tags__icontains=key) |
                                                                                   Q(content__icontains=key)).count()))
 
+C = """<svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+<path d="M5,0 0,2.5 5,5z" id="raphael-marker-block" stroke-linecap="round" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></path>
+</svg>"""
 
 @api_view()
 def get_article(request):
@@ -154,6 +157,8 @@ def get_article(request):
         article = Article.objects.get(id=article_id)
         article.view_count += 1
         article.save()
+
+        article.content = article.content.replace(C, '')
         return JsonResponse(dict(code=requests.codes.ok, article=ArticleSerializers(article).data))
     except Article.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg='文章不存在'))
