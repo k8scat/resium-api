@@ -75,13 +75,10 @@ def upload(request):
             t = Thread(target=aliyun_oss_upload, args=(filepath, key))
             t.start()
 
-            ding(f'有新的资源上传 {key}',
-                 uid=user.uid)
+            ding(f'有新的资源上传 {key}', uid=user.uid)
             return JsonResponse(dict(code=requests.codes.ok, msg='资源上传成功'))
         except Exception as e:
-            logging.error(e)
-            ding(f'资源上传失败: {str(e)}',
-                 need_email=True)
+            ding(f'资源上传失败', error=e)
             return JsonResponse(dict(code=requests.codes.server_error, msg='资源上传失败'))
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
@@ -195,29 +192,20 @@ def list_resources(request):
     """
     分页获取资源
     """
-
-    page = request.GET.get('page', 1)
-    per_page = request.GET.get('per_page', 10)
-    try:
-        page = int(page)
-        if page < 1:
-            page = 1
-
-        per_page = int(per_page)
-        if per_page > 20:
-            per_page = 20
-    except ValueError:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
-
+    page, per_page = parse_pagination_args(request)
     key = request.GET.get('key', '')
 
     start = per_page * (page - 1)
     end = start + per_page
-    # https://cloud.tencent.com/developer/ask/81558
-    resources = Resource.objects.filter(Q(is_audited=1),
-                                        Q(title__icontains=key) |
-                                        Q(desc__icontains=key) |
-                                        Q(tags__icontains=key)).order_by('-create_time').all()[start:end]
+
+    query = (Q(is_audited=1),)
+    if key:
+        query += (Q(title__icontains=key) | Q(desc__icontains=key) | Q(tags__icontains=key),)
+    else:
+        query += (~Q(url__startswith='https://www.docer.com'),)
+
+    # Django模型-不区分大小写的查询/过滤 https://cloud.tencent.com/developer/ask/81558
+    resources = Resource.objects.filter(*query).order_by('-create_time').all()[start:end]
     return JsonResponse(dict(code=requests.codes.ok, resources=ResourceSerializers(resources, many=True).data))
 
 

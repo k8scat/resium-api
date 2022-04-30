@@ -5,7 +5,6 @@
 @date: 2020/1/7
 
 """
-import traceback
 import base64
 import datetime
 import hashlib
@@ -17,6 +16,7 @@ import random
 import re
 import string
 import time
+import traceback
 import uuid
 import zipfile
 from json import JSONDecodeError
@@ -27,7 +27,6 @@ import jwt
 import oss2
 import requests
 from Crypto.Cipher import AES
-from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -43,10 +42,10 @@ from wechatpy import WeChatPay
 from downloader.models import Resource, DownloadRecord, CsdnAccount, User
 
 
-def ding(message, at_mobiles=None, is_at_all=False,
+def ding(message='', at_mobiles=None, is_at_all=False,
          error=None, uid='', download_account_id=None,
          resource_url='', logger=logging.info,
-         need_email=False, image=''):
+         need_email=True, image=''):
     """
     使用钉钉Webhook Robot监控线上系统
 
@@ -76,7 +75,7 @@ def ding(message, at_mobiles=None, is_at_all=False,
     if at_mobiles is None:
         at_mobiles = []
     content = f'## {message}\n' \
-              f'- 错误信息：{str(error) if error else "无"}\n' \
+              f'- 错误信息：{error if error else "无"}\n' \
               f'- 资源地址：{resource_url if resource_url else "无"}\n' \
               f'- 用户：{uid if uid else "无"}\n' \
               f'- 会员账号：{download_account_id if download_account_id else "无"}\n' \
@@ -476,9 +475,7 @@ def send_message(phone, code):
         client.do_action_with_exception(request)
         return True
     except Exception as e:
-        logging.error(e)
-        ding(f'短信验证码发送失败: {str(e)}',
-             need_email=True)
+        ding(f'短信验证码发送失败', error=e)
         return False
 
 
@@ -904,7 +901,7 @@ def get_csdn_valid_count(cookies):
     }
     with requests.get('https://download.csdn.net/api/source/index/v1/loginInfo', headers=headers) as r:
         if r.status_code != requests.codes.ok:
-            logging.warn(r.text)
+            ding(r.text, logger=logging.error)
             return None
 
         try:
@@ -912,11 +909,10 @@ def get_csdn_valid_count(cookies):
             if resp['code'] != 200 or resp['data']['vipInfo']['isVip'] != 1:
                 logging.warn(f'Invalid resp: {r.text}')
                 return None
-            downloadNum = int(resp['data']['vipInfo']['downloadNum'])
-            return downloadNum
+            download_num = int(resp['data']['vipInfo']['downloadNum'])
+            return download_num
         except Exception as e:
-            ding(traceback.format_exc(), error=e,
-                 logger=logging.error, need_email=True)
+            ding(message='获取CSDN会员账号的可用下载数失败', error=e, logger=logging.error)
             return None
 
 
@@ -1115,3 +1111,21 @@ def get_random_str(n: int, s: str = None) -> str:
     if not s:
         s = string.digits + string.ascii_letters
     return ''.join(random.sample(s, n))
+
+
+def parse_pagination_args(request, default_page=1, max_per_page=20) -> tuple:
+    page = request.GET.get('page', default_page)
+    per_page = request.GET.get('per_page', max_per_page)
+    try:
+        page = int(page)
+        if page < default_page:
+            page = default_page
+        per_page = int(per_page)
+        if per_page > max_per_page:
+            per_page = max_per_page
+        return page, per_page
+    except ValueError:
+        return default_page, max_per_page
+    except Exception as e:
+        ding(error=e, logger=logging.error)
+        return default_page, max_per_page

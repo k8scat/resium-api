@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 import os
 
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import time
 
@@ -87,7 +86,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
@@ -224,7 +222,6 @@ ZHIWANG_CODE_IMAGE = os.path.join(BASE_DIR, 'zhiwang_code.png')
 WENKU_SCREENSHOT_IMAGE = os.path.join(BASE_DIR, 'wenku_screenshot.png')
 WENKU_CODE_IMAGE = os.path.join(BASE_DIR, 'wenku_code.png')
 
-
 # 用于登录学校VPN
 NCU_VPN_USERNAME = '8000116092'
 NCU_VPN_PASSWORD = 'holdon7868'
@@ -351,3 +348,19 @@ ADMIN_CSDN_ACCOUNTS = ['65634914', '79337844']
 
 RSA_PRIVKEY_FILE = os.path.join(BASE_DIR, 'private-key.pem')
 RSA_PUBKEY_FILE = os.path.join(BASE_DIR, 'public-key.pem')
+
+FILE_TYPES = {
+    '1': 'DOC',
+    '2': 'XLS',
+    '3': 'PPT',
+    '4': 'DOCX',
+    '5': 'XLSX',
+    '6': 'PPTX',
+    '7': 'PDF',
+    '8': 'TXT',
+    '9': 'WPS',
+    '12': 'VSD',
+    '13': 'RTF',
+    '15': 'PPS',
+    '19': 'DWG'
+}

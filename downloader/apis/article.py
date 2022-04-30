@@ -7,9 +7,7 @@
 """
 import logging
 import re
-import traceback
 
-import django_redis.cache
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
@@ -21,7 +19,7 @@ from rest_framework.decorators import api_view
 from downloader.decorators import auth
 from downloader.models import CsdnAccount, Article, User, ArticleComment, PointRecord
 from downloader.serializers import ArticleSerializers, ArticleCommentSerializers
-from downloader.utils import ding, get_random_ua
+from downloader.utils import ding, get_random_ua, parse_pagination_args
 
 
 @auth
@@ -107,18 +105,7 @@ def parse_csdn_article(request):
 
 @api_view()
 def list_articles(request):
-    page = request.GET.get('page', 1)
-    per_page = request.GET.get('per_page', 10)
-    try:
-        page = int(page)
-        if page < 1:
-            page = 1
-        per_page = int(per_page)
-        if per_page > 20:
-            per_page = 20
-    except ValueError:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg='错误的请求'))
-
+    page, per_page = parse_pagination_args(request)
     key = request.GET.get('key', '')
 
     start = per_page * (page - 1)
@@ -143,9 +130,11 @@ def get_article_count(request):
                                                                                   Q(tags__icontains=key) |
                                                                                   Q(content__icontains=key)).count()))
 
+
 C = """<svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
 <path d="M5,0 0,2.5 5,5z" id="raphael-marker-block" stroke-linecap="round" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></path>
 </svg>"""
+
 
 @api_view()
 def get_article(request):

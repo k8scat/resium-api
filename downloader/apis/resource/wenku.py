@@ -55,39 +55,7 @@ class WenkuResource(BaseResource):
                         wenku_type = '付费文档'
 
                     file_type = doc_info['docType']
-                    if file_type == '6':
-                        file_type = 'PPTX'
-                    elif file_type == '3':
-                        file_type = 'PPT'
-                    elif file_type == '1':
-                        file_type = 'DOC'
-                    elif file_type == '4':
-                        file_type = 'DOCX'
-                    elif file_type == '8':
-                        file_type = 'TXT'
-                    elif file_type == '7':
-                        file_type = 'PDF'
-                    elif file_type == '5':
-                        file_type = 'XLSX'
-                    elif file_type == '2':
-                        file_type = 'XLS'
-                    elif file_type == '12':
-                        file_type = 'VSD'
-                    elif file_type == '15':
-                        file_type = 'PPS'
-                    elif file_type == '13':
-                        file_type = 'RTF'
-                    elif file_type == '9':
-                        file_type = 'WPS'
-                    elif file_type == '19':
-                        file_type = 'DWG'
-                    else:
-                        ding(f'未知文件格式: {file_type}',
-                             resource_url=self.url,
-                             error=doc_info,
-                             need_email=True)
-                        file_type = 'UNKNOWN'
-
+                    file_type = settings.FILE_TYPES.get(file_type, 'UNKNOWN')
                     self.resource = {
                         'title': doc_info['docTitle'],
                         'tags': doc_info.get('newTagArray', []),
@@ -98,11 +66,11 @@ class WenkuResource(BaseResource):
                     }
                     return requests.codes.ok, self.resource
                 except Exception as e:
-                    ding(f'资源信息解析失败: {str(e)}',
+                    ding('资源信息解析失败',
                          resource_url=self.url,
                          uid=self.user.uid,
                          logger=logging.error,
-                         need_email=True)
+                         error=e)
                     return requests.codes.server_error, '资源获取失败'
             else:
                 return requests.codes.server_error, '资源获取失败'

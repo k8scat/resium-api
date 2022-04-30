@@ -44,5 +44,5 @@ def update_version(request: Request):
         ding(f'版本更新成功: {version}')
         return JsonResponse(dict(code=200, msg='version created'))
     except Exception as e:
-        ding(f'版本发布失败: {e}')
+        ding('版本发布失败', error=e)
         return JsonResponse(dict(code=500, msg='internal server error'))
