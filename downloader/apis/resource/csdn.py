@@ -19,6 +19,15 @@ class CsdnResource(BaseResource):
     def __init__(self, url, user):
         super().__init__(url, user)
 
+    def _need_pay(self, soup: BeautifulSoup) -> bool:
+        """
+        判断是否是付费资源
+        """
+        items = soup.select('div#downloadBtn span.va-middle')
+        if len(items) == 0:
+            return False
+        return items[0].text.find('¥') != -1
+
     def parse(self):
         headers = {
             'authority': 'download.csdn.net',
@@ -31,34 +40,28 @@ class CsdnResource(BaseResource):
                     soup = BeautifulSoup(r.text, 'lxml')
                     # 版权受限，无法下载
                     # https://download.csdn.net/download/c_baby123/10791185
-                    copyright_limited = len(soup.select(
-                        'div.resource_box a.copty-btn')) != 0
-                    # 付费资源
-                    need_pay = soup.select(
-                        'div#downloadBtn span.va-middle')[0].text.find('¥') != -1
+                    copyright_limited = len(soup.select('div.resource_box a.copty-btn')) != 0
+                    need_pay = self._need_pay(soup)
                     can_download = not copyright_limited and not need_pay
                     if can_download:
                         point = settings.CSDN_POINT
                     else:
                         point = None
 
-                    info = soup.select(
-                        'div.mt-8.t-c-second.line-h-1.flex.flex-hc span')
-                    file_type = ''
-                    size = ''
-                    if len(info) == 5:
-                        file_type = info[2].string
-                        size = info[3].text
-                    elif len(info) == 7:
-                        file_type = info[4].string
-                        size = info[5].text
+                    info = soup.select('div.info-box span')
+                    if len(info) == 12:
+                        size = info[9].text
+                        file_type = info[10].text
+                    elif len(info) == 11:
+                        size = info[8].text
+                        file_type = info[9].text
                     else:
                         ding('解析CSDN资源页面出错', resource_url=self.url,
                              logger=logging.error)
+                        return requests.codes.server_error, '资源获取失败'
 
                     tags = soup.select('div.tags a')
-                    title = soup.find(
-                        'h1', class_='el-tooltip d-ib title fs-xxl line-2').text.strip()
+                    title = soup.find('h1', class_='el-tooltip d-i fs-xxl line-2 va-middle').text.strip()
                     desc = soup.select('p.detail-desc')[0].text
                     self.resource = {
                         'title': title,
@@ -98,6 +101,7 @@ class CsdnResource(BaseResource):
                  resource_url=self.url)
             cache.delete(settings.CSDN_DOWNLOADING_KEY)
             return requests.codes.bad_request, '版权受限，无法下载'
+
         # 可用积分不足
         if self.user.point < point:
             cache.delete(settings.CSDN_DOWNLOADING_KEY)
