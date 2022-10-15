@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: hsowan <hsowan.me@gmail.com>
-@date: 2020/7/25
-
-"""
 import requests
 from django.conf import settings
 from django.http import JsonResponse
@@ -21,18 +14,18 @@ def get_notice(request):
         notice = Notice.objects.get(id=1)
         return JsonResponse(dict(code=200, notice=NoticeSerializers(notice).data))
     except Notice.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.not_found, msg='公告不存在'))
+        return JsonResponse(dict(code=requests.codes.not_found, msg="公告不存在"))
 
 
 @auth
-@api_view(['POST'])
+@api_view(["POST"])
 def update_notice(request):
-    uid = request.session.get('uid')
+    uid = request.session.get("uid")
     if uid not in settings.ADMIN_UID:
-        return JsonResponse(dict(code=requests.codes.forbidden, msg='禁止请求'))
+        return JsonResponse(dict(code=requests.codes.forbidden, msg="禁止请求"))
 
-    title = request.data.get('title', None)
-    content = request.data.get('content', None)
+    title = request.data.get("title", None)
+    content = request.data.get("content", None)
     try:
         notice = Notice.objects.get(id=1)
         if title:
@@ -40,8 +33,7 @@ def update_notice(request):
         if content:
             notice.content = content
         notice.save()
-        return JsonResponse(dict(code=requests.codes.ok, msg='公告更新成功'))
+        return JsonResponse(dict(code=requests.codes.ok, msg="公告更新成功"))
 
     except Notice.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.not_found, msg='公告不存在'))
-
+        return JsonResponse(dict(code=requests.codes.not_found, msg="公告不存在"))
