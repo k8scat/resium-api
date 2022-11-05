@@ -6,7 +6,9 @@
 
 """
 from django.urls import path, re_path
-from downloader.apis import (
+
+from downloader.controllers import resource
+from downloader.controllers import (
     user,
     service,
     order,
@@ -19,7 +21,6 @@ from downloader.apis import (
     notice,
     version,
 )
-from downloader.apis.resource import resource
 
 urlpatterns = [
     # user

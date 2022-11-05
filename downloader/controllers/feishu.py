@@ -1,26 +1,21 @@
 import json
 import logging
-import os
 import re
-import uuid
 
-import requests
 from django.conf import settings
 from django.http import JsonResponse
 from django.http.response import HttpResponse
-from downloader.apis.account import list_all_csdn_accounts, use_specified_csdn_account
-from downloader.apis.resource.csdn import CsdnResource
-from downloader.apis.resource.wenku import WenkuResource
 from rest_framework.decorators import api_view
 
 from downloader import utils
+from downloader.controllers.account import (
+    list_all_csdn_accounts,
+    use_specified_csdn_account,
+)
 from downloader.models import CsdnAccount, User, Resource
 from downloader.serializers import CsdnAccountSerializers, UserSerializers
 from downloader.utils import (
     ding,
-    save_resource,
-    get_wenku_doc_id,
-    feishu_get_tenant_access_token,
 )
 
 
@@ -75,24 +70,6 @@ def bot(request):
                         elif re.match(r"^\d{6}$", msg_content):  # 激活该账号的下载功能
                             uid = msg_content
                             content = set_user_can_download(uid)
-
-                        elif re.match(r"^[a-z0-9-_]* .*$", msg_content) or re.match(
-                            r"^http://cdn\.qiniu\.ncucoder\.com/.* .*", msg_content
-                        ):  # 上传CSDN资源
-                            utils.feishu_send_message(
-                                "正在上传...", user_id=settings.FEISHU_USER_ID
-                            )
-                            parts = msg_content.split(" ")
-                            part1 = parts[0]
-                            url = parts[1]
-                            if re.match(
-                                r"^http://cdn\.qiniu\.ncucoder\.com/.*$", part1
-                            ):
-                                content = upload_csdn(url, download_url=part1)
-                            elif re.match(r"^[a-z0-9-_]*$", part1):
-                                content = upload_csdn(url, feishu_file_key=part1)
-                            else:
-                                content = f"part1 not matched, part1={part1}"
 
                         # 检查资源是否存在
                         elif re.match(
@@ -188,86 +165,3 @@ def list_csdn_accounts():
         if index < len(accounts) - 1:
             content += "\n\n"
     return content
-
-
-def upload_csdn(url, feishu_file_key=None, download_url=None):
-    if not feishu_file_key and not download_url:
-        return "upload_csdn needs param feishu_file_key or download_url"
-
-    # 生成资源存放的唯一子目录
-    unique_folder = str(uuid.uuid1())
-    save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-    while True:
-        if os.path.exists(save_dir):
-            unique_folder = str(uuid.uuid1())
-            save_dir = os.path.join(settings.DOWNLOAD_DIR, unique_folder)
-        else:
-            os.mkdir(save_dir)
-            break
-
-    if feishu_file_key:
-        api = "https://open.feishu.cn/open-apis/open-file/v1/get"
-        params = {"file_key": feishu_file_key}
-        token = feishu_get_tenant_access_token()
-        headers = {"Authorization": "Bearer " + token}
-        with requests.get(api, params=params, headers=headers, stream=True) as r:
-            if r.status_code == requests.codes.OK:
-                content_disposition = r.headers.get("content-disposition", None)
-                if content_disposition:
-                    # attachment; filename="wx_camera_1601781948017.mp4"
-                    logging.info(
-                        f'[feishu] content-disposition={r.headers["content-disposition"]}'
-                    )
-
-                    filename = content_disposition.split('"')[1]
-                    file = os.path.splitext(filename)
-                    filename_uuid = str(uuid.uuid1()) + file[1]
-                    filepath = os.path.join(save_dir, filename_uuid)
-                else:
-                    return "上传失败, content-disposition不存在"
-
-                with open(filepath, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:
-                            f.write(chunk)
-            else:
-                return f"文件获取接口请求失败, code={r.status_code}, content={str(r.content)}"
-
-    elif download_url:
-        with requests.get(download_url, stream=True) as r:
-            if r.status_code == requests.codes.OK:
-                filename = download_url.split("/")[-1]
-                file = os.path.splitext(filename)
-                filename_uuid = str(uuid.uuid1()) + file[1]
-                filepath = os.path.join(save_dir, filename_uuid)
-
-                with open(filepath, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:
-                            f.write(chunk)
-            else:
-                return f"文件获取接口请求失败, code={r.status_code}, content={str(r.content)}"
-
-    user = User.objects.get(uid="666666")
-    if Resource.objects.filter(url=url).count() == 0:
-        if re.match(settings.PATTERN_CSDN, url):
-            resource = CsdnResource(url, user)
-        elif re.match(settings.PATTERN_WENKU, url):
-            url, doc_id = get_wenku_doc_id(url)
-            resource = WenkuResource(url, user, doc_id)
-        else:
-            return f"无效的url, url={url}"
-
-        resource.parse()
-        if status == requests.codes.ok:
-            result = save_resource(
-                url, filename, filepath, resource_info, user, return_url=True
-            )
-            if result:
-                return "资源上传阿里云OSS成功"
-            else:
-                return "资源上传阿里云OSS失败"
-        else:
-            return resource_info
-    else:
-        return "资源已存在"

@@ -16,7 +16,6 @@ from downloader.models import PointRecord
 from downloader.services.resource import BaseResource
 from downloader.utils import (
     get_random_ua,
-    ding,
     get_driver,
     predict_code,
     check_download,
@@ -36,47 +35,33 @@ class ZhiwangResource(BaseResource):
 
         headers = {"referer": self.url, "user-agent": get_random_ua()}
         with requests.get(self.url, headers=headers) as r:
-            if r.status_code == requests.codes.OK:
-                try:
-                    soup = BeautifulSoup(r.text, "lxml")
-                    # 获取标签
-                    tags = []
-                    for tag in soup.select("p.keywords a"):
-                        tags.append(tag.string.strip()[:-1])
+            if r.status_code != requests.codes.ok:
+                self.err = "资源获取失败"
+                return
 
-                    title = soup.select("div.wxTitle h2")[0].text
-                    desc = soup.find("span", attrs={"id": "ChDivSummary"}).string
-                    has_pdf = True if soup.find("a", attrs={"id": "pdfDown"}) else False
-                    self.resource = {
-                        "title": title,
-                        "desc": desc,
-                        "tags": tags,
-                        "pdf_download": has_pdf,  # 是否支持pdf下载
-                        "point": settings.ZHIWANG_POINT,
-                    }
-                    return requests.codes.ok, self.resource
-                except Exception as e:
-                    ding(
-                        "资源获取失败",
-                        error=e,
-                        logger=logging.error,
-                        uid=self.user.uid,
-                        resource_url=self.url,
-                        need_email=True,
-                    )
-                    return requests.codes.server_error, "资源获取失败"
-            else:
-                return requests.codes.server_error, "资源获取失败"
+            try:
+                soup = BeautifulSoup(r.text, "lxml")
+                tags = [tag.string.strip()[:-1] for tag in soup.select("p.keywords a")]
+                title = soup.select("div.wxTitle h2")
+                if len(title) > 0:
+                    title = title[0].text
+                desc = soup.find("span", attrs={"id": "ChDivSummary"})
+                if desc:
+                    desc = desc.string
+                has_pdf = not not soup.find("a", attrs={"id": "pdfDown"})
+                self.resource = {
+                    "title": title,
+                    "desc": desc,
+                    "tags": tags,
+                    "pdf_download": has_pdf,  # 是否支持pdf下载
+                    "point": settings.ZHIWANG_POINT,
+                }
+            except Exception as e:
+                logging.error(e)
+                self.err = "资源获取失败"
+                return
 
     def _download(self):
-        status, result = self.parse()
-        if status != requests.codes.ok:
-            return status, result
-
-        point = self.resource["point"]
-        if self.user.point < point:
-            return 5000, "积分不足，请进行捐赠支持。"
-
         # url = resource_url.replace('https://kns.cnki.net', 'http://kns-cnki-net.wvpn.ncu.edu.cn')
         vpn_url = re.sub(
             r"http(s)?://kns(8)?\.cnki\.net",
@@ -114,8 +99,10 @@ class ZhiwangResource(BaseResource):
                     EC.presence_of_element_located((By.ID, "pdfDown"))
                 )
             except TimeoutException:
-                return requests.codes.bad_request, "该文献不支持下载PDF"
+                self.err = "该文献不支持下载PDF"
+                return
 
+            point = self.resource["point"]
             self.user.point -= point
             self.user.used_point += point
             self.user.save()
@@ -188,15 +175,8 @@ class ZhiwangResource(BaseResource):
                     return status, result
 
         except Exception as e:
-            ding(
-                "[知网文献] 下载失败",
-                error=e,
-                uid=self.user.uid,
-                resource_url=self.url,
-                logger=logging.error,
-                need_email=True,
-            )
-            return requests.codes.server_error, "下载失败"
+            logging.error(e)
+            self.err = "下载失败"
 
         finally:
             driver.close()

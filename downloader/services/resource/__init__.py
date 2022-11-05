@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import traceback
@@ -9,11 +10,14 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from lxml.etree import strip_tags
 
+from downloader.models import DownloadAccount, STATUS_ENABLED
 from downloader.utils import save_resource
 
 
 class BaseResource:
     def __init__(self, url, user):
+        self.account_type = ""
+
         self.url = url
         self.user = user
         self.unique_folder = None
@@ -27,18 +31,32 @@ class BaseResource:
         self.download_account = None
         self.download_account_config = None
         self.download_url = None
+        self.err = None
 
     def _init_download_account(self):
         """初始下载账号"""
+        if not self.account_type:
+            return
+
+        try:
+            self.download_account = DownloadAccount.objects.filter(
+                type=self.account_type, status=STATUS_ENABLED
+            ).first()
+            if self.download_account:
+                self.download_account_config = json.loads(self.download_account.config)
+        except Exception as e:
+            logging.error(
+                f"failed to init download account: {e}\n{traceback.format_exc()}"
+            )
+            self.err = "下载失败"
+
+    def parse(self) -> None:
         raise NotImplementedError
 
-    def parse(self):
+    def _download(self) -> None:
         raise NotImplementedError
 
-    def _download(self):
-        raise NotImplementedError
-
-    def _before_download(self):
+    def _init_download_dir(self):
         """
         调用download前必须调用_before_download
 
@@ -78,9 +96,25 @@ class BaseResource:
         except Exception as e:
             logging.error(f"failed to send email: {e}\n{traceback.format_exc()}")
 
-    def download(self):
-        self._before_download()
+    def download(self) -> None:
+        self.parse()
+        if self.err:
+            return
+        if self.user.point < self.resource.get("point", 0):
+            self.err = {"code": 5000, "msg": "积分不足，请进行捐赠支持。"}
+            return
+
+        self._init_download_account()
+        if self.err:
+            return
+
+        self._init_download_dir()
+        if self.err:
+            return
+
         self._download()
+        if self.err:
+            return
 
         t1 = Thread(
             target=save_resource,
@@ -96,8 +130,3 @@ class BaseResource:
 
         t2 = Thread(target=self.send_email)
         t2.start()
-        return dict(
-            filepath=self.filepath,
-            filename=self.filename,
-            download_url=self.download_url,
-        )

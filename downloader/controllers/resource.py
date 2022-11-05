@@ -441,13 +441,13 @@ def download(request):
             settings.CSDN_DOWNLOADING_KEY, True, settings.CSDN_DOWNLOADING_MAX_TIME
         )
 
-        resource = CsdnResource(resource_url, user)
+        res = CsdnResource(resource_url, user)
 
     elif re.match(settings.PATTERN_ITEYE, resource_url):
         resource_url = "https://download.csdn.net/download/" + resource_url.split(
             "resource/"
         )[1].replace("-", "/")
-        resource = CsdnResource(resource_url, user)
+        res = CsdnResource(resource_url, user)
 
     # 百度文库文档下载
     elif re.match(settings.PATTERN_WENKU, resource_url):
@@ -455,35 +455,36 @@ def download(request):
             ding("[百度文库] 资源地址正则通过，但没有doc_id", resource_url=resource_url)
             return JsonResponse(dict(code=requests.codes.bad_request, msg="资源地址有误"))
         else:
-            resource = WenkuResource(resource_url, user, doc_id)
+            res = WenkuResource(resource_url, user, doc_id)
 
     # 稻壳模板下载
     elif re.match(settings.PATTERN_DOCER, resource_url):
         if resource_url.count("webmall") > 0:
             resource_url = resource_url.replace("/webmall", "")
-        resource = DocerResource(resource_url, user)
+        res = DocerResource(resource_url, user)
 
     elif re.match(settings.PATTERN_QIANTU, resource_url):
-        resource = QiantuResource(resource_url, user)
+        res = QiantuResource(resource_url, user)
 
     # 知网下载
     # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
     # https://kns.cnki.net/KCMS/detail/ 官网
     elif re.match(settings.PATTERN_ZHIWANG, resource_url):
-        resource = ZhiwangResource(resource_url, user)
+        res = ZhiwangResource(resource_url, user)
 
     elif re.match(settings.PATTERN_MBZJ, resource_url):
-        resource = MbzjResource(resource_url, user)
+        res = MbzjResource(resource_url, user)
 
     else:
         return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
 
-    status, result = resource.download()
-    if status != requests.codes.ok:  # 下载失败
-        cache.delete(user.uid)
-        return JsonResponse(dict(code=status, msg=result))
-
-    return JsonResponse(dict(code=status, url=result["download_url"]))
+    res.download()
+    if res.err:
+        if isinstance(res.err, dict):
+            return JsonResponse(res.err)
+        else:
+            return JsonResponse(dict(code=requests.codes.server_error, msg=res.err))
+    return JsonResponse(dict(code=requests.codes.ok, url=res.download_url))
 
 
 @auth

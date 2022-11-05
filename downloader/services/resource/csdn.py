@@ -1,9 +1,7 @@
 import json
 import logging
 import os
-import traceback
 import uuid
-from typing import Dict
 from urllib import parse
 
 import requests
@@ -13,17 +11,17 @@ from django.core.cache import cache
 
 from downloader.models import (
     PointRecord,
-    DownloadAccount,
     ACCOUNT_TYPE_CSDN,
-    STATUS_ENABLED,
 )
 from downloader.services.resource import BaseResource
-from downloader.utils import get_random_ua, ding
+from downloader.utils import get_random_ua
 
 
 class CsdnResource(BaseResource):
     def __init__(self, url, user):
         super().__init__(url, user)
+
+        self.account_type = ACCOUNT_TYPE_CSDN
 
     def parse(self):
         headers = {
@@ -38,12 +36,15 @@ class CsdnResource(BaseResource):
 
             if r.status_code == requests.codes.OK:
                 soup = BeautifulSoup(r.text, "lxml")
+
+                need_pay = is_need_pay(soup)
+                tags = [tag.text for tag in soup.select("div.tags a")]
+
                 # 版权受限，无法下载
                 # https://download.csdn.net/download/c_baby123/10791185
                 copyright_limited = (
                     len(soup.select("div.resource_box a.copty-btn")) != 0
                 )
-                need_pay = is_need_pay(soup)
                 can_download = not copyright_limited and not need_pay
                 if can_download:
                     point = settings.CSDN_POINT
@@ -67,48 +68,24 @@ class CsdnResource(BaseResource):
                         f"failed to get size or file_type: {info.source.text}"
                     )
 
-                tags = soup.select("div.tags a")
-                title = soup.find(
-                    "h1", class_="el-tooltip d-i fs-xxl line-2 va-middle"
-                ).text.strip()
-                desc = soup.select("p.detail-desc")[0].text
+                title = soup.find("h1", class_="el-tooltip d-i fs-xxl line-2 va-middle")
+                if title:
+                    title = title.text.strip()
+
+                desc = soup.select("p.detail-desc")
+                if len(desc) > 0:
+                    desc = desc[0].text
+
                 self.resource = {
                     "title": title,
                     "desc": desc,
-                    "tags": [tag.text for tag in tags],
+                    "tags": tags,
                     "file_type": file_type,
                     "point": point,
                     "size": size,
                     "need_pay": need_pay,
                     "copyright_limited": copyright_limited,
                 }
-
-    def _init_download_account(self):
-        try:
-            self.download_account = DownloadAccount.objects.filter(
-                type=ACCOUNT_TYPE_CSDN, status=STATUS_ENABLED
-            ).first()
-            if self.download_account:
-                self.download_account_config: Dict = json.loads(
-                    self.download_account.config
-                )
-
-                # 判断账号当天下载数
-                if self.download_account_config.get("today_download_count", 0) >= 20:
-                    ding(
-                        f"[CSDN] 今日下载数已用完",
-                        uid=self.user.uid,
-                        resource_url=self.url,
-                        download_account_id=self.account.get("phone", ""),
-                        need_email=True,
-                    )
-
-                    self.download_account = None
-                    self.download_account_config = None
-        except Exception as e:
-            logging.error(
-                f"failed to init download account: {e}\n{traceback.format_exc()}"
-            )
 
     def _update_download_account(self):
         self.download_account_config["today_download_count"] = (
@@ -125,18 +102,10 @@ class CsdnResource(BaseResource):
 
     def _download(self):
         try:
-            self.parse()
-            point = self.resource.get("point", None)
-            if point is None:
-                raise Exception("invalid point")
-
-            # 可用积分不足
-            if self.user.point < point:
-                raise Exception("user point is not enough")
-
-            self._init_download_account()
-            if not self.download_account:
-                raise Exception("invalid download account")
+            # 判断账号当天下载数
+            if self.download_account_config.get("today_download_count", 0) >= 20:
+                self.err = "下载次数达到上限"
+                return
 
             resource_id = self.url.split("/")[-1]
             headers = {
@@ -149,16 +118,25 @@ class CsdnResource(BaseResource):
             )
             with requests.get(pre_download_url, headers=headers) as r:
                 if r.status_code != requests.codes.ok:
-                    raise Exception(f"failed to download: {r.text}")
+                    logging.error(
+                        f"request {pre_download_url} failed, code: {r.status_code}, text: {r.text}"
+                    )
+                    self.err = "下载失败"
+                    return
 
                 resp = r.json()
                 if resp.get("code", None) != requests.codes.ok:
-                    raise Exception(f"failed to download: {r.text}")
+                    logging.error(
+                        f"request {pre_download_url} failed, code: {r.status_code}, text: {r.text}"
+                    )
+                    self.err = "下载失败"
+                    return
 
                 download_url = resp["data"]
 
             self._update_download_account()
 
+            point = self.resource["point"]
             # 更新用户的剩余积分和已用积分
             self.user.point -= point
             self.user.used_point += point
@@ -188,7 +166,8 @@ class CsdnResource(BaseResource):
                             f.write(chunk)
 
         except Exception as e:
-            raise e
+            logging.error(e)
+            self.err = "下载失败"
         finally:
             cache.delete(settings.CSDN_DOWNLOADING_KEY)
 
