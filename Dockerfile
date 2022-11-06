@@ -1,6 +1,5 @@
 FROM registry.cn-hangzhou.aliyuncs.com/resium/resium-api-base:latest
-LABEL maintainer="hsowan <hsowan.me@gmail.com>"
-ENV TZ Asia/Shanghai
+LABEL maintainer="K8sCat <k8scat@gmail.com>"
 WORKDIR /data/resium-api
 EXPOSE 8000
 COPY . .
