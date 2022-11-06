@@ -73,5 +73,5 @@ urlpatterns = [
     path("feishu_bot/", feishu.bot),
     # 版本
     path("create_version/", version.create_version),
-    path("get_latest_version/", version.get_latest_version),
+    path("get_version/", version.get_latest_version),
 ]
