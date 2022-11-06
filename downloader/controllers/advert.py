@@ -3,13 +3,14 @@ import random
 import requests
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
+from rest_framework.request import Request
 
-from downloader.models import Advert
-from downloader.serializers import AdvertSerializers
+from downloader.models import Advert, MpSwiperAd
+from downloader.serializers import AdvertSerializers, MpSwiperAdSerializers
 
 
 @api_view()
-def get_random_advert(request):
+def get_random_advert(request: Request):
     count = request.GET.get("count", None)
     if count:
         try:
@@ -25,4 +26,15 @@ def get_random_advert(request):
     advert = random.choice(Advert.objects.all())
     return JsonResponse(
         dict(code=requests.codes.ok, advert=AdvertSerializers(advert).data)
+    )
+
+
+@api_view()
+def list_mp_swiper_ads(request: Request):
+    mp_swiper_ads = MpSwiperAd.objects.filter(is_ok=True).all()
+    return JsonResponse(
+        dict(
+            code=requests.codes.ok,
+            mp_swiper_ads=MpSwiperAdSerializers(mp_swiper_ads, many=True).data,
+        )
     )

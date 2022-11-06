@@ -23,7 +23,7 @@ inflection==0.5.1
 itypes==1.2.0
 Jinja2==2.11.3
 jmespath==0.10.0
-lxml==4.4.2
+lxml==4.9.1
 MarkupSafe==1.1.1
 optionaldict==0.1.2
 oss2==2.9.1
@@ -42,8 +42,6 @@ pytz==2021.1
 qiniu==7.2.8
 redis==3.5.3
 requests==2.22.0
-ruamel.yaml==0.17.4
-ruamel.yaml.clib==0.2.2
 selenium==3.141.0
 sentry-sdk==0.14.3
 six==1.15.0

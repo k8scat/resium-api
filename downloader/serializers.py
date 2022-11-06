@@ -106,24 +106,6 @@ class ArticleSerializers(serializers.ModelSerializer):
         ]
 
 
-class CsdnAccountSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = CsdnAccount
-        fields = [
-            "id",
-            "csdn_id",
-            "update_time",
-            "is_enabled",
-            "is_disabled",
-            "valid_count",
-            "used_count",
-            "today_download_count",
-            "need_sms_validate",
-            "is_cookies_valid",
-            "unit_price",
-        ]
-
-
 class UploadRecordSerializers(serializers.ModelSerializer):
     title = serializers.CharField(source="resource.title")
     is_audited = serializers.IntegerField(source="resource.is_audited")
@@ -148,4 +130,10 @@ class MpSwiperAdSerializers(serializers.ModelSerializer):
 class NoticeSerializers(serializers.ModelSerializer):
     class Meta:
         model = Notice
+        fields = "__all__"
+
+
+class VersionSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Version
         fields = "__all__"

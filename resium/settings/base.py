@@ -155,11 +155,6 @@ ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(BASE_DIR, "alipay_app_private_key.pem
 ALIPAY_PUBLIC_KEY_FILE = os.path.join(BASE_DIR, "alipay_public_key.pem")
 ALIPAY_WEB_BASE_URL = "https://openapi.alipay.com/gateway.do?"
 
-DINGTALK_ACCESS_TOKEN = (
-    "c10fd5991b46481142648156bee6dbf48981277a7c6bc803b168f14f047673cc"
-)
-DINGTALK_SECRET = "SEC0fde189fef95beb0d23a5469cccfc74c9d0da70b104cdd256cafa2a31fb7b723"
-
 ALIYUN_ACCESS_KEY_ID = "LTAI4GKsvHSHHuc6uffSsBUE"
 ALIYUN_ACCESS_KEY_SECRET = "IfXJZGPtGUNfSPHGMBEd9c2HFGTyux"
 ALIYUN_OSS_END_POINT = "http://oss-cn-hangzhou.aliyuncs.com"
@@ -167,7 +162,10 @@ ALIYUN_OSS_BUCKET_NAME = "ncucoder"
 ALIYUN_OSS_USER_DOMAIN = "http://cdn.ncucoder.com/"
 ALIYUN_OSS_DOMAIN = "http://ncucoder.oss-cn-hangzhou.aliyuncs.com"
 
-TAG_SEP = "!sep!"
+DINGTALK_ACCESS_TOKEN = (
+    "c10fd5991b46481142648156bee6dbf48981277a7c6bc803b168f14f047673cc"
+)
+DINGTALK_SECRET = "SEC0fde189fef95beb0d23a5469cccfc74c9d0da70b104cdd256cafa2a31fb7b723"
 
 # 管理员凭证
 ADMIN_TOKEN = "csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ"
@@ -200,7 +198,7 @@ CSDN_POINT = 10
 DOCER_POINT = 10
 OSS_RESOURCE_POINT = 10
 ZHIWANG_POINT = 10
-ARTICLE_POINT = 0
+ARTICLE_POINT = 1
 QIANTU_POINT = 10
 DOC_CONVERT_POINT = 10
 PUDN_POINT = 10
@@ -211,6 +209,7 @@ MBZJ_POINT = 10
 # hsowan.me@gmail.com
 PD_ID = "120959"
 PD_KEY = "pxnfBZw6RfkAXOh5uOygeHoCy52e6wRp"
+
 ZHIWANG_SCREENSHOT_IMAGE = os.path.join(BASE_DIR, "zhiwang_screenshot.png")
 ZHIWANG_CODE_IMAGE = os.path.join(BASE_DIR, "zhiwang_code.png")
 WENKU_SCREENSHOT_IMAGE = os.path.join(BASE_DIR, "wenku_screenshot.png")
@@ -252,7 +251,7 @@ LOGGING = {
             "level": "INFO",
             "class": "logging.FileHandler",
             "filename": os.path.join(
-                os.path.join(BASE_DIR, "logs"),
+                LOG_FOLDER,
                 time.strftime("%Y-%m-%d", time.localtime(time.time())),
             ),
             "formatter": "verbose",
@@ -298,15 +297,6 @@ QQ_CLIENT_ID = "101864025"
 QQ_CLIENT_SECRET = "be9503e910cd150287453f0a0bcce9bc"
 QQ_REDIRECT_URI = "https://api.resium.ncucoder.com/oauth/qq"
 
-# https://github.com/settings/applications/1269223
-GITHUB_CLIENT_ID = "d91f5182093a379e63b7"
-GITHUB_CLIENT_SECRET = "4ada14d10f0af0c77e7ea50e34f73fe29a26ce2a"
-
-# https://gitee.com/api/v5/oauth_doc#/
-GITEE_CLIENT_ID = "77b39c9e80ef1a308c1f684c954b20f6b0820f84a0624490e9741c44ba8e30f4"
-GITEE_CLIENT_SECRET = "e4f814cff8d0a9684a9daac4b1c0c5e8d7f8775f9706cda1b5ecd3ec03006903"
-GITEE_REDIRECT_URI = "https://api.resium.ncucoder.com/oauth/gitee/"
-
 # OAuth重定向时的cookie键
 JWT_COOKIE_KEY = "token"
 
@@ -341,6 +331,7 @@ FEISHU_APP_VERIFICATION_TOKEN = "lGNcI2MU2r645g7uH0xJjdyd2jc3npJb"
 FEISHU_APP_ENCRYPT_KEY = "n5z0Rp2yeLMOdwwWpkgqXfjtiIuUneMf"
 FEISHU_USER_ID = "819d28c8"
 FEISHU_TOKEN_INTERVAL = 3600
+FEISHU_TOKEN_CACHE_KEY = "feishu:token"
 
 ADMIN_CSDN_ACCOUNTS = ["65634914", "79337844"]
 
@@ -362,3 +353,5 @@ FILE_TYPES = {
     "15": "PPS",
     "19": "DWG",
 }
+
+TAG_SEP = "!sep!"

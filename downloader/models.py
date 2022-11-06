@@ -12,7 +12,7 @@ class Base(models.Model):
 class User(Base):
     uid = models.CharField(max_length=100, unique=True, verbose_name="用户的唯一标识")
     password = models.CharField(
-        max_length=100, default=None, null=True, verbose_name="H5登录密码"
+        max_length=100, default=None, null=True, verbose_name="登录密码"
     )
     nickname = models.CharField(max_length=100, default=None, verbose_name="昵称")
     avatar_url = models.CharField(max_length=240, verbose_name="头像地址")
@@ -21,7 +21,6 @@ class User(Base):
     login_time = models.DateTimeField(null=True, default=None, verbose_name="登录时间")
     can_download = models.BooleanField(default=False, verbose_name="是否可以下载其他站点的资源")
     can_upload = models.BooleanField(default=True, verbose_name="是否可以上传资源")
-    has_check_in_today = models.BooleanField(default=False, verbose_name="今日是否签到")
     wx_openid = models.CharField(
         max_length=100, default=None, null=True, verbose_name="微信公众号用户唯一标识"
     )
@@ -37,9 +36,7 @@ class User(Base):
         null=True,
         verbose_name="用来验证用户可靠性，新账号和旧账号替换",
     )
-    is_pattern = models.BooleanField(default=False, verbose_name="合作用户")
     gender = models.SmallIntegerField(null=True, default=None, verbose_name="性别")
-    from_taobao = models.BooleanField(default=False, verbose_name="是否来自淘宝")
 
     class Meta:
         db_table = "user"
@@ -171,7 +168,7 @@ class Article(Base):
     author = models.CharField(max_length=100, verbose_name="文章作者")
     is_vip = models.BooleanField(default=False, verbose_name="VIP文章")
     desc = models.TextField(verbose_name="文章简介")
-    tags = models.CharField(max_length=200, verbose_name="文章标签")
+    tags = models.CharField(max_length=200, verbose_name="文章标签")  # deprecated
     view_count = models.IntegerField(default=0)
     is_original = models.BooleanField(default=False, verbose_name="原创")
 
@@ -262,15 +259,15 @@ class QiantuAccount(Base):
         db_table = "qiantu_account"
 
 
-ACCOUNT_TYPE_CSDN = 0  # https://download.csdn.net/
-ACCOUNT_TYPE_WENKU = 1  # https://wenku.baidu.com/
-ACCOUNT_TYPE_DOCER = 2  # https://www.docer.com/
-ACCOUNT_TYPE_MBZJ = 3  # http://www.cssmoban.com/
-ACCOUNT_TYPE_QIANTU = 4  # https://www.58pic.com/
+DOWNLOAD_ACCOUNT_TYPE_CSDN = 0  # https://download.csdn.net/
+DOWNLOAD_ACCOUNT_TYPE_WENKU = 1  # https://wenku.baidu.com/
+DOWNLOAD_ACCOUNT_TYPE_DOCER = 2  # https://www.docer.com/
+DOWNLOAD_ACCOUNT_TYPE_MBZJ = 3  # http://www.cssmoban.com/
+DOWNLOAD_ACCOUNT_TYPE_QIANTU = 4  # https://www.58pic.com/
 
-STATUS_DISABLED = 0
-STATUS_ENABLED = 1
-STATUS_EXPIRED = 2
+DOWNLOAD_ACCOUNT_STATUS_DISABLED = 0
+DOWNLOAD_ACCOUNT_STATUS_ENABLED = 1
+DOWNLOAD_ACCOUNT_STATUS_EXPIRED = 2
 
 
 class DownloadAccount(Base):

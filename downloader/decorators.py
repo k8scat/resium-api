@@ -33,12 +33,14 @@ def auth(fn):
         token = request.headers.get(settings.REQUEST_TOKEN_HEADER)
         if not token:
             return JsonResponse(dict(code=requests.codes.unauthorized, msg="未登录"))
+
         try:
-            token = token[len(settings.REQUEST_TOKEN_PREFIX) :]
+            pre_len = len(settings.REQUEST_TOKEN_PREFIX)
+            token = token[pre_len:]
             # pyjwt 验证 jjwt: http://cn.voidcc.com/question/p-mqbvfvhx-tt.html
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS512"])
         except Exception as e:
-            logging.info(e)
+            logging.info(f"failed to decode token: {e}")
             return JsonResponse(dict(code=requests.codes.unauthorized, msg="未登录"))
 
         uid = payload.get("sub", None)

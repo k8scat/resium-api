@@ -1,33 +1,38 @@
 import json
 import logging
-import os
-import uuid
+import re
 from urllib import parse
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from django.conf import settings
-from django.core.cache import cache
 
 from downloader.models import (
-    PointRecord,
-    ACCOUNT_TYPE_CSDN,
+    DOWNLOAD_ACCOUNT_TYPE_CSDN,
 )
-from downloader.services.resource import BaseResource
-from downloader.utils import get_random_ua
+from downloader.serializers import UserSerializers
+from downloader.services.resource.base import BaseResource
+from downloader.utils import browser
+from downloader.utils.alert import alert
+from downloader.utils.url import remove_url_query
 
 
 class CsdnResource(BaseResource):
     def __init__(self, url, user):
+        url = remove_url_query(url)
+        if re.match(settings.PATTERN_ITEYE, url):
+            url = "https://download.csdn.net/download/" + url.split("resource/")[
+                1
+            ].replace("-", "/")
         super().__init__(url, user)
+        self.account_type = DOWNLOAD_ACCOUNT_TYPE_CSDN
 
-        self.account_type = ACCOUNT_TYPE_CSDN
-
-    def parse(self):
+    def parse(self) -> None:
         headers = {
             "authority": "download.csdn.net",
             "referer": "https://download.csdn.net/",
-            "user-agent": get_random_ua(),
+            "user-agent": browser.get_random_ua(),
         }
         with requests.get(self.url, headers=headers) as r:
             if r.status_code != requests.codes.ok:
@@ -68,9 +73,9 @@ class CsdnResource(BaseResource):
                         f"failed to get size or file_type: {info.source.text}"
                     )
 
-                title = soup.find("h1", class_="el-tooltip d-i fs-xxl line-2 va-middle")
-                if title:
-                    title = title.text.strip()
+                el = soup.find("h1", class_="el-tooltip d-i fs-xxl line-2 va-middle")
+                if el and isinstance(el, Tag):
+                    title = el.text.strip()
 
                 desc = soup.select("p.detail-desc")
                 if len(desc) > 0:
@@ -91,26 +96,21 @@ class CsdnResource(BaseResource):
         self.download_account_config["today_download_count"] = (
             self.download_account_config.get("today_download_count", 0) + 1
         )
-        self.download_account_config["used_count"] = (
-            self.download_account_config.get("used_count", 0) + 1
-        )
-        self.download_account_config["valid_count"] = (
-            self.download_account_config.get("valid_count", 0) + 1
-        )
         self.download_account.config = json.dumps(self.download_account_config)
         self.download_account.save()
 
     def _download(self):
-        try:
-            # 判断账号当天下载数
-            if self.download_account_config.get("today_download_count", 0) >= 20:
-                self.err = "下载次数达到上限"
-                return
+        # 判断账号当天下载数
+        if self.download_account_config.get("today_download_count", 0) >= 20:
+            self.err = "下载次数达到上限"
+            alert("CSDN下载次数达到上限", user=UserSerializers(self.user).data, url=self.url)
+            return
 
+        try:
             resource_id = self.url.split("/")[-1]
             headers = {
                 "cookie": self.download_account_config.get("cookie", ""),
-                "user-agent": get_random_ua(),
+                "user-agent": browser.get_random_ua(),
                 "referer": self.url,  # OSS下载时需要这个请求头，获取资源下载链接时可以不需要
             }
             pre_download_url = (
@@ -118,58 +118,63 @@ class CsdnResource(BaseResource):
             )
             with requests.get(pre_download_url, headers=headers) as r:
                 if r.status_code != requests.codes.ok:
-                    logging.error(
-                        f"request {pre_download_url} failed, code: {r.status_code}, text: {r.text}"
-                    )
                     self.err = "下载失败"
+                    alert(
+                        "CSDN资源下载失败",
+                        url=self.url,
+                        user=UserSerializers(self.user).data,
+                        status_code=r.status_code,
+                        response=r.text,
+                        pre_download_url=pre_download_url,
+                    )
                     return
 
                 resp = r.json()
                 if resp.get("code", None) != requests.codes.ok:
-                    logging.error(
-                        f"request {pre_download_url} failed, code: {r.status_code}, text: {r.text}"
-                    )
                     self.err = "下载失败"
+                    alert(
+                        "CSDN资源下载失败",
+                        url=self.url,
+                        user=UserSerializers(self.user).data,
+                        status_code=r.status_code,
+                        response=r.text,
+                        pre_download_url=pre_download_url,
+                    )
                     return
 
                 download_url = resp["data"]
 
             self._update_download_account()
 
-            point = self.resource["point"]
-            # 更新用户的剩余积分和已用积分
-            self.user.point -= point
-            self.user.used_point += point
-            self.user.save()
-            PointRecord(
-                user=self.user,
-                used_point=point,
-                point=self.user.point,
-                comment="下载CSDN资源",
-                url=self.url,
-            ).save()
-
             with requests.get(download_url, headers=headers, stream=True) as r:
                 if r.status_code != requests.codes.ok:
-                    raise Exception(f"failed to download: {r.text}")
+                    self.err = "下载失败"
+                    alert(
+                        "CSDN资源下载失败",
+                        url=self.url,
+                        user=UserSerializers(self.user).data,
+                        status_code=r.status_code,
+                        response=r.text,
+                        pre_download_url=pre_download_url,
+                        download_url=download_url,
+                    )
+                    return
 
                 self.filename = parse.unquote(
                     r.headers["Content-Disposition"].split('"')[1]
                 )
-                file = os.path.splitext(self.filename)
-                self.filename_uuid = str(uuid.uuid1()) + file[1]
-                self.filepath = os.path.join(self.save_dir, self.filename_uuid)
-                # 写入文件，用于线程上传资源到OSS
-                with open(self.filepath, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:
-                            f.write(chunk)
+                self.write_file(r)
 
         except Exception as e:
-            logging.error(e)
+            alert(
+                "CSDN资源下载失败",
+                url=self.url,
+                user=UserSerializers(self.user).data,
+                status_code=r.status_code,
+                response=r.text,
+                exception=e,
+            )
             self.err = "下载失败"
-        finally:
-            cache.delete(settings.CSDN_DOWNLOADING_KEY)
 
 
 def is_need_pay(soup: BeautifulSoup) -> bool:

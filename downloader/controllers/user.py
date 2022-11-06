@@ -2,7 +2,6 @@ import datetime
 import hashlib
 import json
 import logging
-import random
 import re
 import time
 import uuid
@@ -39,27 +38,30 @@ from downloader.models import (
 )
 from downloader.rsa import RSAUtil
 from downloader.serializers import UserSerializers, PointRecordSerializers
-from downloader.utils import (
-    ding,
-    send_email,
-    generate_uid,
-    generate_jwt,
-    get_random_int,
-    get_random_str,
-)
+from downloader.services.user import get_user_from_session
+
+# from downloader.utils import (
+#     ding,
+#     send_email,
+#     generate_uid,
+#     generate_jwt,
+#     get_random_int,
+#     get_random_str,
+# )
+from downloader.utils import rand, jwt
+from downloader.utils.alert import alert
+from downloader.utils.email import send_email
+from downloader.utils.pagination import parse_pagination_args
 
 
 @auth
 @api_view()
 def get_user(request):
-    uid = request.session.get("uid")
-    try:
-        user = User.objects.get(uid=uid)
-        return JsonResponse(
-            dict(code=requests.codes.ok, user=UserSerializers(user).data)
-        )
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
+    user = get_user_from_session(request)
+    if not user:
+        return JsonResponse(dict(code=requests.codes.forbidden, msg="user not found"))
+
+    return JsonResponse(dict(code=requests.codes.ok, user=UserSerializers(user).data))
 
 
 @api_view(["GET", "POST"])
@@ -176,7 +178,6 @@ def wx(request):
 
         # 关注事件
         if isinstance(msg, SubscribeEvent):
-            ding("公众号关注 +1")
             content = "您好，感谢关注源自开发者！"
             reply = TextReply(content=content, message=msg)
 
@@ -186,9 +187,8 @@ def wx(request):
                 user = User.objects.get(wx_openid=msg.source)
                 user.wx_openid = None
                 user.save()
-                ding(f"源自下载用户{user.uid}取消关注公众号")
             except User.DoesNotExist:
-                ding("公众号关注 -1")
+                pass
 
         # 文本消息
         elif isinstance(msg, TextMessage):
@@ -213,10 +213,9 @@ def wx(request):
                         send_email("[源自下载] 账号迁移", f"迁移码：{code}", email)
                         content = "迁移码已发送至您的邮箱，请注意查收！部分邮件服务商可能会将系统邮件当作垃圾邮件, 请注意检查！"
                     except Exception as e:
-                        ding(
-                            "迁移码邮件发送失败", error=e, logger=logging.error, need_email=True
-                        )
+                        logging.error(e)
                         content = "邮件发送失败，请重新尝试或联系管理员！"
+
                 except User.DoesNotExist:
                     content = "账号不存在"
                 reply = TextReply(content=content, message=msg)
@@ -330,7 +329,7 @@ def mp_login(request):
                     user.gender = gender
                     user.save()
                 except User.DoesNotExist:
-                    uid = generate_uid()
+                    uid = rand.gen_uid()
                     user = User.objects.create(
                         uid=uid,
                         mp_openid=mp_openid,
@@ -339,9 +338,8 @@ def mp_login(request):
                         login_time=login_time,
                         can_download=True,
                     )
-                    ding(f"[新用户] uid={uid}", logger=logging.info)
 
-                token = generate_jwt(user.uid, expire_seconds=0)
+                token = jwt.gen_jwt(user.uid, expire_seconds=0)
                 return JsonResponse(
                     dict(
                         code=requests.codes.ok,
@@ -351,14 +349,11 @@ def mp_login(request):
                 )
 
             else:
-                ding(
-                    "[小程序登录] auth.code2Session接口请求成功，但返回结果错误",
-                    error=r.text,
-                    need_email=True,
-                )
+                alert("小程序登录失败", status_code=r.status_code, response=r.text)
                 return JsonResponse(dict(code=requests.codes.server_error, msg="登录失败"))
+
         else:
-            ding(f"auth.code2Session接口调用失败", error=r.text, need_email=True)
+            alert("小程序登录失败", status_code=r.status_code, response=r.text)
             return JsonResponse(dict(code=requests.codes.server_error, msg="登录失败"))
 
 
@@ -450,7 +445,7 @@ def check_scan(request):
 
             try:
                 user = User.objects.get(uid=qr_code.uid)
-                token = generate_jwt(user.uid)
+                token = jwt.gen_jwt(user.uid)
                 return JsonResponse(
                     dict(
                         code=requests.codes.ok,
@@ -499,7 +494,7 @@ def request_reset_password(request: Request):
         rsa_util = RSAUtil(pubkey_file=settings.RSA_PUBKEY_FILE)
         payload = {
             "uid": user.uid,
-            "password": get_random_str(16),
+            "password": rand.get_random_str(16),
             "expires": int(time.time()) + 600,
         }
         token = rsa_util.encrypt_by_public_key(json.dumps(payload))
@@ -522,17 +517,13 @@ def request_reset_password(request: Request):
                 fail_silently=False,
             )
             return JsonResponse(dict(code=requests.codes.ok, msg="密码重置链接已发送至邮箱，请查收邮件！"))
+
         except Exception as e:
-            ding(
-                "重置密码邮件发送失败",
-                error=e,
-                uid=user.uid,
-                logger=logging.error,
-                need_email=True,
-            )
+            alert("重置密码邮件发送失败", exception=e, email=user.email, uid=user.uid)
             return JsonResponse(
                 dict(code=requests.codes.server_error, msg="重置密码邮件发送失败")
             )
+
     except User.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.bad_request, msg="账号不存在"))
 
@@ -575,20 +566,22 @@ def reset_password(request: Request):
                     fail_silently=False,
                 )
                 return HttpResponse("密码已重置，新密码将通过邮件发送到你的邮箱，请注意查收！")
+
             except Exception as e:
-                ding(
+                alert(
                     "新密码邮件发送失败",
-                    error=e,
+                    exception=e,
                     uid=user.uid,
-                    logger=logging.error,
-                    need_email=True,
+                    email=user.email,
+                    content=plain_message,
                 )
                 return HttpResponse("系统未知错误，请联系管理员！")
+
         except User.DoesNotExist:
             return HttpResponse("无效的请求")
 
     except Exception as e:
-        logging.error(f"json.loads failed: {e}, raw_data={raw_data}")
+        logging.error(f"failed to reset password: {e}, raw_data={raw_data}")
         return HttpResponse("无效的请求")
 
 
@@ -608,76 +601,22 @@ def login(request: Request):
         if check_password(password, user.password):
             user.gender = gender
             user.save()
-            token = generate_jwt(user.uid, expire_seconds=0)
+            token = jwt.gen_jwt(user.uid, expire_seconds=0)
             return JsonResponse(
                 dict(
                     code=requests.codes.ok, token=token, user=UserSerializers(user).data
                 )
             )
+
         else:
             return JsonResponse(dict(code=requests.codes.bad_request, msg="用户ID或密码不正确"))
 
     except User.DoesNotExist:
-        return JsonResponse(dict(code=404, msg="用户不存在"))
+        return JsonResponse(dict(code=requests.codes.not_found, msg="用户不存在"))
+
     except Exception as e:
-        return JsonResponse(dict(code=requests.codes.internal_server_error, msg="系统错误"))
-
-
-@api_view(["POST"])
-@auth
-def video_reward(request):
-    uid = request.session.get("uid", None)
-    try:
-        user = User.objects.get(uid=uid)
-        reward_point = 1
-        user.point += reward_point
-        user.save()
-        t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        ding(f"用户 {uid} 通过观看视频获得 {reward_point} 积分 at {t}")
-        PointRecord(
-            user=user, point=user.point, add_point=reward_point, comment="看视频"
-        ).save()
-        return JsonResponse(dict(code=requests.codes.ok, msg=f"成功领取{reward_point}积分!"))
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
-
-
-@auth
-@api_view()
-def check_in(request):
-    uid = request.session.get("uid", None)
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
-
-    # if not user.wx_openid:
-    #     return JsonResponse(dict(code=requests.codes.bad_request, msg='请先在源自开发者微信公众号中绑定账号'))
-
-    # if user.has_check_in_today:
-    #     return JsonResponse(dict(code=requests.codes.bad_request, msg='今日已签到'))
-
-    # 随机获取积分
-    points = [1]
-    point = random.choice(points)
-    if point == 0:
-        msg = "很可惜与积分擦肩而过!"
-    else:
-        # 更新用户积分
-        user.point += point
-        msg = f"签到成功，获得{point}积分！"
-        PointRecord(user=user, point=user.point, add_point=point, comment="签到").save()
-
-    # 保存签到记录
-    CheckInRecord(user=user, point=point).save()
-    user.has_check_in_today = True
-    user.save()
-
-    today_check_in_count = User.objects.filter(has_check_in_today=True).count()
-    ding(
-        f"{user.nickname}签到成功，获得{point}积分，今日签到人数已达{today_check_in_count}人", uid=user.uid
-    )
-    return JsonResponse(dict(code=requests.codes.ok, msg=msg))
+        logging.error(f"login failed: {e}")
+        return JsonResponse(dict(code=requests.codes.server_error, msg="系统错误"))
 
 
 @auth
@@ -690,12 +629,7 @@ def request_email_code(request: Request):
     :return:
     """
 
-    uid = request.session.get("uid")
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
-
+    user = get_user_from_session(request)
     email = request.data.get("email", "")
     if not re.match(r".+@.+\..+", email):
         return JsonResponse(dict(code=requests.codes.bad_request, msg="邮箱格式有误"))
@@ -705,7 +639,7 @@ def request_email_code(request: Request):
     if User.objects.filter(email=email).count() > 0:
         return JsonResponse(dict(code=requests.codes.forbidden, msg="邮箱已被绑定其他账号！"))
 
-    code = get_random_int()
+    code = rand.get_random_int()
     cache.set(code, email, timeout=settings.EMAIL_CODE_EXPIRES)
     subject = "[源自下载] 验证码"
     data = {"code": code, "username": user.nickname}
@@ -721,8 +655,15 @@ def request_email_code(request: Request):
             fail_silently=False,
         )
         return JsonResponse(dict(code=requests.codes.ok, msg="发送成功"))
+
     except Exception as e:
-        ding("邮箱验证码发送失败", error=e, uid=user.uid, logger=logging.error, need_email=True)
+        alert(
+            "邮箱验证码发送失败",
+            exception=e,
+            uid=user.uid,
+            email=user.email,
+            email_content=plain_message,
+        )
         return JsonResponse(dict(code=requests.codes.server_error, msg="验证码发送失败"))
 
 
@@ -736,12 +677,7 @@ def set_email_with_code(request: Request):
     :return:
     """
 
-    uid = request.session.get("uid")
-    try:
-        user = User.objects.get(uid=uid)
-    except User.DoesNotExist:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
-
+    user = get_user_from_session(request)
     post_email = request.data.get("email", None)
     if not re.match(r".+@.+\..+", post_email):
         return JsonResponse(dict(code=requests.codes.bad_request, msg="邮箱格式有误"))
@@ -771,24 +707,11 @@ def set_email_with_code(request: Request):
 @auth
 @api_view()
 def list_point_records(request):
-    uid = request.session.get("uid")
-    user = User.objects.get(uid=uid)
+    user = get_user_from_session(request)
 
-    page = request.GET.get("page", 1)
-    per_page = request.GET.get("per_page", 20)
-    try:
-        page = int(page)
-        if page < 1:
-            page = 1
-        per_page = int(per_page)
-        if per_page > 20:
-            per_page = 20
-    except ValueError:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="错误的请求"))
-
+    page, per_page = parse_pagination_args(request)
     start = per_page * (page - 1)
     end = start + per_page
-
     point_records = (
         PointRecord.objects.filter(user=user, is_deleted=False)
         .order_by("-create_time")
@@ -814,5 +737,6 @@ def delete_point_record(request):
         point_record.is_deleted = True
         point_record.save()
         return JsonResponse(dict(code=requests.codes.ok, msg="删除成功"))
+
     except PointRecord.DoesNotExist:
         return JsonResponse(dict(code=requests.codes.not_found, msg="积分记录不存在"))

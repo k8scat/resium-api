@@ -1,9 +1,6 @@
-import logging
-import os
-import uuid
-
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from django.conf import settings
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,21 +8,36 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import (
     DocerPreviewImage,
-    PointRecord,
+    DOWNLOAD_ACCOUNT_TYPE_DOCER,
 )
-from downloader.services.resource import BaseResource
-from downloader.utils import get_random_ua, get_driver
+from downloader.serializers import UserSerializers
+from downloader.services.resource.base import BaseResource
+from downloader.utils import browser, selenium
+from downloader.utils.alert import alert
+from downloader.utils.url import remove_url_query
 
 
 class DocerResource(BaseResource):
     def __init__(self, url, user):
+        url = remove_url_query(url)
         super().__init__(url, user)
+        self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_DOCER
 
     def parse(self):
-        headers = {"referer": "https://www.docer.com/", "user-agent": get_random_ua()}
+        headers = {
+            "referer": "https://www.docer.com/",
+            "user-agent": browser.get_random_ua(),
+        }
         with requests.get(self.url, headers=headers) as r:
             if r.status_code != requests.codes.ok:
                 self.err = "资源获取失败"
+                alert(
+                    "稻壳模板资源解析失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    url=self.url,
+                    user=UserSerializers(self.user).data,
+                )
                 return
 
             soup = BeautifulSoup(r.text, "lxml")
@@ -46,7 +58,7 @@ class DocerResource(BaseResource):
                     for preview_image in preview_images
                 ]
             else:
-                driver = get_driver()
+                driver = selenium.get_driver()
                 try:
                     driver.get(self.url)
                     all_images = WebDriverWait(driver, 5).until(
@@ -66,13 +78,24 @@ class DocerResource(BaseResource):
                             )
                         )
                     DocerPreviewImage.objects.bulk_create(preview_image_models)
+
                 finally:
                     driver.close()
 
+            title = ""
+            el = soup.find("h1", class_="preview-info_title")
+            if el and isinstance(el, Tag):
+                title = el.string
+
+            file_type = ""
+            els = soup.select("span.m-crumbs-path a")
+            if len(els) > 0:
+                file_type = els[0].text
+
             self.resource = {
-                "title": soup.find("h1", class_="preview-info_title").string,
+                "title": title,
                 "tags": tags,
-                "file_type": soup.select("span.m-crumbs-path a")[0].text,
+                "file_type": file_type,
                 # soup.find('meta', attrs={'name': 'Description'})['content']
                 "desc": "",
                 "point": settings.DOCER_POINT,
@@ -83,48 +106,66 @@ class DocerResource(BaseResource):
     def _download(self):
         resource_id = self.url.split("/")[-1]
         api = f"https://www.docer.com/detail/dl?id={resource_id}"
-        headers = {"cookie": self.account.cookies, "user-agent": get_random_ua()}
+        headers = {
+            "cookie": self.download_account_config.get("cookie", ""),
+            "user-agent": browser.get_random_ua(),
+        }
         # 如果cookies失效，r.json()会抛出异常
         with requests.get(api, headers=headers) as r:
+            if r.status_code != requests.codes.ok:
+                self.err = "资源获取失败"
+                alert(
+                    "稻壳模板资源下载失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    url=self.url,
+                    api=api,
+                    user=UserSerializers(self.user).data,
+                )
+                return
+
             try:
                 resp = r.json()
                 if resp.get("result", None) != "ok":
                     self.err = "下载失败"
+                    alert(
+                        "稻壳模板资源下载失败",
+                        status_code=r.status_code,
+                        response=r.text,
+                        url=self.url,
+                        api=api,
+                        user=UserSerializers(self.user).data,
+                    )
                     return
-
-                # 更新用户积分
-                point = self.resource["point"]
-                self.user.point -= point
-                self.user.used_point += point
-                self.user.save()
-                PointRecord(
-                    user=self.user,
-                    used_point=point,
-                    comment="下载稻壳模板",
-                    url=self.url,
-                    point=self.user.point,
-                ).save()
-
-                # 更新账号使用下载数
-                self.account.used_count += 1
-                self.account.save()
 
                 download_url = resp["data"]
                 self.filename = download_url.split("/")[-1]
-                file = os.path.splitext(self.filename)
-                self.filename_uuid = str(uuid.uuid1()) + file[1]
-                self.filepath = os.path.join(self.save_dir, self.filename_uuid)
                 with requests.get(download_url, stream=True) as r2:
                     if r2.status_code != requests.codes.ok:
                         self.err = "下载失败"
+                        alert(
+                            "稻壳模板资源下载失败",
+                            status_code=r2.status_code,
+                            response=r2.text,
+                            url=self.url,
+                            api=api,
+                            download_url=download_url,
+                            user=UserSerializers(self.user).data,
+                        )
                         return
 
-                    with open(self.filepath, "wb") as f:
-                        for chunk in r2.iter_content(chunk_size=1024):
-                            if chunk:
-                                f.write(chunk)
+                    self.write_file(r2)
 
             except Exception as e:
-                logging.error(e)
+                alert(
+                    "稻壳模板资源下载失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    url=self.url,
+                    api=api,
+                    user=UserSerializers(self.user).data,
+                    exception=e,
+                )
+                alert("资源下载失败")
                 self.err = "下载失败"
                 return

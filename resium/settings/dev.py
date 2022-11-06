@@ -20,7 +20,7 @@ DATABASES = {
         "NAME": "resium",
         "USER": "resium",
         "PASSWORD": "resium",
-        "HOST": "127.0.0.1",
+        "HOST": "192.168.3.38",
         "PORT": "3306",
         "TIME_ZONE": TIME_ZONE,
     }
@@ -28,7 +28,7 @@ DATABASES = {
 
 # 127.0.0.1 本地selenium可下载资源
 # 远程 139.199.71.19 selenium只能用于认证
-SELENIUM_SERVER = "http://127.0.0.1:4444/wd/hub"
+SELENIUM_SERVER = "http://192.168.3.38:4444/wd/hub"
 
 FRONTEND_URL = "http://localhost:3000"
 
@@ -37,7 +37,7 @@ API_BASE_URL = "http://localhost:8000"
 # 随机标签个数
 SAMPLE_TAG_COUNT = 3
 
-REDIS_HOST = "localhost"
+REDIS_HOST = "192.168.3.38"
 REDIS_PORT = 6379
 REDIS_DB = 1
 CACHES = {

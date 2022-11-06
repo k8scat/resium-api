@@ -6,34 +6,27 @@ import uuid
 import requests
 from PIL import Image
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from django.conf import settings
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from downloader.models import PointRecord
-from downloader.services.resource import BaseResource
-from downloader.utils import (
-    get_random_ua,
-    get_driver,
-    predict_code,
-    check_download,
-)
+from downloader.services.resource.base import BaseResource
+from downloader.utils import browser, selenium
+from downloader.utils.browser import check_download
+from downloader.utils.image_recognition import predict_code
+from downloader.utils.url import remove_url_query
 
 
 class ZhiwangResource(BaseResource):
     def __init__(self, url, user):
+        url = remove_url_query(url)
         super().__init__(url, user)
 
     def parse(self):
-        """
-        需要注意的是知网官方网站和使用了VPN访问的网站是不一样的
-
-        :return:
-        """
-
-        headers = {"referer": self.url, "user-agent": get_random_ua()}
+        headers = {"referer": self.url, "user-agent": browser.get_random_ua()}
         with requests.get(self.url, headers=headers) as r:
             if r.status_code != requests.codes.ok:
                 self.err = "资源获取失败"
@@ -45,9 +38,12 @@ class ZhiwangResource(BaseResource):
                 title = soup.select("div.wxTitle h2")
                 if len(title) > 0:
                     title = title[0].text
-                desc = soup.find("span", attrs={"id": "ChDivSummary"})
-                if desc:
-                    desc = desc.string
+
+                desc = ""
+                el = soup.find("span", attrs={"id": "ChDivSummary"})
+                if el and isinstance(el, Tag):
+                    desc = el.string
+
                 has_pdf = not not soup.find("a", attrs={"id": "pdfDown"})
                 self.resource = {
                     "title": title,
@@ -56,6 +52,7 @@ class ZhiwangResource(BaseResource):
                     "pdf_download": has_pdf,  # 是否支持pdf下载
                     "point": settings.ZHIWANG_POINT,
                 }
+
             except Exception as e:
                 logging.error(e)
                 self.err = "资源获取失败"
@@ -69,7 +66,7 @@ class ZhiwangResource(BaseResource):
             self.url,
         )
 
-        driver = get_driver(self.unique_folder, load_images=True)
+        driver = selenium.get_driver(self.unique_folder, load_images=True)
         try:
             driver.get("http://wvpn.ncu.edu.cn/users/sign_in")
             username_input = WebDriverWait(driver, 10).until(
@@ -101,18 +98,6 @@ class ZhiwangResource(BaseResource):
             except TimeoutException:
                 self.err = "该文献不支持下载PDF"
                 return
-
-            point = self.resource["point"]
-            self.user.point -= point
-            self.user.used_point += point
-            self.user.save()
-            PointRecord(
-                user=self.user,
-                used_point=point,
-                comment="下载知网文献",
-                url=self.url,
-                point=self.user.point,
-            ).save()
 
             # 获取下载链接
             download_link = download_button.get_attribute("href")
@@ -160,19 +145,17 @@ class ZhiwangResource(BaseResource):
                         )
                     )
                     submit_code_button.click()
-                else:
-                    return requests.codes.server_error, "下载失败"
 
             finally:
-                status, result = check_download(self.save_dir)
-                if status == requests.codes.ok:
-                    self.filename = result
+                filename = check_download(self.save_dir)
+                if filename:
+                    self.filename = filename
                     file = os.path.splitext(self.filename)
                     self.filename_uuid = str(uuid.uuid1()) + file[1]
                     self.filepath = os.path.join(self.save_dir, self.filename_uuid)
-                    return requests.codes.ok, "下载成功"
+
                 else:
-                    return status, result
+                    self.err = "下载失败"
 
         except Exception as e:
             logging.error(e)

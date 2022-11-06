@@ -1,101 +1,117 @@
-import logging
-import os
-import uuid
-
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
 
-from downloader.models import QiantuAccount, PointRecord
-from downloader.services.resource import BaseResource
-from downloader.utils import ding, get_random_ua
+from downloader.models import DOWNLOAD_ACCOUNT_TYPE_QIANTU
+from downloader.serializers import UserSerializers
+from downloader.services.resource.base import BaseResource
+from downloader.utils import browser
+from downloader.utils.alert import alert
+from downloader.utils.url import remove_url_query
 
 
 class QiantuResource(BaseResource):
     def __init__(self, url, user):
+        url = remove_url_query(url)
         super().__init__(url, user)
-
-    def _init_download_account(self):
-        """初始下载账号"""
-        try:
-            self.account = QiantuAccount.objects.get(is_enabled=True)
-        except QiantuAccount.DoesNotExist:
-            return requests.codes.server_error, "[千图网] 没有可用账号"
+        self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_QIANTU
 
     def parse(self):
         with requests.get(self.url) as r:
-            if r.status_code == requests.codes.OK:
-                try:
-                    soup = BeautifulSoup(r.text, "lxml")
-                    title = soup.select("span.pic-title.fl")[0].string
-                    info = soup.select("div.material-info p")
-                    size = info[2].string.replace("文件大小：", "")
-                    # Tag有find方法，但没有select方法
-                    file_type = info[4].find("span").contents[0]
-                    tags = [tag.string for tag in soup.select("div.mainRight-tagBox a")]
-                    self.resource = {
-                        "title": title,
-                        "size": size,
-                        "tags": tags,
-                        "desc": "",
-                        "file_type": file_type,
-                        "point": settings.QIANTU_POINT,
-                    }
-                    return requests.codes.ok, self.resource
-                except Exception as e:
-                    ding(
-                        "资源获取失败",
-                        error=e,
-                        logger=logging.error,
-                        uid=self.user.uid,
-                        resource_url=self.url,
-                        need_email=True,
-                    )
-                    return requests.codes.server_error, "资源获取失败"
+            if r.status_code != requests.codes.ok:
+                self.err = "资源获取失败"
+                alert(
+                    "千图网资源获取失败",
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                    status_code=r.status_code,
+                    response=r.text,
+                )
+                return
+
+            try:
+                soup = BeautifulSoup(r.text, "lxml")
+
+                title = ""
+                els = soup.select("span.pic-title.fl")
+                if len(els) > 0:
+                    title = els[0].text
+
+                els = soup.select("div.material-info p")
+                size = ""
+                if len(els) >= 3:
+                    size = els[2].string.replace("文件大小：", "")
+
+                file_type = ""
+                if len(els) >= 5:
+                    file_type = els[4].find("span").contents[0]
+
+                tags = [tag.string for tag in soup.select("div.mainRight-tagBox a")]
+                self.resource = {
+                    "title": title,
+                    "size": size,
+                    "tags": tags,
+                    "desc": "",
+                    "file_type": file_type,
+                    "point": settings.QIANTU_POINT,
+                }
+
+            except Exception as e:
+                alert(
+                    "千图网资源获取失败",
+                    exception=e,
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                )
 
     def _download(self):
         headers = {
-            "cookie": self.account.cookies,
+            "cookie": self.download_account_config.get("cookie", ""),
             "referer": self.url,
-            "user-agent": get_random_ua(),
+            "user-agent": browser.get_random_ua(),
         }
-        download_url = self.url.replace(
+        pre_download_url = self.url.replace(
             "https://www.58pic.com/newpic/", "https://dl.58pic.com/"
         )
-        with requests.get(download_url, headers=headers) as r:
+        with requests.get(pre_download_url, headers=headers) as r:
             if r.status_code != requests.codes.ok:
                 self.err = "下载失败"
+                alert(
+                    "千图网资源下载失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    url=self.url,
+                    user=UserSerializers(self.user).data,
+                    pre_download_url=pre_download_url,
+                )
                 return
 
             try:
                 soup = BeautifulSoup(r.text, "lxml")
                 download_url = soup.select("a.clickRecord.autodown")[0]["href"]
                 self.filename = download_url.split("?")[0].split("/")[-1]
-                file = os.path.splitext(self.filename)
-                self.filename_uuid = str(uuid.uuid1()) + file[1]
-                self.filepath = os.path.join(self.save_dir, self.filename_uuid)
                 with requests.get(download_url, stream=True, headers=headers) as r2:
                     if r2.status_code != requests.codes.ok:
                         self.err = "下载失败"
+                        alert(
+                            "千图网资源下载失败",
+                            status_code=r2.status_code,
+                            response=r2.text,
+                            url=self.url,
+                            user=UserSerializers(self.user).data,
+                            download_url=download_url,
+                            pre_download_url=pre_download_url,
+                        )
                         return
 
-                    point = self.resource["point"]
-                    self.user.point -= point
-                    self.user.used_point += point
-                    self.user.save()
-                    PointRecord(
-                        user=self.user,
-                        used_point=point,
-                        comment="下载千图网资源",
-                        url=self.url,
-                        point=self.user.point,
-                    ).save()
-
-                    with open(self.filepath, "wb") as f:
-                        for chunk in r2.iter_content(chunk_size=1024):
-                            if chunk:
-                                f.write(chunk)
+                    self.write_file(r2)
 
             except Exception as e:
-                logging.error(e)
+                alert(
+                    "千图网资源下载失败",
+                    url=self.url,
+                    user=UserSerializers(self.user).data,
+                    exception=e,
+                    pre_download_url=pre_download_url,
+                )
                 self.err = "下载失败"

@@ -1,37 +1,54 @@
 import json
-import logging
-import os
 import re
-import uuid
 from urllib import parse
 
 import requests
 from django.conf import settings
 
-from downloader.models import PointRecord
-from downloader.services.resource import BaseResource
-from downloader.utils import get_random_ua
+from downloader.serializers import UserSerializers
+from downloader.services.resource.base import BaseResource
+from downloader.utils import browser
+from downloader.utils.alert import alert
+from downloader.utils.url import remove_url_query
 
 
 class WenkuResource(BaseResource):
-    def __init__(self, url, user, doc_id):
+    def __init__(self, url, user):
+        url = remove_url_query(url)
         super().__init__(url, user)
-        self.doc_id = doc_id
+
+    def _get_doc_id(self) -> str:
+        # https://wenku.baidu.com/view/e414fc173a3567ec102de2bd960590c69ec3d8f8.html?fr=search_income2
+        doc_id = self.url.split("baidu.com/view/")[1]
+        if doc_id.count(".") > 0:
+            doc_id = doc_id.split(".")[0]
+        self.url = "https://wenku.baidu.com/view/" + doc_id + ".html"
+        return doc_id
 
     def parse(self):
         """
         资源信息获取地址: https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id=
         """
-        logging.info(f"百度文库文档ID: {self.doc_id}")
 
-        get_doc_info_url = f"https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={self.doc_id}"
-        get_vip_free_doc_url = (
-            f"https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={self.doc_id}"
+        doc_id = self._get_doc_id()
+        get_doc_info_url = (
+            f"https://wenku.baidu.com/api/doc/getdocinfo?callback=cb&doc_id={doc_id}"
         )
-        headers = {"user-agent": get_random_ua()}
+        get_vip_free_doc_url = (
+            f"https://wenku.baidu.com/user/interface/getvipfreedoc?doc_id={doc_id}"
+        )
+        headers = {"user-agent": browser.get_random_ua()}
         with requests.get(get_doc_info_url, headers=headers, verify=False) as r:
             if r.status_code != requests.codes.OK:
-                return requests.codes.server_error, "资源获取失败"
+                self.err = "资源获取失败"
+                alert(
+                    "百度文库资源获取失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                )
+                return
 
             try:
                 data = json.loads(r.content.decode()[7:-1])
@@ -40,6 +57,7 @@ class WenkuResource(BaseResource):
                 if doc_info.get("professionalDoc", None) == 1:
                     point = settings.WENKU_SPECIAL_DOC_POINT
                     wenku_type = "VIP专项文档"
+
                 elif doc_info.get("isPaymentDoc", None) == 0:
                     with requests.get(
                         get_vip_free_doc_url, headers=headers, verify=False
@@ -47,11 +65,25 @@ class WenkuResource(BaseResource):
                         try:
                             if r2.status_code != requests.codes.ok:
                                 self.err = "资源获取失败"
+                                alert(
+                                    "百度文库资源获取失败",
+                                    status_code=r2.status_code,
+                                    response=r2.text,
+                                    user=UserSerializers(self.user).data,
+                                    url=self.url,
+                                )
                                 return
 
                             resp = r2.json()
                             if resp["status"]["code"] != 0:
                                 self.err = "资源获取失败"
+                                alert(
+                                    "百度文库资源获取失败",
+                                    status_code=r2.status_code,
+                                    response=r2.text,
+                                    user=UserSerializers(self.user).data,
+                                    url=self.url,
+                                )
                                 return
 
                             if resp["data"]["is_vip_free_doc"]:
@@ -62,9 +94,17 @@ class WenkuResource(BaseResource):
                                 wenku_type = "共享文档"
 
                         except Exception as e:
-                            logging.error(e)
+                            alert(
+                                "百度文库资源获取失败",
+                                status_code=r2.status_code,
+                                response=r2.text,
+                                user=UserSerializers(self.user).data,
+                                url=self.url,
+                                exception=e,
+                            )
                             self.err = "资源获取失败"
                             return
+
                 else:
                     point = None
                     wenku_type = "付费文档"
@@ -81,35 +121,43 @@ class WenkuResource(BaseResource):
                 }
 
             except Exception as e:
-                logging.error(e)
+                alert(
+                    "百度文库资源获取失败",
+                    status_code=r2.status_code,
+                    response=r2.text,
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                    exception=e,
+                )
                 self.err = "资源获取失败"
 
     def _download(self):
-        # 更新用户积分
-        point = self.resource["point"]
-        self.user.point -= point
-        self.user.used_point += point
-        self.user.save()
-        PointRecord(
-            user=self.user,
-            point=self.user.point,
-            comment="下载百度文库文档",
-            url=self.url,
-            used_point=point,
-        ).save()
-
         api = f"{settings.DOWNHUB_SERVER}/parse/wenku"
         payload = {"url": self.url}
         headers = {"token": settings.DOWNHUB_TOKEN}
         with requests.post(api, json=payload, headers=headers) as r:
             if r.status_code != requests.codes.ok:
                 self.err = "下载失败"
+                alert(
+                    "百度文库下载失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    url=self.url,
+                    user=UserSerializers(self.user).data,
+                )
                 return
 
             try:
                 download_url = r.json().get("data", None)
                 if not download_url:
                     self.err = "下载失败"
+                    alert(
+                        "百度文库下载失败",
+                        status_code=r.status_code,
+                        response=r.text,
+                        url=self.url,
+                        user=UserSerializers(self.user).data,
+                    )
                     return
 
                 for queryItem in (
@@ -125,22 +173,35 @@ class WenkuResource(BaseResource):
 
                 if not self.filename:
                     self.err = "下载失败"
+                    alert(
+                        "百度文库下载失败",
+                        status_code=r.status_code,
+                        response=r.text,
+                        url=self.url,
+                        user=UserSerializers(self.user).data,
+                    )
                     return
 
-                file = os.path.splitext(self.filename)
-                self.filename_uuid = str(uuid.uuid1()) + file[1]
-                self.filepath = os.path.join(self.save_dir, self.filename_uuid)
                 with requests.get(download_url, stream=True) as r2:
-                    if r2.status_code == requests.codes.OK:
-                        with open(self.filepath, "wb") as f:
-                            for chunk in r2.iter_content(chunk_size=1024):
-                                if chunk:
-                                    f.write(chunk)
+                    if r2.status_code != requests.codes.OK:
+                        self.err = "下载失败"
+                        alert(
+                            "百度文库下载失败",
+                            status_code=r2.status_code,
+                            response=r2.text,
+                            url=self.url,
+                            user=UserSerializers(self.user).data,
+                            download_url=download_url,
+                        )
                         return
 
-                    self.err = "下载失败"
-                    return
+                    self.write_file(r2)
 
             except Exception as e:
-                logging.error(e)
+                alert(
+                    "百度文库下载失败",
+                    url=self.url,
+                    user=UserSerializers(self.user).data,
+                    exception=e,
+                )
                 self.err = "下载失败"
