@@ -17,6 +17,9 @@ class WenkuResource(BaseResource):
         url = remove_url_query(url)
         super().__init__(url, user)
 
+    def type(self) -> str:
+        return "wenku"
+
     def _get_doc_id(self) -> str:
         # https://wenku.baidu.com/view/e414fc173a3567ec102de2bd960590c69ec3d8f8.html?fr=search_income2
         doc_id = self.url.split("baidu.com/view/")[1]

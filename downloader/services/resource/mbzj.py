@@ -19,6 +19,9 @@ class MbzjResource(BaseResource):
         super().__init__(url, user)
         self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_MBZJ
 
+    def type(self) -> str:
+        return "mbzj"
+
     def parse(self):
         headers = {
             "referer": "http://www.cssmoban.com/",
@@ -57,7 +60,7 @@ class MbzjResource(BaseResource):
     def _download(self):
         # 下载资源
         resource_id = self.url.split("/")[-1].split(".shtml")[0]
-        pre_download_url = "http://vip.cssmoban.com/api/Down"
+        pre_download_url = "http://vip.cssmoban.com/apishenji/Down"
         payload = {
             "userid": self.download_account_config.get("user_id", ""),
             "screkey": self.download_account_config.get("secret_key", ""),

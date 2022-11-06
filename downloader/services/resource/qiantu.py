@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from django.conf import settings
 
 from downloader.models import DOWNLOAD_ACCOUNT_TYPE_QIANTU
@@ -15,6 +16,9 @@ class QiantuResource(BaseResource):
         url = remove_url_query(url)
         super().__init__(url, user)
         self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_QIANTU
+
+    def type(self) -> str:
+        return "qiantu"
 
     def parse(self):
         with requests.get(self.url) as r:
@@ -33,26 +37,18 @@ class QiantuResource(BaseResource):
                 soup = BeautifulSoup(r.text, "lxml")
 
                 title = ""
-                els = soup.select("span.pic-title.fl")
-                if len(els) > 0:
-                    title = els[0].text
+                el = soup.find("title")
+                if el and isinstance(el, Tag):
+                    title = el.text
 
-                els = soup.select("div.material-info p")
-                size = ""
-                if len(els) >= 3:
-                    size = els[2].string.replace("文件大小：", "")
+                desc = ""
+                el = soup.find("meta", attrs={"name": "description"})
+                if el and isinstance(el, Tag):
+                    desc = el.get("content", "")
 
-                file_type = ""
-                if len(els) >= 5:
-                    file_type = els[4].find("span").contents[0]
-
-                tags = [tag.string for tag in soup.select("div.mainRight-tagBox a")]
                 self.resource = {
                     "title": title,
-                    "size": size,
-                    "tags": tags,
-                    "desc": "",
-                    "file_type": file_type,
+                    "desc": desc,
                     "point": settings.QIANTU_POINT,
                 }
 

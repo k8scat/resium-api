@@ -64,15 +64,6 @@ class Resource(Base):
     is_audited = models.SmallIntegerField(default=1, verbose_name="是否通过审核")
     file_md5 = models.CharField(max_length=100, verbose_name="文件的md5值")
 
-    wenku_type = models.CharField(
-        max_length=100, null=True, default=None, verbose_name="百度文库文档类型"
-    )
-    is_docer_vip_doc = models.BooleanField(default=False, verbose_name="是否是稻壳VIP文档")
-
-    local_path = models.CharField(
-        max_length=200, default=None, null=True, verbose_name="资源本地保存路径"
-    )
-
     class Meta:
         db_table = "resource"
 
@@ -104,9 +95,6 @@ class PointRecord(Base):
     add_point = models.IntegerField(default=0, verbose_name="增加积分")
     comment = models.CharField(max_length=100, verbose_name="积分使用备注")
     url = models.CharField(max_length=240, default=None, null=True, verbose_name="链接")
-    resource = models.ForeignKey(
-        Resource, default=None, null=True, on_delete=models.DO_NOTHING
-    )
     is_deleted = models.BooleanField(default=False)
 
     class Meta:

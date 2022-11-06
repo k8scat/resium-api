@@ -23,6 +23,9 @@ class DocerResource(BaseResource):
         super().__init__(url, user)
         self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_DOCER
 
+    def type(self) -> str:
+        return "docer"
+
     def parse(self):
         headers = {
             "referer": "https://www.docer.com/",

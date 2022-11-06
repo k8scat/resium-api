@@ -28,6 +28,9 @@ class CsdnResource(BaseResource):
         super().__init__(url, user)
         self.account_type = DOWNLOAD_ACCOUNT_TYPE_CSDN
 
+    def type(self) -> str:
+        return "csdn"
+
     def parse(self) -> None:
         headers = {
             "authority": "download.csdn.net",

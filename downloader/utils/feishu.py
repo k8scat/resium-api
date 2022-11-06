@@ -75,7 +75,7 @@ def send_message(text, **kwargs):
     headers = {"Authorization": "Bearer " + token}
     payload = {"msg_type": "text", "content": {"text": text}} | kwargs
     with requests.post(url, json=payload, headers=headers) as r:
-        if r.status_code == requests.codes.ok:
+        if r.status_code != requests.codes.ok:
             logging.error(
                 f"failed to send feishu message, code: {r.status_code}, text: {r.text}, payload: {payload}"
             )

@@ -9,7 +9,8 @@ import os
 from time import sleep
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.dev')
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "resium.settings.dev")
 django.setup()
 
 import json
@@ -21,29 +22,33 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.models import CsdnAccount
 
-if __name__ == '__main__':
-    email = '17770040362@163.com'
+if __name__ == "__main__":
+    email = "17770040362@163.com"
     account = CsdnAccount.objects.get(email=email, need_sms_validate=True)
     driver = webdriver.Chrome()
     try:
-        driver.get('https://csdn.net')
+        driver.get("https://csdn.net")
         cookies = json.loads(account.driver_cookies)
         for cookie in cookies:
-            if 'expiry' in cookie:
-                del cookie['expiry']
+            if "expiry" in cookie:
+                del cookie["expiry"]
             driver.add_cookie(cookie)
 
-        driver.get('https://download.csdn.net/download/zdyanshi9/7995337')
+        driver.get("https://download.csdn.net/download/zdyanshi9/7995337")
 
         # 下载
         download_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//a[@class='c_dl_btn download_btn vip_download']"))
+            EC.presence_of_element_located(
+                (By.XPATH, "//a[@class='c_dl_btn download_btn vip_download']")
+            )
         )
         download_button.click()
 
         # 执行下载
         do_download_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//a[@class='dl_btn do_download vip_dl_btn']"))
+            EC.presence_of_element_located(
+                (By.XPATH, "//a[@class='dl_btn do_download vip_dl_btn']")
+            )
         )
         do_download_button.click()
 
@@ -57,7 +62,7 @@ if __name__ == '__main__':
         validate_code_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//input[@id='validate-input']"))
         )
-        validate_code_input.send_keys('212121')
+        validate_code_input.send_keys("212121")
 
         validate_confirm_button = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//button[@id='sms-confirm']"))
@@ -68,4 +73,3 @@ if __name__ == '__main__':
 
     finally:
         driver.close()
-

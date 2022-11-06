@@ -1,9 +1,7 @@
 import logging
-import os
 import random
 import re
 import string
-import uuid
 
 import requests
 from django.conf import settings
@@ -16,10 +14,7 @@ from downloader.serializers import UserSerializers, ResourceSerializers
 from downloader.services.resource.base import BaseResource
 from downloader.services.resource.csdn import CsdnResource
 from downloader.services.resource.docer import DocerResource
-from downloader.services.resource.mbzj import MbzjResource
-from downloader.services.resource.qiantu import QiantuResource
 from downloader.services.resource.wenku import WenkuResource
-from downloader.services.resource.zhiwang import ZhiwangResource
 from downloader.utils import aliyun_oss, file, browser
 from downloader.utils.alert import alert
 
@@ -40,14 +35,14 @@ def new_resource(url: str, user: User) -> BaseResource | None:
     # 知网下载
     # http://kns-cnki-net.wvpn.ncu.edu.cn/KCMS/detail/ 校园
     # https://kns.cnki.net/KCMS/detail/ 官网
-    if re.match(settings.PATTERN_ZHIWANG, url):
-        return ZhiwangResource(url, user)
+    # if re.match(settings.PATTERN_ZHIWANG, url):
+    #     return ZhiwangResource(url, user)
 
-    if re.match(settings.PATTERN_QIANTU, url):
-        return QiantuResource(url, user)
+    # if re.match(settings.PATTERN_QIANTU, url):
+    #     return QiantuResource(url, user)
 
-    if re.match(settings.PATTERN_MBZJ, url):
-        return MbzjResource(url, user)
+    # if re.match(settings.PATTERN_MBZJ, url):
+    #     return MbzjResource(url, user)
 
     return None
 
@@ -111,68 +106,6 @@ def get_oss_resource(url: str) -> Resource | None:
         return resource
 
     except Resource.DoesNotExist:
-        return None
-
-
-def save_resource(
-    resource_url,
-    filename,
-    filepath,
-    resource_info,
-    user,
-    account_id=None,
-    return_url=False,
-):
-    """
-    保存资源记录并上传到OSS
-
-    :param resource_url:
-    :param filename:
-    :param filepath:
-    :param resource_info:
-    :param user: 下载资源的用户
-    :param account_id: 使用的会员账号
-    :param return_url:
-    :return:
-    """
-
-    try:
-        with open(filepath, "rb") as f:
-            file_md5 = file.md5(f)
-
-        # 存储在oss中的key
-        key = str(uuid.uuid1()) + os.path.splitext(filename)[1]
-        aliyun_oss.upload(filepath, key)
-
-        # 资源文件大小
-        size = os.path.getsize(filepath)
-        # django的CharField可以直接保存list，会自动转成str
-        resource = Resource.objects.create(
-            title=resource_info["title"],
-            filename=filename,
-            size=size,
-            url=resource_url,
-            key=key,
-            tags=settings.TAG_SEP.join(resource_info["tags"]),
-            file_md5=file_md5,
-            desc=resource_info["desc"],
-            user=user,
-            wenku_type=resource_info.get("wenku_type", None),
-            is_docer_vip_doc=resource_info.get("is_docer_vip_doc", False),
-            local_path=filepath,
-        )
-        DownloadRecord(
-            user=user,
-            resource=resource,
-            account_id=account_id,
-            used_point=resource_info["point"],
-        ).save()
-
-        if return_url:
-            return aliyun_oss.sign_url(key)
-
-    except Exception as e:
-        logging.error(f"failed to upload resource: {e}")
         return None
 
 

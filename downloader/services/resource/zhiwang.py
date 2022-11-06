@@ -1,7 +1,5 @@
-import logging
 import os
 import re
-import uuid
 
 import requests
 from PIL import Image
@@ -13,8 +11,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
+from downloader.serializers import UserSerializers
 from downloader.services.resource.base import BaseResource
-from downloader.utils import browser, selenium
+from downloader.utils import browser, selenium, rand
+from downloader.utils.alert import alert
 from downloader.utils.browser import check_download
 from downloader.utils.image_recognition import predict_code
 from downloader.utils.url import remove_url_query
@@ -25,11 +25,21 @@ class ZhiwangResource(BaseResource):
         url = remove_url_query(url)
         super().__init__(url, user)
 
+    def type(self) -> str:
+        return "zhiwang"
+
     def parse(self):
         headers = {"referer": self.url, "user-agent": browser.get_random_ua()}
         with requests.get(self.url, headers=headers) as r:
             if r.status_code != requests.codes.ok:
                 self.err = "资源获取失败"
+                alert(
+                    "知网资源获取失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                )
                 return
 
             try:
@@ -54,7 +64,14 @@ class ZhiwangResource(BaseResource):
                 }
 
             except Exception as e:
-                logging.error(e)
+                alert(
+                    "知网资源获取失败",
+                    status_code=r.status_code,
+                    response=r.text,
+                    user=UserSerializers(self.user).data,
+                    url=self.url,
+                    exception=e,
+                )
                 self.err = "资源获取失败"
                 return
 
@@ -66,7 +83,11 @@ class ZhiwangResource(BaseResource):
             self.url,
         )
 
-        driver = selenium.get_driver(self.unique_folder, load_images=True)
+        download_folder = rand.uuid()
+        download_dir = os.path.join(settings.DOWNLOAD_DIR, download_folder)
+        os.makedirs(download_dir, exist_ok=True)
+
+        driver = selenium.get_driver(download_folder, load_images=True)
         try:
             driver.get("http://wvpn.ncu.edu.cn/users/sign_in")
             username_input = WebDriverWait(driver, 10).until(
@@ -147,18 +168,27 @@ class ZhiwangResource(BaseResource):
                     submit_code_button.click()
 
             finally:
-                filename = check_download(self.save_dir)
-                if filename:
-                    self.filename = filename
-                    file = os.path.splitext(self.filename)
-                    self.filename_uuid = str(uuid.uuid1()) + file[1]
-                    self.filepath = os.path.join(self.save_dir, self.filename_uuid)
+                self.filename = check_download(download_dir)
+                if self.filename:
+                    ext = os.path.splitext(self.filename)[1]
+                    self.file_key = rand.uuid() + ext
+                    self.filepath = os.path.join(download_dir, self.file_key)
 
                 else:
                     self.err = "下载失败"
+                    alert(
+                        "知网资源下载失败",
+                        user=UserSerializers(self.user).data,
+                        url=self.url,
+                    )
 
         except Exception as e:
-            logging.error(e)
+            alert(
+                "知网资源下载失败",
+                user=UserSerializers(self.user).data,
+                url=self.url,
+                exception=e,
+            )
             self.err = "下载失败"
 
         finally:

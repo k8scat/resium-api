@@ -299,21 +299,18 @@ def list_resource_tags(request: Request):
 @auth
 @api_view(["POST"])
 def download(request: Request):
-    user = get_user_from_session(request)
-    if not user:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="用户不存在"))
-
     resource_url = request.data.get("url", None)
     if not resource_url:
         return JsonResponse(dict(code=requests.codes.bad_request, msg="资源地址不能为空"))
 
-    key = f"download_limit:{user.uid}"
-    if cache.get(key):
-        return JsonResponse(dict(code=requests.codes.forbidden, msg="请求频率过快，请稍后再试！"))
-
+    user = get_user_from_session(request)
     res = new_resource(resource_url, user)
     if not res:
         return JsonResponse(dict(code=requests.codes.bad_request, msg="下载地址有误"))
+
+    key = f"download_limit:{res.type()}:{user.uid}"
+    if cache.get(key):
+        return JsonResponse(dict(code=requests.codes.forbidden, msg="请求频率过快，请稍后再试！"))
 
     cache.set(key, True, timeout=settings.DOWNLOAD_INTERVAL)
     try:
@@ -331,8 +328,9 @@ def download(request: Request):
         if res.err:
             if isinstance(res.err, dict):
                 return JsonResponse(res.err)
-            else:
-                return JsonResponse(dict(code=requests.codes.server_error, msg=res.err))
+
+            return JsonResponse(dict(code=requests.codes.server_error, msg=res.err))
+
         return JsonResponse(dict(code=requests.codes.ok, url=res.download_url))
 
     finally:
@@ -387,6 +385,8 @@ def parse_resource(request):
     user = User.objects.get(uid=uid)
 
     res = new_resource(resource_url, user)
+    if not res:
+        return JsonResponse(dict(code=requests.codes.bad_request, msg="下载地址有误"))
     res.parse()
     return JsonResponse(dict(code=requests.codes.ok, resource=res.resource))
 
