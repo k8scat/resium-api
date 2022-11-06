@@ -87,3 +87,8 @@ push-image:
 
 add-admin-user:
 	$(python) scripts/add_admin_user.py
+
+format:
+	python -m black downloader/
+	python -m black resium/
+	python -m black scripts/

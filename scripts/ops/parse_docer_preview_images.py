@@ -7,7 +7,8 @@
 """
 import os
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'resium.settings.prod')
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "resium.settings.prod")
 django.setup()
 
 from downloader.models import DocerPreviewImage, Resource
@@ -19,8 +20,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 
-if __name__ == '__main__':
-    resources = Resource.objects.filter(url__icontains='docer.com').all()
+if __name__ == "__main__":
+    resources = Resource.objects.filter(url__icontains="docer.com").all()
     for resource in resources:
         resource_url = resource.url
         if DocerPreviewImage.objects.filter(resource_url=resource_url).count() < 4:
@@ -37,15 +38,14 @@ if __name__ == '__main__':
                 preview_images = []
                 preview_image_models = []
                 for image in all_images:
-                    image_url = image.get_attribute('data-src')
-                    image_alt = image.get_attribute('alt')
-                    preview_images.append({
-                        'url': image_url,
-                        'alt': image_alt
-                    })
-                    preview_image_models.append(DocerPreviewImage(resource_url=resource_url,
-                                                                  url=image_url,
-                                                                  alt=image_alt))
+                    image_url = image.get_attribute("data-src")
+                    image_alt = image.get_attribute("alt")
+                    preview_images.append({"url": image_url, "alt": image_alt})
+                    preview_image_models.append(
+                        DocerPreviewImage(
+                            resource_url=resource_url, url=image_url, alt=image_alt
+                        )
+                    )
                 DocerPreviewImage.objects.bulk_create(preview_image_models)
             finally:
                 driver.close()

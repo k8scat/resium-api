@@ -1,6 +1,7 @@
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5 as PKCS1_cipher
 import base64
+
+from Crypto.Cipher import PKCS1_v1_5 as PKCS1_cipher
+from Crypto.PublicKey import RSA
 
 
 class RSAUtil:
@@ -17,12 +18,12 @@ class RSAUtil:
 
     def encrypt_by_public_key(self, message: str):
         cipher = PKCS1_cipher.new(self.pubkey)
-        result = base64.b64encode(cipher.encrypt(message.encode('utf-8')))
-        return result.decode('utf-8')
+        result = base64.b64encode(cipher.encrypt(message.encode("utf-8")))
+        return result.decode("utf-8")
 
     def decrypt_by_private_key(self, rsa_text: str) -> str:
         cipher = PKCS1_cipher.new(self.privkey)
         result = cipher.decrypt(base64.b64decode(rsa_text), 0)
         if result == 0:
-            return ''
-        return result.decode('utf-8')
+            return ""
+        return result.decode("utf-8")
