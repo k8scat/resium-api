@@ -7,7 +7,7 @@ import requests
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from lxml.etree import strip_tags
+from django.utils.html import strip_tags
 
 from downloader.models import User, Resource, DownloadRecord, PointRecord
 from downloader.serializers import UserSerializers, ResourceSerializers
