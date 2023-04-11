@@ -2,9 +2,11 @@ import logging
 import random
 import re
 import string
+from typing import Dict
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -170,3 +172,37 @@ def upload_csdn_resource(resource: Resource, cookie: str):
                 logging.error(
                     f"failed to upload csdn resource, code: {r.status_code}, text: {r.text}"
                 )
+
+
+def download(url: str, user: User) -> Dict:
+    res = new_resource(url, user)
+    if not res:
+        return dict(code=requests.codes.bad_request, msg="下载地址有误")
+
+    key = f"download_limit:{res.type()}:{user.uid}"
+    if cache.get(key):
+        return dict(code=requests.codes.forbidden, msg="请求频率过快，请稍后再试！")
+
+    cache.set(key, True, timeout=settings.DOWNLOAD_INTERVAL)
+    try:
+        # 检查OSS是否存有该资源
+        oss_resource = get_oss_resource(url)
+        if oss_resource:
+            point = res.resource["point"]
+            if user.point < point:
+                return dict(code=5000, msg="积分不足，请进行捐赠支持。")
+
+            download_url = download_from_oss(oss_resource, user, point)
+            return dict(code=requests.codes.ok, url=download_url)
+
+        res.download()
+        if res.err:
+            if isinstance(res.err, dict):
+                return dict(code=requests.codes.server_error, msg=res.err)
+
+            return dict(code=requests.codes.server_error, msg=res.err)
+
+        return dict(code=requests.codes.ok, url=res.download_url)
+
+    finally:
+        cache.delete(key)

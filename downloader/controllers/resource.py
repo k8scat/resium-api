@@ -30,7 +30,7 @@ from downloader.serializers import (
 from downloader.services.resource.resource import (
     new_resource,
     download_from_oss,
-    get_oss_resource,
+    download as _download
 )
 from downloader.services.user import get_user_from_session
 from downloader.utils import aliyun_oss, selenium
@@ -304,37 +304,9 @@ def download(request: Request):
         return JsonResponse(dict(code=requests.codes.bad_request, msg="资源地址不能为空"))
 
     user = get_user_from_session(request)
-    res = new_resource(resource_url, user)
-    if not res:
-        return JsonResponse(dict(code=requests.codes.bad_request, msg="下载地址有误"))
 
-    key = f"download_limit:{res.type()}:{user.uid}"
-    if cache.get(key):
-        return JsonResponse(dict(code=requests.codes.forbidden, msg="请求频率过快，请稍后再试！"))
-
-    cache.set(key, True, timeout=settings.DOWNLOAD_INTERVAL)
-    try:
-        # 检查OSS是否存有该资源
-        oss_resource = get_oss_resource(resource_url)
-        if oss_resource:
-            point = res.resource["point"]
-            if user.point < point:
-                return JsonResponse(dict(code=5000, msg="积分不足，请进行捐赠支持。"))
-
-            download_url = download_from_oss(oss_resource, user, point)
-            return JsonResponse(dict(code=requests.codes.ok, url=download_url))
-
-        res.download()
-        if res.err:
-            if isinstance(res.err, dict):
-                return JsonResponse(res.err)
-
-            return JsonResponse(dict(code=requests.codes.server_error, msg=res.err))
-
-        return JsonResponse(dict(code=requests.codes.ok, url=res.download_url))
-
-    finally:
-        cache.delete(key)
+    resp = _download(resource_url, user)
+    return JsonResponse(resp)
 
 
 @auth
@@ -350,8 +322,11 @@ def oss_download(request: Request):
         oss_resource = Resource.objects.get(id=resource_id)
         if not aliyun_oss.check_file(oss_resource.key):
             logging.error(f"oss resource not exists: {oss_resource.key}")
-            oss_resource.is_audited = 0
-            oss_resource.save()
+            if re.match(settings.PATTERN_CSDN, oss_resource.url):
+                logging.info(f"retry download resource: {oss_resource.url}")
+                resp = _download(oss_resource.url, user)
+                return JsonResponse(resp)
+
             return JsonResponse(dict(code=requests.codes.not_found, msg="资源不存在"))
 
     except Resource.DoesNotExist:
