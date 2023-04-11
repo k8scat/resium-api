@@ -157,10 +157,9 @@ ALIPAY_WEB_BASE_URL = "https://openapi.alipay.com/gateway.do?"
 
 ALIYUN_ACCESS_KEY_ID = "LTAI4GKsvHSHHuc6uffSsBUE"
 ALIYUN_ACCESS_KEY_SECRET = "IfXJZGPtGUNfSPHGMBEd9c2HFGTyux"
-ALIYUN_OSS_END_POINT = "http://oss-cn-hangzhou.aliyuncs.com"
-ALIYUN_OSS_BUCKET_NAME = "ncucoder"
-ALIYUN_OSS_USER_DOMAIN = "http://cdn.ncucoder.com/"
-ALIYUN_OSS_DOMAIN = "http://ncucoder.oss-cn-hangzhou.aliyuncs.com"
+ALIYUN_OSS_END_POINT = "http://oss-cn-shenzhen.aliyuncs.com"
+ALIYUN_OSS_BUCKET_NAME = "resium"
+ALIYUN_OSS_DOMAIN = "http://resium.oss-cn-shenzhen.aliyuncs.com"
 
 DINGTALK_ACCESS_TOKEN = (
     "c10fd5991b46481142648156bee6dbf48981277a7c6bc803b168f14f047673cc"
