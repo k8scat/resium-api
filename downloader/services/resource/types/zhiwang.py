@@ -12,12 +12,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from downloader.serializers import UserSerializers
-from downloader.services.resource.base import BaseResource
+from downloader.services.resource.types.base import BaseResource
 from downloader.utils import browser, selenium, rand
 from downloader.utils.alert import alert
 from downloader.utils.browser import check_download
 from downloader.utils.image_recognition import predict_code
 from downloader.utils.url import remove_url_query
+
+
+_pattern_zhiwang_url = r"^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$"
 
 
 class ZhiwangResource(BaseResource):
@@ -93,11 +96,11 @@ class ZhiwangResource(BaseResource):
             username_input = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, "user_login"))
             )
-            username_input.send_keys(settings.NCU_VPN_USERNAME)
+            username_input.send_keys(settings.ZHIWANG_VPN_USERNAME)
             password_input = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, "user_password"))
             )
-            password_input.send_keys(settings.NCU_VPN_PASSWORD)
+            password_input.send_keys(settings.ZHIWANG_VPN_PASSWORD)
             submit_button = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (

@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-
 """
-@author: hsowan <hsowan.me@gmail.com>
-@date: 2020/2/10
-
 decorator:
 https://www.liaoxuefeng.com/wiki/1016959663602400/1017451662295584
 https://book.pythontips.com/en/latest/decorators.html#decorators-with-arguments
@@ -13,7 +8,6 @@ https://foofish.net/python-decorator.html
 https://book.pythontips.com/en/latest/args_and_kwargs.html
 
 @auth必须放在@ratelimit后面，因为@ratelimit用的是HttpRequest，而@auth用的是WSGIRequest
-
 """
 import logging
 from functools import wraps

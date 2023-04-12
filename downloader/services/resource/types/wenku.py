@@ -6,10 +6,13 @@ import requests
 from django.conf import settings
 
 from downloader.serializers import UserSerializers
-from downloader.services.resource.base import BaseResource
+from downloader.services.resource.types.base import BaseResource
 from downloader.utils import browser
 from downloader.utils.alert import alert
 from downloader.utils.url import remove_url_query
+
+
+_pattern_webku_url = r"^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$"
 
 
 class WenkuResource(BaseResource):
@@ -19,6 +22,10 @@ class WenkuResource(BaseResource):
 
     def type(self) -> str:
         return "wenku"
+
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        return re.match(_pattern_webku_url, url) is not None
 
     def _get_doc_id(self) -> str:
         # https://wenku.baidu.com/view/e414fc173a3567ec102de2bd960590c69ec3d8f8.html?fr=search_income2

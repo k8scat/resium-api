@@ -5,3 +5,6 @@ logs
 static
 upload
 *.tmp
+
+wx_pay_cert/apiclient*
+rsa_cert/*.pem

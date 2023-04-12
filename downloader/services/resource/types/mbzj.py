@@ -6,10 +6,13 @@ from django.conf import settings
 
 from downloader.models import DOWNLOAD_ACCOUNT_TYPE_MBZJ
 from downloader.serializers import UserSerializers
-from downloader.services.resource.base import BaseResource
+from downloader.services.resource.types.base import BaseResource
 from downloader.utils import browser
 from downloader.utils.alert import alert
 from downloader.utils.url import remove_url_query
+
+
+_pattern_mbzj_url = r"^(http(s)?://www\.cssmoban\.com/(cssthemes|wpthemes|xcxmb)/\d+\.shtml).*$"
 
 
 class MbzjResource(BaseResource):

@@ -15,9 +15,7 @@ from downloader.controllers import (
 
 urlpatterns = [
     # user
-    re_path(r"^wx/?$", user.wx),
     path("get_user/", user.get_user),
-    path("reset_has_check_in_today/", user.reset_has_check_in_today),
     re_path(r"^mp_login/?$", user.mp_login),
     path("save_qr_code/", user.save_qr_code),
     path("scan_code/", user.scan_code),

@@ -2,14 +2,12 @@ import json
 import logging
 import os
 import random
-import re
 import uuid
 from threading import Thread
 from time import sleep
 
 import requests
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -32,6 +30,8 @@ from downloader.services.resource.resource import (
     download_from_oss,
     download as _download
 )
+from downloader.services.resource.types.csdn import CsdnResource
+from downloader.services.resource.types.docer import DocerResource
 from downloader.services.user import get_user_from_session
 from downloader.utils import aliyun_oss, selenium
 from downloader.utils.alert import alert
@@ -151,7 +151,7 @@ def get_resource(request):
         try:
             resource = Resource.objects.get(id=resource_id, is_audited=1)
             preview_images = []
-            if resource.url and re.match(settings.PATTERN_DOCER, resource.url):
+            if resource.url and DocerResource.is_valid_url(resource.url):
                 preview_images = [
                     {"url": preview_image.url, "alt": preview_image.alt}
                     for preview_image in DocerPreviewImage.objects.filter(
@@ -322,7 +322,7 @@ def oss_download(request: Request):
         oss_resource = Resource.objects.get(id=resource_id)
         if not aliyun_oss.check_file(oss_resource.key):
             logging.error(f"oss resource not exists: {oss_resource.key}")
-            if re.match(settings.PATTERN_CSDN, oss_resource.url):
+            if CsdnResource.is_valid_url(oss_resource.url):
                 logging.info(f"retry download resource: {oss_resource.url}")
                 resp = _download(oss_resource.url, user)
                 return JsonResponse(resp)
@@ -484,11 +484,10 @@ def check_docer_existed(request):
         return JsonResponse(dict(code=requests.codes.forbidden))
 
     docer_url = request.data.get("url", "")
-    if re.match(settings.PATTERN_DOCER, docer_url):
+    if DocerResource.is_valid_url(docer_url):
         if docer_url.count("/webmall") > 0:
             docer_url = docer_url.replace("/webmall", "")
         docer_existed = Resource.objects.filter(url=docer_url).count() > 0
         return JsonResponse(dict(code=requests.codes.ok, existed=docer_existed))
 
-    else:
-        return JsonResponse(dict(code=requests.codes.bad_request))
+    return JsonResponse(dict(code=requests.codes.bad_request))

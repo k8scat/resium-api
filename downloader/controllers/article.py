@@ -1,5 +1,4 @@
 import logging
-import re
 
 import requests
 from django.conf import settings
@@ -14,7 +13,7 @@ from downloader.serializers import (
     ArticleSerializers,
     ArticleCommentSerializers,
 )
-from downloader.services.article import parse_article
+from downloader.services.article.article import parse_article, is_csdn_article_url
 from downloader.services.point_record import add_point_record
 from downloader.services.user import get_user_from_session, update_user_point
 from downloader.utils.pagination import parse_pagination_args
@@ -29,7 +28,7 @@ def parse_csdn_article(request: Request):
         return JsonResponse(dict(code=5000, msg="积分不足，请进行捐赠支持。"))
 
     url = request.data.get("url", None)
-    if not re.match(r"^http(s)?://blog\.csdn\.net/.+/article/details/.+$", url):
+    if not is_csdn_article_url(url):
         return JsonResponse(dict(code=requests.codes.bad_request, msg="无效的文章地址"))
     if url.find("?") != -1:
         url = url.split("?")[0]

@@ -4,4 +4,7 @@ WORKDIR /data/resium-api
 EXPOSE 8000
 COPY . .
 RUN chmod +x ./entrypoint.sh
+
+VOLUME [ "/data/resium-api/wx_pay_cert", "" ]
+
 ENTRYPOINT [ "./entrypoint.sh" ]

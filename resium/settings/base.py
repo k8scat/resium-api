@@ -19,9 +19,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ")_du2k%k)d+hmofh_c071maigkuppa6jszwbm%3_47uw3xu%oc"
-
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
@@ -105,14 +102,6 @@ STATIC_URL = "/static/"
 # 用于 python manage.py collectstatic
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
-EMAIL_HOST = "smtp.exmail.qq.com"
-EMAIL_PORT = 465
-EMAIL_HOST_USER = "support@huayin.io"
-EMAIL_HOST_PASSWORD = "dg5xmNfHKm9QuChV"
-EMAIL_USE_SSL = True
-DEFAULT_FROM_EMAIL = f"华隐软件 <{EMAIL_HOST_USER}>"
-ADMIN_EMAIL = "1583096683@qq.com"
-
 # https://github.com/adamchainz/django-cors-headers
 CORS_ALLOW_METHODS = [
     "DELETE",
@@ -137,9 +126,6 @@ CORS_ORIGIN_ALLOW_ALL = True
 # 暴露给前端的header
 CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
-CSDN_COOKIES_FILE = os.path.join(BASE_DIR, "csdn_cookies.json")
-BAIDU_COOKIES_FILE = os.path.join(BASE_DIR, "baidu_cookies.json")
-
 REQUEST_TOKEN_HEADER = "Authorization"
 REQUEST_TOKEN_PREFIX = "Bearer "
 
@@ -148,46 +134,11 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "upload")
 if not os.path.isdir(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-JWT_SECRET = "yJzb21lIjoicGF5bG9hZCJ"
-
-ALIPAY_APP_ID = "2021001164668010"
-ALIPAY_APP_PRIVATE_KEY_FILE = os.path.join(BASE_DIR, "alipay_app_private_key.pem")
-ALIPAY_PUBLIC_KEY_FILE = os.path.join(BASE_DIR, "alipay_public_key.pem")
-ALIPAY_WEB_BASE_URL = "https://openapi.alipay.com/gateway.do?"
-
-ALIYUN_ACCESS_KEY_ID = "LTAI4GKsvHSHHuc6uffSsBUE"
-ALIYUN_ACCESS_KEY_SECRET = "IfXJZGPtGUNfSPHGMBEd9c2HFGTyux"
-ALIYUN_OSS_END_POINT = "http://oss-cn-shenzhen.aliyuncs.com"
-ALIYUN_OSS_BUCKET_NAME = "resium"
-ALIYUN_OSS_DOMAIN = "http://resium.oss-cn-shenzhen.aliyuncs.com"
-
-DINGTALK_ACCESS_TOKEN = (
-    "c10fd5991b46481142648156bee6dbf48981277a7c6bc803b168f14f047673cc"
-)
-DINGTALK_SECRET = "SEC0fde189fef95beb0d23a5469cccfc74c9d0da70b104cdd256cafa2a31fb7b723"
-
-# 管理员凭证
-ADMIN_TOKEN = "csSM0Aw4NrvpZfxDEtbB3mPCWVUK52OnQik9djuLz1Ih8aToGJ"
-
 SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
         "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
     }
 }
-
-# 微信公众号
-WX_APP_SECRET = "2fe6a20c1ea55e57952c7f7baa721acb"
-WX_TOKEN = "6zOpjsMV15xWihocay4grCRPY82EQS7m"
-WX_APP_ID = "wx687355ca576bb3d2"
-WX_ENCODING_AES_KEY = "L32ggf9lyXAC7Noc37I3OrPLPW8HqzS6rgb9hC4ImNW"
-
-# 微信小程序
-WX_MP_APP_ID = "wxbdad878a32644dca"
-WX_MP_APP_SECRET = "91b3ad866563bf2c4248689e4edbdad8"
-
-# 微信支付
-WX_PAY_MP_APP_ID = "wx909d8ff5894ec49b"
-WX_PAY_MP_APP_SECRET = "fd9533054324c786d7eb7f5dcaf4779e"
 
 # 资源积分
 WENKU_VIP_FREE_DOC_POINT = 10
@@ -204,19 +155,10 @@ PUDN_POINT = 10
 ITEYE_POINT = CSDN_POINT
 MBZJ_POINT = 10
 
-# http://www.fateadm.com/user_home.php
-# hsowan.me@gmail.com
-PD_ID = "120959"
-PD_KEY = "pxnfBZw6RfkAXOh5uOygeHoCy52e6wRp"
-
 ZHIWANG_SCREENSHOT_IMAGE = os.path.join(BASE_DIR, "zhiwang_screenshot.png")
 ZHIWANG_CODE_IMAGE = os.path.join(BASE_DIR, "zhiwang_code.png")
 WENKU_SCREENSHOT_IMAGE = os.path.join(BASE_DIR, "wenku_screenshot.png")
 WENKU_CODE_IMAGE = os.path.join(BASE_DIR, "wenku_code.png")
-
-# 用于登录学校VPN
-NCU_VPN_USERNAME = "8000116092"
-NCU_VPN_PASSWORD = "holdon7868"
 
 # 资源下载间隔, 单位s
 DOWNLOAD_INTERVAL = 60
@@ -280,64 +222,14 @@ LOGGING = {
     },
 }
 
-PATTERN_CSDN = r"^(http(s)?://download\.csdn\.net/(download|detail)/).+/\d+$"
-PATTERN_WENKU = r"^(http(s)?://w(en)?k(u)?\.baidu\.com/view/).+$"
-PATTERN_DOCER = r"^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$"
-PATTERN_ZHIWANG = r"^(http(s)?://kns(8)?\.cnki\.net/KCMS/detail/).+$"
-PATTERN_QIANTU = r"^(http(s)?://www\.58pic\.com/newpic/)\d+(\.html)$"
-PATTERN_PUDN = r"^http(s)?://www\.pudn\.com/Download/item/id/\d+\.html$"
-PATTERN_ITEYE = r"^http(s)?://www\.iteye\.com/resource/.+-\d+$"
-PATTERN_MBZJ = (
-    r"^(http(s)?://www\.cssmoban\.com/(cssthemes|wpthemes|xcxmb)/\d+\.shtml).*$"
-)
-
-BAIDU_DWZ_TOKEN = "599899227931471a4e48c50e92495880"
-
-# https://connect.qq.com/manage.html#/appinfo/web/101864025
-QQ_CLIENT_ID = "101864025"
-QQ_CLIENT_SECRET = "be9503e910cd150287453f0a0bcce9bc"
-QQ_REDIRECT_URI = "https://api.resium.ncucoder.com/oauth/qq"
-
 # OAuth重定向时的cookie键
 JWT_COOKIE_KEY = "token"
 
 # 二维码有效期为5分钟
 QR_CODE_EXPIRE = 300
 
-WX_PAY_APP_ID = WX_APP_ID  # 微信公众号 appid，使用未认证的appid
-WX_PAY_SUB_APP_ID = WX_PAY_MP_APP_ID  # 当前调起支付的小程序APPID
-WX_PAY_MCH_ID = "1593040541"
-WX_PAY_API_KEY = "N4tcdilXJOLEQkwb9h1KIxYn6BTDvRm7"  # 商户 key
-WX_PAY_MCH_CERT = os.path.join(
-    os.path.join(BASE_DIR, "wx_pay_cert"), "apiclient_cert.pem"
-)
-WX_PAY_MCH_KEY = os.path.join(
-    os.path.join(BASE_DIR, "wx_pay_cert"), "apiclient_key.pem"
-)
-
 CSDN_DOWNLOADING_KEY = "csdn_downloading"
 CSDN_DOWNLOADING_MAX_TIME = 300
-
-QINIU_ACCESS_KEY = "Adx9fTjienPcF8duV2nQQxZUUt33P4aHPAMbO8a2"
-QINIU_SECRET_KEY = "orLcntGa69dqdrgo8HCsnjR_YjGgpSchVsIV3v7g"
-QINIU_OPEN_BUCKET = "ncucoder"
-QINIU_OPEN_DOMAIN = "cdn.qiniu.ncucoder.com"
-
-ADMIN_UID = ["666666"]
-
-# https://open.feishu.cn/document/uQjL04CN/uYTMuYTMuYTM
-FEISHU_APP_ID = "cli_9fa469f57e2c900e"
-FEISHU_APP_SECRET = "zmmz9FT8Hro4yFOK8TfMIdXzvfChRur3"
-FEISHU_APP_VERIFICATION_TOKEN = "lGNcI2MU2r645g7uH0xJjdyd2jc3npJb"
-FEISHU_APP_ENCRYPT_KEY = "n5z0Rp2yeLMOdwwWpkgqXfjtiIuUneMf"
-FEISHU_USER_ID = "819d28c8"
-FEISHU_TOKEN_INTERVAL = 3600
-FEISHU_TOKEN_CACHE_KEY = "feishu:token"
-
-ADMIN_CSDN_ACCOUNTS = ["65634914", "79337844"]
-
-RSA_PRIVKEY_FILE = os.path.join(BASE_DIR, "private-key.pem")
-RSA_PUBKEY_FILE = os.path.join(BASE_DIR, "public-key.pem")
 
 FILE_TYPES = {
     "1": "DOC",

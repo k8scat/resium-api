@@ -1,3 +1,5 @@
+import re
+
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -11,10 +13,13 @@ from downloader.models import (
     DOWNLOAD_ACCOUNT_TYPE_DOCER,
 )
 from downloader.serializers import UserSerializers
-from downloader.services.resource.base import BaseResource
+from downloader.services.resource.types.base import BaseResource
 from downloader.utils import browser, selenium
 from downloader.utils.alert import alert
 from downloader.utils.url import remove_url_query
+
+
+_pattern_docer_url = r"^(http(s)?://www\.docer\.com/(webmall/)?preview/).+$"
 
 
 class DocerResource(BaseResource):
@@ -25,6 +30,10 @@ class DocerResource(BaseResource):
 
     def type(self) -> str:
         return "docer"
+
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        return re.match(_pattern_docer_url, url) is not None
 
     def parse(self):
         headers = {

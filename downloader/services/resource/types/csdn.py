@@ -12,21 +12,30 @@ from downloader.models import (
     DOWNLOAD_ACCOUNT_TYPE_CSDN,
 )
 from downloader.serializers import UserSerializers
-from downloader.services.resource.base import BaseResource
+from downloader.services.resource.types.base import BaseResource
 from downloader.utils import browser
 from downloader.utils.alert import alert
 from downloader.utils.url import remove_url_query
 
 
+_pattern_csdn_url = r"^(http(s)?://download\.csdn\.net/(download|detail)/).+/\d+$"
+_pattern_iteye_url = r"^http(s)?://www\.iteye\.com/resource/.+-\d+$"
+
+
 class CsdnResource(BaseResource):
     def __init__(self, url, user):
         url = remove_url_query(url)
-        if re.match(settings.PATTERN_ITEYE, url):
+        if re.match(_pattern_iteye_url, url):
             url = "https://download.csdn.net/download/" + url.split("resource/")[
                 1
             ].replace("-", "/")
         super().__init__(url, user)
-        self.account_type = DOWNLOAD_ACCOUNT_TYPE_CSDN
+        self.download_account_type = DOWNLOAD_ACCOUNT_TYPE_CSDN
+
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        return re.match(_pattern_csdn_url, url) is not None or \
+            re.match(_pattern_iteye_url, url) is not None
 
     def type(self) -> str:
         return "csdn"

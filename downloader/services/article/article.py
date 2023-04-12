@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Tuple
 
 import requests
@@ -15,6 +16,9 @@ from downloader.models import (
     User,
 )
 from downloader.utils import browser
+
+
+_pattern_csdn_article_url = r"^http(s)?://blog\.csdn\.net/.+/article/details/.+$"
 
 
 def parse_article(url: str, user: User) -> Tuple[Article] | None:
@@ -59,8 +63,6 @@ def parse_article(url: str, user: User) -> Tuple[Article] | None:
                 if len(els) > 0:
                     author = els[0].string
                 # 作者获取失败: https://blog.csdn.net/jiqiren_dasheng/article/details/103758891
-                if not author:
-                    author = "hsowan"
 
                 # 文章内容
                 content = ""
@@ -103,3 +105,7 @@ def parse_article(url: str, user: User) -> Tuple[Article] | None:
     except Exception as e:
         logging.error(f"failed to parse article: {e}")
         return None
+
+
+def is_csdn_article_url(url: str) -> bool:
+    return re.match(_pattern_csdn_article_url, url) is not None

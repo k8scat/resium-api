@@ -23,15 +23,15 @@ from downloader.utils.alert import alert
 
 def new_resource(url: str, user: User) -> BaseResource | None:
     # CSDN资源
-    if re.match(settings.PATTERN_CSDN, url) or re.match(settings.PATTERN_ITEYE, url):
+    if CsdnResource.is_valid_url(url):
         return CsdnResource(url, user)
 
     # 百度文库文档
-    if re.match(settings.PATTERN_WENKU, url):
+    if WenkuResource.is_valid_url(url):
         return WenkuResource(url, user)
 
     # 稻壳模板
-    if re.match(settings.PATTERN_DOCER, url):
+    if DocerResource.is_valid_url(url):
         return DocerResource(url, user)
 
     # 知网下载
@@ -109,69 +109,6 @@ def get_oss_resource(url: str) -> Resource | None:
 
     except Resource.DoesNotExist:
         return None
-
-
-def upload_csdn_resource(resource: Resource, cookie: str):
-    if not re.match(settings.PATTERN_CSDN, resource.url):
-        headers = {
-            "cookie": cookie,
-            "user-agent": browser.get_random_ua(),
-            "referer": "https://download.csdn.net/upload",
-            "origin": "https://download.csdn.net",
-        }
-        # 将资源与其他文件进行压缩，获得到不同的MD5
-        filepath = file.zip_file(resource.local_path)
-        file_md5 = file.md5(open(filepath, "rb"))
-        title = (
-            resource.title
-            + f"[{''.join(random.sample(string.digits + string.ascii_letters, 6))}]"
-        )
-        tags = resource.tags.replace(settings.TAG_SEP, ",").split(",")
-        if len(tags) > 5:
-            tags = ",".join(tags[:5])
-        elif len(tags) == 1 and tags[0] == "":
-            # 存在没有tag的情况
-            # ''.split(',') => ['']
-            tags = "好资源"
-        else:
-            tags = ",".join(tags)
-
-        if len(resource.desc) < 50:
-            desc = (
-                '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
-                + resource.desc
-            )
-        elif re.match(settings.PATTERN_DOCER, resource.url):
-            desc = '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
-        else:
-            desc = (
-                '源自开发者，关注"源自开发者"公众号，每天更新Python、Django、爬虫、Vue.js、Nuxt.js、ViewUI、Git、CI/CD、Docker、公众号开发、浏览器插件开发等技术分享。 '
-                + resource.desc
-            )
-
-        payload = {
-            "fileMd5": file_md5,
-            "sourceid": "",
-            "file_title": title,
-            "file_type": 4,
-            "file_primary": 15,  # 课程资源
-            "file_category": 15012,  # 专业指导
-            "resource_score": 5,
-            "file_tag": tags,
-            "file_desc": desc,
-            "cb_agree": True,
-        }
-        files = [("user_file", open(filepath, "rb"))]
-        with requests.post(
-            "https://download.csdn.net/upload",
-            headers=headers,
-            data=payload,
-            files=files,
-        ) as r:
-            if r.status_code != requests.codes.OK:
-                logging.error(
-                    f"failed to upload csdn resource, code: {r.status_code}, text: {r.text}"
-                )
 
 
 def download(url: str, user: User) -> Dict:

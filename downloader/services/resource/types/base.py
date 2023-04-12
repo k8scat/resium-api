@@ -43,6 +43,10 @@ class BaseResource:
     def type(self) -> str:
         raise NotImplementedError
 
+    @staticmethod
+    def is_valid_url(url: str) -> bool:
+        raise NotImplementedError
+
     def _init_download_account(self):
         """初始下载账号"""
         if not self.download_account_type:
