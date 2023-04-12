@@ -1,0 +1,15 @@
+static
+migrate
+Dockerfile
+.gitignore
+.dockerignore
+.editorconfig
+.github
+.venv
+images
+logs
+Makefile
+requirements-dev.txt
+pyproject.toml
+README.md
+base.Dockerfile
