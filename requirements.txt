@@ -28,7 +28,7 @@ MarkupSafe==1.1.1
 optionaldict==0.1.2
 oss2==2.9.1
 packaging==20.9
-Pillow==8.3.2
+Pillow==9.3.0
 pycparser==2.20
 pycryptodome==3.10.1
 pycryptodomex==3.9.4
