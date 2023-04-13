@@ -56,26 +56,6 @@ class ResourceAdmin(admin.ModelAdmin):
     search_fields = ["title", "key", "url"]
 
 
-@admin.register(CsdnAccount)
-class CsdnAccountAdmin(admin.ModelAdmin):
-    list_display = ("id", "is_enabled", "used_count", "update_time")
-    list_per_page = 50
-
-
-@admin.register(BaiduAccount)
-class BaiduAccountAdmin(admin.ModelAdmin):
-    list_display = ("id", "is_enabled", "email", "update_time")
-    list_per_page = 50
-    search_fields = ["email", "nickname", "username"]
-
-
-@admin.register(DocerAccount)
-class DocerAccountAdmin(admin.ModelAdmin):
-    list_display = ("id", "is_enabled", "email", "used_count", "update_time")
-    list_per_page = 50
-    search_fields = ["email"]
-
-
 @admin.register(Advert)
 class AdvertAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "link", "image")
@@ -88,24 +68,6 @@ class ArticleAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "title", "url")
     list_per_page = 50
     search_fields = ["title", "url", "author"]
-
-
-@admin.register(CheckInRecord)
-class CheckInRecordAdmin(admin.ModelAdmin):
-    list_display = ("id", "create_time", "user", "point")
-    list_per_page = 50
-
-
-@admin.register(TaobaoWenkuAccount)
-class TaobaoWenkuAccountAdmin(admin.ModelAdmin):
-    list_display = ("id", "is_enabled", "account", "password")
-    list_per_page = 50
-
-
-@admin.register(DocConvertRecord)
-class DocConvertRecordAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "download_url", "point")
-    list_per_page = 50
 
 
 admin.site.site_header = "源自下载后台"

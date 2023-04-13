@@ -7,3 +7,4 @@ __pycache__
 logs
 static
 upload
+resium/settings/prod.py

@@ -106,15 +106,6 @@ class ArticleSerializers(serializers.ModelSerializer):
         ]
 
 
-class UploadRecordSerializers(serializers.ModelSerializer):
-    title = serializers.CharField(source="resource.title")
-    is_audited = serializers.IntegerField(source="resource.is_audited")
-
-    class Meta:
-        model = UploadRecord
-        fields = ["id", "create_time", "title", "is_audited"]
-
-
 class PointRecordSerializers(serializers.ModelSerializer):
     class Meta:
         model = PointRecord

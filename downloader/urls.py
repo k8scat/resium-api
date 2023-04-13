@@ -6,7 +6,6 @@ from downloader.controllers import (
     service,
     order,
     advert,
-    feishu,
     download_record,
     article,
     notice,
@@ -41,9 +40,7 @@ urlpatterns = [
     # resource
     path("oss_download/", resource.oss_download),
     path("download/", resource.download),
-    path("upload/", resource.upload),
     re_path(r"^check_file/?$", resource.check_file),
-    path("list_uploaded_resources/", resource.list_uploaded_resources),
     re_path(r"^get_resource/?$", resource.get_resource),
     re_path(r"^list_resource_comments/?$", resource.list_resource_comments),
     path("create_resource_comment/", resource.create_resource_comment),
@@ -52,8 +49,6 @@ urlpatterns = [
     path("get_resource_count/", resource.get_resource_count),
     re_path(r"^parse_resource/?$", resource.parse_resource),
     path("check_resource_existed/", resource.check_resource_existed),
-    path("doc_convert/", resource.doc_convert),
-    path("check_docer_existed/", resource.check_docer_existed),
     # advert
     re_path(r"^get_random_advert/?$", advert.get_random_advert),
     path("list_mp_swiper_ads/", advert.list_mp_swiper_ads),
@@ -67,8 +62,6 @@ urlpatterns = [
     # 公告
     path("get_notice/", notice.get_notice),
     path("update_notice/", notice.update_notice),
-    # 飞书机器人
-    path("feishu_bot/", feishu.bot),
     # 版本
     path("create_version/", version.create_version),
     path("get_version/", version.get_latest_version),

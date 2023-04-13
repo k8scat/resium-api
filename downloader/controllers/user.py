@@ -1,10 +1,8 @@
 import datetime
-import hashlib
 import json
 import logging
 import re
 import time
-import uuid
 from urllib.parse import quote, unquote
 
 import requests
@@ -18,21 +16,10 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
-from wechatpy import parse_message
-from wechatpy.crypto import WeChatCrypto
-from wechatpy.events import UnsubscribeEvent, SubscribeEvent
-from wechatpy.messages import TextMessage
-from wechatpy.replies import TextReply, EmptyReply
 
 from downloader.decorators import auth
 from downloader.models import (
     User,
-    Order,
-    DownloadRecord,
-    Resource,
-    ResourceComment,
-    Article,
-    CheckInRecord,
     QrCode,
     PointRecord,
 )
@@ -40,17 +27,8 @@ from downloader.utils.rsa import RSAUtil
 from downloader.serializers import UserSerializers, PointRecordSerializers
 from downloader.services.user import get_user_from_session
 
-# from downloader.utils import (
-#     ding,
-#     send_email,
-#     generate_uid,
-#     generate_jwt,
-#     get_random_int,
-#     get_random_str,
-# )
 from downloader.utils import rand, jwt
 from downloader.utils.alert import alert
-from downloader.utils.email import send_email
 from downloader.utils.pagination import parse_pagination_args
 
 
