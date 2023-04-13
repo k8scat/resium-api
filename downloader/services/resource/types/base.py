@@ -49,7 +49,8 @@ class BaseResource:
 
     def _init_download_account(self):
         """初始下载账号"""
-        if not self.download_account_type:
+        if self.download_account_type is None:
+            self.err = "download_account_type not set"
             return
 
         try:
