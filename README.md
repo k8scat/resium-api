@@ -4,6 +4,11 @@
 
 <img src="./images/mp_qrcode.jpg">
 
+## Projects
+
+- [resium-app](https://github.com/k8scat/resium-app)
+- [resium-downhub](https://github.com/k8scat/resium-downhub)
+
 ## License
 
 [MIT](./LICENSE)
