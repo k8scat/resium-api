@@ -13,7 +13,8 @@ RUN apk add --no-cache \
         libxslt-dev \
         tzdata
 RUN pip install -U pip \
-    && pip install -r requirements.txt
+    && pip install -r requirements.txt \
+    && python manage.py collectstatic
 RUN chmod +x ./entrypoint.sh
 EXPOSE 8000
 ENTRYPOINT [ "./entrypoint.sh" ]
