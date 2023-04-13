@@ -9,78 +9,27 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Get version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          release_name: ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
-
-  collectstatic:
-    name: Collect static
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python 3.10.8
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10.8"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          make install-requirements
-
-      - name: Collect static
-        run: make collectstatic
-
-      - name: Get version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
-      - name: Package
-        working-directory: .
-        run: tar zcvf static-${{ steps.get_version.outputs.VERSION }}.tar.gz static
-
-      - name: Upload assets
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: static-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_name: static-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_content_type: application/gzip
-
-  build_image:
-    name: Build image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build
-        run: |
-          make \
-            login-cr \
-            build-image \
-            push-image \
-            cr_password=${{ secrets.GITHUB_TOKEN }} \
-            image_version=${{ steps.get_version.outputs.VERSION }}
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Login CR
+        run: make login-cr cr_password=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: make build-image image_version=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Push image
+        run: make push-image image_version=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Logout CR
+        run: make logout-cr
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
