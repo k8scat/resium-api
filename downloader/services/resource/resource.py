@@ -13,11 +13,11 @@ from django.utils.html import strip_tags
 
 from downloader.models import User, Resource, DownloadRecord, PointRecord
 from downloader.serializers import UserSerializers, ResourceSerializers
-from downloader.services.resource.base import BaseResource
-from downloader.services.resource.csdn import CsdnResource
-from downloader.services.resource.docer import DocerResource
-from downloader.services.resource.wenku import WenkuResource
-from downloader.utils import aliyun_oss, file, browser
+from downloader.services.resource.types.base import BaseResource
+from downloader.services.resource.types.csdn import CsdnResource
+from downloader.services.resource.types.docer import DocerResource
+from downloader.services.resource.types.wenku import WenkuResource
+from downloader.utils import aliyun_oss
 from downloader.utils.alert import alert
 
 
